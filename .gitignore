@@ -1,0 +1,9 @@
+*.pyc
+/.cache/
+/.coverage*
+/.tox/
+/build/
+/dist/
+/odcs.egg-info/
+*swp
+tests/test_odcs.db

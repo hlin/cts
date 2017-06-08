@@ -1,0 +1,3 @@
+#!/bin/bash
+
+PYTHONPATH=. ODCS_DEVELOPER_ENV=1 python odcs/manage.py runssl
