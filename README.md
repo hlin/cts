@@ -13,6 +13,10 @@ In the mid-/long-term, Fedora releng would like to generate the main compose fro
 Current composes are also not event-based. For example in Fedora, the composes are built even when nothing changed on input side of a compose.
 
 
+## Dependencies
+
+On top of the classic `requirements.txt`, ODCS depends on Pungi (https://pagure.io/pungi/) in version 4.1.15 or newer.
+
 ## Unit-testing
 
 ```
