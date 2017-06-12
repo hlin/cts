@@ -1,7 +1,10 @@
 # On Demand Compose Service
 
 Currently, there is no API which can be used by other services or even people to generate temporary composes with limited content. There is increasing need for such composes from various reasons:
+
 To rebuild Docker images automatically with updated packages (for example when there is OpenSSL security update), we need a repository containing the updated packages, so we can point Koji to take the packages from these repositories without waiting for the packages to appear in the official public repository.
+
+
 To test modules right after the build, QA team needs a compose containing the built module together with all the modules this module depends on, so QA team is able to install the module and run the tests.
  
 Furthermore:
