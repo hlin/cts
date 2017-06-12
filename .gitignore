@@ -7,3 +7,4 @@
 /odcs.egg-info/
 *swp
 tests/test_odcs.db
+odcs.db

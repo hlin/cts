@@ -34,7 +34,9 @@ from odcs.poller import create_poller
 manager = Manager(app)
 help_args = ('-?', '--help')
 manager.help_args = help_args
-migrate = flask_migrate.Migrate(app, db)
+migrations_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                'migrations')
+migrate = flask_migrate.Migrate(app, db, directory=migrations_dir)
 manager.add_command('db', flask_migrate.MigrateCommand)
 
 

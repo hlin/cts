@@ -1,0 +1,3 @@
+#!/bin/bash
+
+curl --data "{\"source_type\": \"$1\", \"source\": \"$2\"}" localhost:5005/odcs/1/composes/
