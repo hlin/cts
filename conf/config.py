@@ -1,4 +1,4 @@
-from os import path
+from os import path, mkdir
 
 
 # FIXME: workaround for this moment till confdir, dbdir (installdir etc.) are
@@ -44,6 +44,11 @@ class DevConfiguration(BaseConfiguration):
     # Global network-related values, in seconds
     NET_TIMEOUT = 5
     NET_RETRY_INTERVAL = 1
+    TARGET_DIR = path.join(dbdir, "test_composes")
+    try:
+        mkdir(TARGET_DIR)
+    except:
+        pass
 
 
 class TestConfiguration(BaseConfiguration):

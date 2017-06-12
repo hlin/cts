@@ -60,7 +60,7 @@ def generate_compose(compose_id):
             log.info("%r: Starting compose generation", compose)
 
             pungi_cfg = PungiConfig(compose.owner, "1", compose.source_type,
-                                    compose.source)
+                                    compose.source, packages=compose.packages.split(" "))
             pungi = Pungi(pungi_cfg)
             pungi.run()
 
@@ -106,6 +106,8 @@ class ODCSAPI(MethodView):
             source_type = PungiSourceType.MODULE
         elif source_type == "tag":
             source_type = PungiSourceType.KOJI_TAG
+        elif source_type == "repo":
+            source_type = PungiSourceType.REPO
         else:
             err = "Unknown source_type %s" % source_type
             log.error(err)
@@ -123,9 +125,14 @@ class ODCSAPI(MethodView):
             seconds_to_live = max(int(seconds_to_live),
                                   conf.max_seconds_to_live)
 
+        packages = None
+        if "packages" in data:
+            packages = data["packages"]
+
         compose = Compose.create(
             db.session, owner, source_type, source,
-            COMPOSE_RESULTS["repository"], seconds_to_live)
+            COMPOSE_RESULTS["repository"], seconds_to_live,
+            ' '.join(packages))
         db.session.add(compose)
         db.session.commit()
 

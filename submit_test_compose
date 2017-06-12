@@ -1,3 +1,9 @@
 #!/bin/bash
 
+if [ $# -gt 2 ]
+then
+	curl --data "{\"source_type\": \"$1\", \"source\": \"$2\", \"packages\": [\"$3\"]}" localhost:5005/odcs/1/composes/
+	exit 0
+fi
+
 curl --data "{\"source_type\": \"$1\", \"source\": \"$2\"}" localhost:5005/odcs/1/composes/

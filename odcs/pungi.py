@@ -31,6 +31,7 @@ import odcs.utils
 class PungiSourceType:
     KOJI_TAG = 1
     MODULE = 2
+    REPO = 3
 
 
 class PungiConfig(object):
@@ -50,22 +51,26 @@ class PungiConfig(object):
             self.arches = arches
         else:
             self.arches = conf.arches
-        self.packages = packages
+        self.packages = packages or []
 
         if source_type == PungiSourceType.KOJI_TAG:
             self.koji_tag = source
-            self.gather_source = "json"
+            self.gather_source = "comps"
             self.gather_method = "deps"
         elif source_type == PungiSourceType.MODULE:
             # We have to set koji_tag to something even when we are not using
             # it.
-            self.koji_tag = "not-used"
+            self.koji_tag = None
             self.gather_source = "module"
             self.gather_method = "nodeps"
 
             if self.packages:
                 raise ValueError("Exact packages cannot be set for MODULE "
                                  "source type.")
+        elif source_type == PungiSourceType.REPO:
+            self.gather_source = "comps"
+            self.gather_method = "deps"
+            self.koji_tag = None
         else:
             raise ValueError("Unknown source_type %r" % source_type)
 
@@ -78,11 +83,25 @@ class PungiConfig(object):
         if not self.sigkeys:
             return "sigkeys = [None]\n"
 
+    def _get_pkgset(self):
+        ret = ""
+        if self.source_type == PungiSourceType.REPO:
+            ret += "pkgset_source = 'repos'\n"
+            ret += "pkgset_repos = {\n"
+            for arch in self.arches:
+                ret += "'%s': [\n" % arch
+                ret += "   '%s',\n" % self.source
+                ret += "],\n"
+            ret += "}\n"
+        else:
+            ret += "pkgset_source = 'koji'\n"
+            ret += "pkgset_koji_tag = '%s'\n" % self.koji_tag
+            ret += "pkgset_koji_inherit = False\n"
+
+        return ret
+
     def get_comps_config(self):
         if self.source_type == PungiSourceType.MODULE:
-            return ""
-
-        if not self.packages:
             return ""
 
         cfg = """<?xml version="1.0" encoding="UTF-8"?>
@@ -91,7 +110,7 @@ class PungiConfig(object):
   <group>
     <id>odcs-group</id>
     <name>odcs-group</name>
-    <description>ODCS compose default group/description>
+    <description>ODCS compose default group</description>
     <default>false</default>
     <uservisible>true</uservisible>
     <packagelist>
@@ -103,6 +122,7 @@ class PungiConfig(object):
         cfg += """
     </packagelist>
   </group>
+</comps>
 """
 
         return cfg
@@ -130,7 +150,7 @@ class PungiConfig(object):
                 cfg += "            <group default=\"true\">odcs-group</group>\n"
                 cfg += "        </groups>"
         cfg += """    </variant>
-        </variants>
+</variants>
 """
 
         return cfg
@@ -160,17 +180,15 @@ pdc_insecure = {pdc_insecure}
 pdc_develop = {pdc_develop}
 
 # PKGSET
-pkgset_source = 'koji'
-
-# PKGSET - KOJI
-pkgset_koji_tag = '{koji_tag}'
-pkgset_koji_inherit = False
+{pkgset}
 
 filter_system_release_packages = False
 
 # GATHER
 gather_source = '{gather_source}'
 gather_method = '{gather_method}'
+{comps_file}
+comps_file = 'comps.xml'
 check_deps = False
 greedy_method = 'build'
 
@@ -194,8 +212,9 @@ koji_profile = '{koji_profile}'
            release_short=self.release_name[:16], bootable=self._get_bootable(),
            sigkeys=self._get_sigkeys(), pdc_url=self.pdc_url,
            pdc_insecure=self.pdc_insecure, pdc_develop=self.pdc_develop,
-           koji_tag=self.koji_tag, gather_source=self.gather_source,
-           gather_method=self.gather_method, koji_profile=self.koji_profile)
+           pkgset=self._get_pkgset(), gather_source=self.gather_source,
+           gather_method=self.gather_method, koji_profile=self.koji_profile,
+           comps_file = "comps_file = 'comps.xml'" if self.source_type != PungiSourceType.REPO else "")
 
         return cfg
 
