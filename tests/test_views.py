@@ -64,5 +64,5 @@ class TestViews(unittest.TestCase):
         self.assertEqual(data, expected_json)
         time.sleep(2)
         db.session.expire_all()
-        c = db.session.query(Compose).filter(Compose.id == COMPOSE_STATES["done"]).one()
-        self.assertEqual(c.state, 1)
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["done"])

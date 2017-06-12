@@ -59,8 +59,12 @@ def generate_compose(compose_id):
             compose = Compose.query.filter(Compose.id == compose_id).one()
             log.info("%r: Starting compose generation", compose)
 
+            packages = compose.packages
+            if packages:
+                packages = packages.split(" ")
+
             pungi_cfg = PungiConfig(compose.owner, "1", compose.source_type,
-                                    compose.source, packages=compose.packages.split(" "))
+                                    compose.source, packages=packages)
             pungi = Pungi(pungi_cfg)
             pungi.run()
 
@@ -127,12 +131,12 @@ class ODCSAPI(MethodView):
 
         packages = None
         if "packages" in data:
-            packages = data["packages"]
+            packages = ' '.join(data["packages"])
 
         compose = Compose.create(
             db.session, owner, source_type, source,
             COMPOSE_RESULTS["repository"], seconds_to_live,
-            ' '.join(packages))
+            packages)
         db.session.add(compose)
         db.session.commit()
 
