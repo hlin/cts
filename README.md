@@ -19,7 +19,7 @@ Current composes are also not event-based. For example in Fedora, the composes a
 $ tox -e py27,py35,flake8
 ```
 
-## Function testing
+## Testing local composes from plain RPM repositories
 
 You can test ODCS by generating compose form the `./tests/repo` repository using following commands:
 
