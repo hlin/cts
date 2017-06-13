@@ -29,7 +29,7 @@ You can test ODCS by generating compose form the `./tests/repo` repository using
 
 ```
 $ ./create_sqlite_db
-$ ./start_frontend_from_here
+$ ./start_odcs_from_here
 ```
 
 And in another terminal, submit a request to frontend:
@@ -50,4 +50,4 @@ $ ./submit_test_compose repo `pwd`/tests/repo ed
 }
 ```
 
-You should then see the Pungi process generating the compose and once it's done, the resulting compose in `./test_composes/latest-Unknown-1/compose/Temporary` directory.
+You should then see the backend process generating the compose and once it's done, the resulting compose in `./test_composes/latest-Unknown-1/compose/Temporary` directory.

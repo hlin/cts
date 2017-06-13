@@ -32,12 +32,14 @@ from odcs import db
 COMPOSE_STATES = {
     # Compose is waiting to be generated
     "wait": 0,
+    # Compose is being generated.
+    "generating": 1,
     # Compose is generated - done.
-    "done": 1,
+    "done": 2,
     # Compose has been removed.
-    "removed": 2,
+    "removed": 3,
     # Compose generation has failed.
-    "failed": 3,
+    "failed": 4,
 }
 
 INVERSE_COMPOSE_STATES = {v: k for k, v in COMPOSE_STATES.items()}

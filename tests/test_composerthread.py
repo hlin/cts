@@ -21,15 +21,16 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
 import unittest
-import json
 import time
 
 from mock import patch
 from odcs import db, app
-from odcs.models import Compose, COMPOSE_STATES
+from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS
+from odcs.backend import ComposerThread
+from odcs.pungi import PungiSourceType
 
 
-class TestViews(unittest.TestCase):
+class TestComposerThread(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
@@ -39,30 +40,34 @@ class TestViews(unittest.TestCase):
         db.create_all()
         db.session.commit()
 
+        compose = Compose.create(
+            db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+            COMPOSE_RESULTS["repository"], 60)
+        db.session.add(compose)
+        db.session.commit()
+
+        self.composer = ComposerThread()
+
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         db.session.commit()
 
+    def _wait_for_compose_state(self, state):
+        c = None
+        for i in range(20):
+            db.session.expire_all()
+            c = db.session.query(Compose).filter(Compose.id == 1).one()
+            if c.state == state:
+                return c
+            time.sleep(0.1)
+        return c
+
     @patch("odcs.utils.execute_cmd")
     def test_submit_build(self, execute_cmd):
-        def mocked_execute_cmd():
-            time.sleep(1)
-            return 0
-
-        execute_cmd = mocked_execute_cmd # NOQA
-
-        rv = self.client.post('/odcs/1/composes/', data=json.dumps(
-            {'source_type': 'module', 'source': 'testmodule-master'}))
-        data = json.loads(rv.data.decode('utf8'))
-
-        expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
-                         'state_name': 'wait', 'source': u'testmodule-master',
-                         'owner': u'Unknown', 'result_repo': None,
-                         'time_submitted': data["time_submitted"], 'id': 1,
-                         'time_removed': None}
-        self.assertEqual(data, expected_json)
-
-        db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+        self.composer.do_work()
+        c = self._wait_for_compose_state(COMPOSE_STATES["done"])
+        self.assertEqual(c.state, COMPOSE_STATES["done"])

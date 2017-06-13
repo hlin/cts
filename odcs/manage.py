@@ -28,7 +28,7 @@ import ssl
 
 from odcs import app, conf, db
 from odcs import models
-from odcs.poller import create_poller
+from odcs.backend import run_backend
 
 
 manager = Manager(app)
@@ -148,13 +148,22 @@ def generatelocalhostcert():
 
 @console_script_help
 @manager.command
+def runbackend(host=conf.host, port=conf.port, debug=conf.debug):
+    """ Runs the Flask app with the HTTPS settings configured in config.py
+    """
+    logging.info('Starting ODCS backend')
+
+    run_backend()
+
+
+@console_script_help
+@manager.command
 def runssl(host=conf.host, port=conf.port, debug=conf.debug):
     """ Runs the Flask app with the HTTPS settings configured in config.py
     """
     logging.info('Starting ODCS frontend')
 
     ssl_ctx = _establish_ssl_context()
-    create_poller()
     app.run(
         host=host,
         port=port,

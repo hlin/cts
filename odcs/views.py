@@ -22,18 +22,14 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
 import json
-from datetime import datetime
 
 from flask.views import MethodView
 from flask import request, jsonify
 
 from odcs import app, db, log, conf
-from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_STATES
-from odcs.pungi import PungiSourceType, Pungi, PungiConfig
+from odcs.models import Compose, COMPOSE_RESULTS
+from odcs.pungi import PungiSourceType
 
-from concurrent.futures import ThreadPoolExecutor
-
-executor = ThreadPoolExecutor(conf.num_concurrent_pungi)
 
 api_v1 = {
     'composes': {
@@ -50,39 +46,6 @@ api_v1 = {
         }
     },
 }
-
-
-def generate_compose(compose_id):
-    compose = None
-    with app.app_context():
-        try:
-            compose = Compose.query.filter(Compose.id == compose_id).one()
-            log.info("%r: Starting compose generation", compose)
-
-            packages = compose.packages
-            if packages:
-                packages = packages.split(" ")
-
-            pungi_cfg = PungiConfig(compose.owner, "1", compose.source_type,
-                                    compose.source, packages=packages)
-            pungi = Pungi(pungi_cfg)
-            pungi.run()
-
-            log.info("%r: Compose done", compose)
-
-            compose.state = COMPOSE_STATES["done"]
-            compose.time_done = datetime.utcnow()
-            db.session.add(compose)
-            db.session.commit()
-        except:
-            if compose:
-                log.exception("%r: Error while generating compose", compose)
-            else:
-                log.exception("Error while generating compose %d", compose_id)
-            compose.state = COMPOSE_STATES["failed"]
-            compose.time_done = datetime.utcnow()
-            db.session.add(compose)
-            db.session.commit()
 
 
 class ODCSAPI(MethodView):
@@ -139,8 +102,6 @@ class ODCSAPI(MethodView):
             packages)
         db.session.add(compose)
         db.session.commit()
-
-        executor.submit(generate_compose, compose.id)
 
         return jsonify(compose.json()), 200
 
