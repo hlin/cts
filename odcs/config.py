@@ -138,6 +138,10 @@ class Config(object):
             'type': str,
             'default': "./",
             'desc': 'Path to target dir to which store composes'},
+        'target_dir_url': {
+            'type': str,
+            'default': "http://localhost/odcs",
+            'desc': 'Public facing URL to target_dir.'},
         'seconds_to_live': {
             'type': int,
             'default': 24 * 60 * 60,

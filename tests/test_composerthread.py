@@ -71,3 +71,5 @@ class TestComposerThread(unittest.TestCase):
         self.composer.do_work()
         c = self._wait_for_compose_state(COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
+        self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")

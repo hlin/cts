@@ -24,7 +24,6 @@ def upgrade():
     sa.Column('koji_event', sa.Integer(), nullable=True),
     sa.Column('state', sa.Integer(), nullable=False),
     sa.Column('results', sa.Integer(), nullable=False),
-    sa.Column('result_repo', sa.String(), nullable=True),
     sa.Column('packages', sa.String(), nullable=True),
     sa.Column('seconds_to_live', sa.Integer(), nullable=False),
     sa.Column('time_submitted', sa.DateTime(), nullable=False),

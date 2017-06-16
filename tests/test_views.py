@@ -58,7 +58,8 @@ class TestViews(unittest.TestCase):
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
-                         'owner': u'Unknown', 'result_repo': None,
+                         'owner': u'Unknown',
+                         'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
                          'time_submitted': data["time_submitted"], 'id': 1,
                          'time_removed': None}
         self.assertEqual(data, expected_json)

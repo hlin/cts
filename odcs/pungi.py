@@ -156,7 +156,7 @@ class PungiConfig(object):
         return cfg
 
     def get_pungi_config(self):
-        if self.source_type == PungiSourceType.REPO:
+        if self.source_type != PungiSourceType.KOJI_TAG:
             comps_file = ""
         else:
             comps_file = "comps_file = 'comps.xml'"
@@ -193,7 +193,6 @@ filter_system_release_packages = False
 gather_source = '{gather_source}'
 gather_method = '{gather_method}'
 {comps_file}
-comps_file = 'comps.xml'
 check_deps = False
 greedy_method = 'build'
 

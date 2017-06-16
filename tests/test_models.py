@@ -55,7 +55,8 @@ class TestModels(unittest.TestCase):
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
-                         'owner': u'me', 'result_repo': None,
+                         'owner': u'me',
+                         'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
                          'time_submitted': c.json()["time_submitted"], 'id': 1,
                          'time_removed': None}
         self.assertEqual(c.json(), expected_json)

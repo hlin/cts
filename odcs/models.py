@@ -26,6 +26,8 @@
 
 from datetime import datetime
 from sqlalchemy.orm import validates
+from odcs import conf
+import os
 
 from odcs import db
 
@@ -69,8 +71,6 @@ class Compose(ODCSBase):
     state = db.Column(db.Integer, nullable=False)
     # COMPOSE_RESULTS
     results = db.Column(db.Integer, nullable=False)
-    # Path/URL to resulting repo.
-    result_repo = db.Column(db.String)
     # White-space separated list of packages
     packages = db.Column(db.String)
     seconds_to_live = db.Column(db.Integer, nullable=False)
@@ -95,6 +95,27 @@ class Compose(ODCSBase):
         session.add(compose)
         return compose
 
+    @property
+    def latest_dir(self):
+        return "latest-odcs-%d-1" % (self.id)
+
+    @property
+    def result_repo_dir(self):
+        """
+        Returns path to compose directory with per-arch repositories with
+        results.
+        """
+        return os.path.join(conf.target_dir, self.latest_dir, "compose",
+                            "Temporary")
+
+    @property
+    def result_repo_url(self):
+        """
+        Returns public URL to compose directory with per-arch repositories.
+        """
+        return conf.target_dir_url + "/" \
+            + os.path.join(self.latest_dir, "compose", "Temporary")
+
     @validates('state')
     def validate_state(self, key, field):
         if field in COMPOSE_STATES.values():
@@ -114,7 +135,7 @@ class Compose(ODCSBase):
             'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
             'time_done': self._utc_datetime_to_iso(self.time_done),
             'time_removed': self._utc_datetime_to_iso(self.time_removed),
-            "result_repo": self.result_repo,
+            "result_repo": self.result_repo_url,
         }
 
     @staticmethod
