@@ -63,7 +63,8 @@ class TestViews(unittest.TestCase):
                          'owner': u'Unknown',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'time_submitted': data["time_submitted"], 'id': data['id'],
-                         'time_removed': None}
+                         'time_removed': None,
+                         'time_to_expire': data["time_to_expire"]}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()

@@ -21,7 +21,9 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import os
 import threading
+import shutil
 from datetime import datetime
 from odcs import log, conf, app, db
 from odcs.models import Compose, COMPOSE_STATES
@@ -60,7 +62,10 @@ class BackendThread(object):
         seconds. Stops then `stop()` is called.
         """
         while not self.exit:
-            self.do_work()
+            try:
+                self.do_work()
+            except:
+                log.exception("Exception in backend thread")
             self.exit_cond.acquire()
             self.exit_cond.wait(float(self.timeout))
             self.exit_cond.release()
@@ -99,18 +104,30 @@ class ExpireThread(BackendThread):
         """
         super(ExpireThread, self).__init__(10)
 
+    def _remove_compose_dir(self, toplevel_dir):
+        """
+        Removes the compose toplevel_dir symlink together with the real
+        path it points to.
+        """
+        if os.path.realpath(toplevel_dir) != toplevel_dir:
+            targetpath = os.path.realpath(toplevel_dir)
+            os.unlink(toplevel_dir)
+            shutil.rmtree(targetpath)
+
     def do_work(self):
         """
         Checks for the expired composes and removes them.
         """
         log.info("Checking for expired composes")
 
-        composes = Compose.expired_composes()
+        composes = Compose.composes_to_expire()
         for compose in composes:
-            log.info("%r: Removing compose")
+            log.info("%r: Removing compose", compose)
             compose.state = COMPOSE_STATES["removed"]
             compose.time_removed = datetime.utcnow()
-            # TODO: Remove compose data
+            db.session.commit()
+            if os.path.exists(compose.toplevel_dir):
+                self._remove_compose_dir(compose.toplevel_dir)
 
 
 def generate_compose(compose_id):
@@ -131,7 +148,7 @@ def generate_compose(compose_id):
                 packages = packages.split(" ")
 
             # Generate PungiConfig and run Pungi
-            pungi_cfg = PungiConfig(compose.owner, "1", compose.source_type,
+            pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
                                     compose.source, packages=packages)
             pungi = Pungi(pungi_cfg)
             pungi.run()

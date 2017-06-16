@@ -24,7 +24,7 @@
 """ SQLAlchemy Database models for the Flask app
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import validates
 from odcs import conf
 import os
@@ -73,7 +73,7 @@ class Compose(ODCSBase):
     results = db.Column(db.Integer, nullable=False)
     # White-space separated list of packages
     packages = db.Column(db.String)
-    seconds_to_live = db.Column(db.Integer, nullable=False)
+    time_to_expire = db.Column(db.DateTime, nullable=False)
     time_submitted = db.Column(db.DateTime, nullable=False)
     time_done = db.Column(db.DateTime)
     time_removed = db.Column(db.DateTime)
@@ -89,15 +89,23 @@ class Compose(ODCSBase):
             state="wait",
             results=results,
             time_submitted=now,
-            seconds_to_live=seconds_to_live,
+            time_to_expire=now + timedelta(seconds=seconds_to_live),
             packages=packages
         )
         session.add(compose)
         return compose
 
     @property
+    def name(self):
+        return "odcs-%d" % self.id
+
+    @property
     def latest_dir(self):
-        return "latest-odcs-%d-1" % (self.id)
+        return "latest-%s-1" % self.name
+
+    @property
+    def toplevel_dir(self):
+        return os.path.join(conf.target_dir, self.latest_dir)
 
     @property
     def result_repo_dir(self):
@@ -105,8 +113,7 @@ class Compose(ODCSBase):
         Returns path to compose directory with per-arch repositories with
         results.
         """
-        return os.path.join(conf.target_dir, self.latest_dir, "compose",
-                            "Temporary")
+        return os.path.join(self.toplevel_dir, "compose", "Temporary")
 
     @property
     def result_repo_url(self):
@@ -132,6 +139,7 @@ class Compose(ODCSBase):
             'source': self.source,
             'state': self.state,
             'state_name': INVERSE_COMPOSE_STATES[self.state],
+            'time_to_expire': self._utc_datetime_to_iso(self.time_to_expire),
             'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
             'time_done': self._utc_datetime_to_iso(self.time_done),
             'time_removed': self._utc_datetime_to_iso(self.time_removed),
@@ -152,9 +160,11 @@ class Compose(ODCSBase):
         return None
 
     @classmethod
-    def expired_composes(cls):
-        # TODO
-        return []
+    def composes_to_expire(cls):
+        now = datetime.utcnow()
+        return Compose.query.filter(
+            Compose.state == COMPOSE_STATES["done"],
+            Compose.time_to_expire < now).all()
 
     def __repr__(self):
         return "<Compose %s, type %r, state %s, owner %s>" % (

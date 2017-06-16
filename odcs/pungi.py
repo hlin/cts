@@ -156,7 +156,7 @@ class PungiConfig(object):
         return cfg
 
     def get_pungi_config(self):
-        if self.source_type != PungiSourceType.KOJI_TAG:
+        if self.source_type == PungiSourceType.MODULE:
             comps_file = ""
         else:
             comps_file = "comps_file = 'comps.xml'"

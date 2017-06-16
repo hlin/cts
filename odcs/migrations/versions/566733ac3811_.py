@@ -25,7 +25,7 @@ def upgrade():
     sa.Column('state', sa.Integer(), nullable=False),
     sa.Column('results', sa.Integer(), nullable=False),
     sa.Column('packages', sa.String(), nullable=True),
-    sa.Column('seconds_to_live', sa.Integer(), nullable=False),
+    sa.Column('time_to_expire', sa.DateTime(), nullable=False),
     sa.Column('time_submitted', sa.DateTime(), nullable=False),
     sa.Column('time_done', sa.DateTime(), nullable=True),
     sa.Column('time_removed', sa.DateTime(), nullable=True),

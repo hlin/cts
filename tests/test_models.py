@@ -51,12 +51,13 @@ class TestModels(unittest.TestCase):
         self.assertEqual(c.source_type, PungiSourceType.MODULE)
         self.assertEqual(c.source, "testmodule-master")
         self.assertEqual(c.results, COMPOSE_RESULTS["repository"])
-        self.assertEqual(c.seconds_to_live, 3600)
+        self.assertTrue(c.time_to_expire)
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
                          'owner': u'me',
                          'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
                          'time_submitted': c.json()["time_submitted"], 'id': 1,
-                         'time_removed': None}
+                         'time_removed': None,
+                         'time_to_expire': c.json()["time_to_expire"]}
         self.assertEqual(c.json(), expected_json)
