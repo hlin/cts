@@ -22,11 +22,10 @@
 
 import unittest
 import json
-import time
 
-from mock import patch
 from odcs import db, app
-from odcs.models import Compose, COMPOSE_STATES
+from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS
+from odcs.pungi import PungiSourceType
 
 
 class TestViews(unittest.TestCase):
@@ -39,19 +38,22 @@ class TestViews(unittest.TestCase):
         db.create_all()
         db.session.commit()
 
+        self.c1 = Compose.create(
+            db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+            COMPOSE_RESULTS["repository"], 60)
+        self.c2 = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60)
+        db.session.add(self.c1)
+        db.session.add(self.c2)
+        db.session.commit()
+
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         db.session.commit()
 
-    @patch("odcs.utils.execute_cmd")
-    def test_submit_build(self, execute_cmd):
-        def mocked_execute_cmd():
-            time.sleep(1)
-            return 0
-
-        execute_cmd = mocked_execute_cmd # NOQA
-
+    def test_submit_build(self):
         rv = self.client.post('/odcs/1/composes/', data=json.dumps(
             {'source_type': 'module', 'source': 'testmodule-master'}))
         data = json.loads(rv.data.decode('utf8'))
@@ -59,11 +61,52 @@ class TestViews(unittest.TestCase):
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
                          'owner': u'Unknown',
-                         'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
-                         'time_submitted': data["time_submitted"], 'id': 1,
+                         'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
+                         'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_removed': None}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_query_compose(self):
+        resp = self.client.get('/odcs/1/composes/1')
+        data = json.loads(resp.data.decode('utf8'))
+        self.assertEqual(data['id'], 1)
+        self.assertEqual(data['source'], "testmodule-master")
+
+    def test_query_composes(self):
+        resp = self.client.get('/odcs/1/composes/')
+        evs = json.loads(resp.data.decode('utf8'))['items']
+        self.assertEqual(len(evs), 2)
+
+    def test_query_compose_owner(self):
+        resp = self.client.get('/odcs/1/composes/?owner=me')
+        evs = json.loads(resp.data.decode('utf8'))['items']
+        self.assertEqual(len(evs), 1)
+        self.assertEqual(evs[0]['source'], 'f26')
+
+    def test_query_compose_state_done(self):
+        resp = self.client.get(
+            '/odcs/1/composes/?state=%d' % COMPOSE_STATES["done"])
+        evs = json.loads(resp.data.decode('utf8'))['items']
+        self.assertEqual(len(evs), 0)
+
+    def test_query_compose_state_wait(self):
+        resp = self.client.get(
+            '/odcs/1/composes/?state=%d' % COMPOSE_STATES["wait"])
+        evs = json.loads(resp.data.decode('utf8'))['items']
+        self.assertEqual(len(evs), 2)
+
+    def test_query_compose_source_type(self):
+        resp = self.client.get(
+            '/odcs/1/composes/?source_type=%d' % PungiSourceType.MODULE)
+        evs = json.loads(resp.data.decode('utf8'))['items']
+        self.assertEqual(len(evs), 1)
+
+    def test_query_compose_source(self):
+        resp = self.client.get(
+            '/odcs/1/composes/?source=f26')
+        evs = json.loads(resp.data.decode('utf8'))['items']
+        self.assertEqual(len(evs), 1)

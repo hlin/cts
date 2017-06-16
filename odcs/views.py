@@ -29,6 +29,7 @@ from flask import request, jsonify
 from odcs import app, db, log, conf
 from odcs.models import Compose, COMPOSE_RESULTS
 from odcs.pungi import PungiSourceType
+from odcs.api_utils import pagination_metadata, filter_composes
 
 
 api_v1 = {
@@ -36,6 +37,12 @@ api_v1 = {
         'url': '/odcs/1/composes/',
         'options': {
             'defaults': {'id': None},
+            'methods': ['GET'],
+        }
+    },
+    'compose': {
+        'url': '/odcs/1/composes/<int:id>',
+        'options': {
             'methods': ['GET'],
         }
     },
@@ -50,7 +57,22 @@ api_v1 = {
 
 class ODCSAPI(MethodView):
     def get(self, id):
-        return "Done", 200
+        if id is None:
+            p_query = filter_composes(request)
+
+            json_data = {
+                'meta': pagination_metadata(p_query)
+            }
+            json_data['items'] = [item.json() for item in p_query.items]
+
+            return jsonify(json_data), 200
+
+        else:
+            compose = Compose.query.filter_by(id=id).first()
+            if compose:
+                return jsonify(compose.json()), 200
+            else:
+                raise ValueError('No such compose found.')
 
     def post(self):
         owner = "Unknown"  # TODO
@@ -107,7 +129,7 @@ class ODCSAPI(MethodView):
 
 
 def register_api_v1():
-    """ Registers version 1 of MBS API. """
+    """ Registers version 1 of ODCS API. """
     module_view = ODCSAPI.as_view('composes')
     for key, val in api_v1.items():
         app.add_url_rule(val['url'],
