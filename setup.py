@@ -25,5 +25,12 @@ setup(name='odcs',
       zip_safe=False,
       install_requires=requirements,
       tests_require=test_requirements,
+      entry_points={
+          'console_scripts': ['odcs-upgradedb = odcs.manage:upgradedb',
+                              'odcs-gencert = odcs.manage:generatelocalhostcert',
+                              'odcs-frontend = odcs.manage:runssl',
+                              'odcs-backend = odcs.manage:runbackend',
+                              'odcs-manager = odcs.manage:manager_wrapper'],
+      },
       data_files=[('/etc/odcs/', ['conf/config.py'])]
       )
