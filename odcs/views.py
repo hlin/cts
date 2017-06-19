@@ -27,7 +27,7 @@ from flask.views import MethodView
 from flask import request, jsonify
 
 from odcs import app, db, log, conf
-from odcs.models import Compose, COMPOSE_RESULTS
+from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.pungi import PungiSourceType
 from odcs.api_utils import pagination_metadata, filter_composes
 
@@ -118,10 +118,17 @@ class ODCSAPI(MethodView):
         if "packages" in data:
             packages = ' '.join(data["packages"])
 
+        flags = 0
+        if "flags" in data:
+            for name in data["flags"]:
+                if name not in COMPOSE_FLAGS:
+                    raise ValueError("Unknown flag %s", name)
+                flags |= COMPOSE_FLAGS[name]
+
         compose = Compose.create(
             db.session, owner, source_type, source,
             COMPOSE_RESULTS["repository"], seconds_to_live,
-            packages)
+            packages, flags)
         db.session.add(compose)
         db.session.commit()
 

@@ -20,12 +20,13 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import os
 import unittest
 import time
 
 from mock import patch
 from odcs import db, app
-from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS
+from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.backend import ComposerThread
 from odcs.pungi import PungiSourceType
 
@@ -38,12 +39,6 @@ class TestComposerThread(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         db.create_all()
-        db.session.commit()
-
-        compose = Compose.create(
-            db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
-            COMPOSE_RESULTS["repository"], 60)
-        db.session.add(compose)
         db.session.commit()
 
         self.composer = ComposerThread()
@@ -63,8 +58,23 @@ class TestComposerThread(unittest.TestCase):
             time.sleep(0.1)
         return c
 
+    def _add_module_compose(self, flags=0):
+        compose = Compose.create(
+            db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+            COMPOSE_RESULTS["repository"], 60)
+        db.session.add(compose)
+        db.session.commit()
+
+    def _add_tag_compose(self, packages=None, flags=0):
+        compose = Compose.create(
+            db.session, "unknown", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages, flags)
+        db.session.add(compose)
+        db.session.commit()
+
     @patch("odcs.utils.execute_cmd")
     def test_submit_build(self, execute_cmd):
+        self._add_module_compose()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
@@ -73,3 +83,20 @@ class TestComposerThread(unittest.TestCase):
         self.assertEqual(c.state, COMPOSE_STATES["done"])
         self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+
+    def test_submit_build_no_deps(self):
+        """
+        Checks that "no_deps" flags properly sets gather_method to nodeps.
+        """
+        def mocked_execute_cmd(args, stdout=None, stderr=None, cwd=None):
+            pungi_cfg = open(os.path.join(cwd, "pungi.conf"), "r").read()
+            self.assertTrue(pungi_cfg.find("gather_method = 'nodeps'") != -1)
+
+        with patch("odcs.utils.execute_cmd", new=mocked_execute_cmd):
+            self._add_tag_compose(flags=COMPOSE_FLAGS["no_deps"])
+            c = db.session.query(Compose).filter(Compose.id == 1).one()
+            self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+            self.composer.do_work()
+            c = self._wait_for_compose_state(COMPOSE_STATES["done"])
+            self.assertEqual(c.state, COMPOSE_STATES["done"])

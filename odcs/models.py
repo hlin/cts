@@ -52,6 +52,15 @@ COMPOSE_RESULTS = {
     "ostree": 4,
 }
 
+COMPOSE_FLAGS = {
+    "no_flags": 0,
+    # Compose without pulling-in the dependencies of packages defined for
+    # a compose.
+    "no_deps": 1,
+}
+
+INVERSA_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}
+
 
 class ODCSBase(db.Model):
     __abstract__ = True
@@ -63,7 +72,7 @@ class Compose(ODCSBase):
     owner = db.Column(db.String, nullable=False)
     # PungiSourceType
     source_type = db.Column(db.Integer, nullable=False)
-    # list of koji_tags or modules
+    # White-space separated list of koji_tags or modules
     source = db.Column(db.String, nullable=False)
     # Koji event id at which the compose has been generated
     koji_event = db.Column(db.Integer)
@@ -73,6 +82,8 @@ class Compose(ODCSBase):
     results = db.Column(db.Integer, nullable=False)
     # White-space separated list of packages
     packages = db.Column(db.String)
+    # COMPOSE_FLAGS
+    flags = db.Column(db.Integer)
     time_to_expire = db.Column(db.DateTime, nullable=False)
     time_submitted = db.Column(db.DateTime, nullable=False)
     time_done = db.Column(db.DateTime)
@@ -80,7 +91,7 @@ class Compose(ODCSBase):
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
-               seconds_to_live, packages=None):
+               seconds_to_live, packages=None, flags=0):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -90,7 +101,8 @@ class Compose(ODCSBase):
             results=results,
             time_submitted=now,
             time_to_expire=now + timedelta(seconds=seconds_to_live),
-            packages=packages
+            packages=packages,
+            flags=flags,
         )
         session.add(compose)
         return compose
@@ -132,6 +144,12 @@ class Compose(ODCSBase):
         raise ValueError("%s: %s, not in %r" % (key, field, COMPOSE_STATES))
 
     def json(self):
+        flags = []
+        for name, value in COMPOSE_FLAGS.items():
+            if value == 0:
+                continue
+            if self.flags & value:
+                flags.append(name)
         return {
             'id': self.id,
             'owner': self.owner,
@@ -143,7 +161,8 @@ class Compose(ODCSBase):
             'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
             'time_done': self._utc_datetime_to_iso(self.time_done),
             'time_removed': self._utc_datetime_to_iso(self.time_removed),
-            "result_repo": self.result_repo_url,
+            'result_repo': self.result_repo_url,
+            'flags': flags,
         }
 
     @staticmethod

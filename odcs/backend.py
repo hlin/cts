@@ -26,7 +26,7 @@ import threading
 import shutil
 from datetime import datetime
 from odcs import log, conf, app, db
-from odcs.models import Compose, COMPOSE_STATES
+from odcs.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
 from odcs.pungi import Pungi, PungiConfig
 from concurrent.futures import ThreadPoolExecutor
 
@@ -150,6 +150,9 @@ def generate_compose(compose_id):
             # Generate PungiConfig and run Pungi
             pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
                                     compose.source, packages=packages)
+            if compose.flags & COMPOSE_FLAGS["no_deps"]:
+                pungi_cfg.gather_method = "nodeps"
+
             pungi = Pungi(pungi_cfg)
             pungi.run()
 

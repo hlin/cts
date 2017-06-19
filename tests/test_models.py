@@ -59,5 +59,6 @@ class TestModels(unittest.TestCase):
                          'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
                          'time_submitted': c.json()["time_submitted"], 'id': 1,
                          'time_removed': None,
-                         'time_to_expire': c.json()["time_to_expire"]}
+                         'time_to_expire': c.json()["time_to_expire"],
+                         'flags': []}
         self.assertEqual(c.json(), expected_json)

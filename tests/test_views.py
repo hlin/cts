@@ -64,8 +64,21 @@ class TestViews(unittest.TestCase):
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_removed': None,
-                         'time_to_expire': data["time_to_expire"]}
+                         'time_to_expire': data["time_to_expire"],
+                         'flags': []}
         self.assertEqual(data, expected_json)
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_nodeps(self):
+        rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            {'source_type': 'tag', 'source': 'f26', 'packages': ['ed'],
+             'flags': ['no_deps']}))
+        data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['flags'], ['no_deps'])
 
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
