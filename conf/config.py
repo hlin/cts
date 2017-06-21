@@ -35,6 +35,10 @@ class BaseConfiguration(object):
 
     SSL_ENABLED = False
 
+    PDC_URL = 'https://pdc.fedoraproject.org/rest_api/v1'
+    PDC_INSECURE = True
+    PDC_DEVELOP = True
+
 
 class DevConfiguration(BaseConfiguration):
     DEBUG = True

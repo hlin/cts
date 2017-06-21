@@ -88,6 +88,7 @@ class Compose(ODCSBase):
     time_submitted = db.Column(db.DateTime, nullable=False)
     time_done = db.Column(db.DateTime)
     time_removed = db.Column(db.DateTime)
+    reused_id = db.Column(db.Integer)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
@@ -109,7 +110,10 @@ class Compose(ODCSBase):
 
     @property
     def name(self):
-        return "odcs-%d" % self.id
+        if self.reused_id:
+            return "odcs-%d" % self.reused_id
+        else:
+            return "odcs-%d" % self.id
 
     @property
     def latest_dir(self):
