@@ -1,4 +1,3 @@
-psutil
 funcsigs  # Python2 only
 httplib2
 m2crypto
