@@ -133,6 +133,57 @@ class ExpireThread(BackendThread):
                 self._remove_compose_dir(compose.toplevel_dir)
 
 
+def create_koji_session():
+    """
+    Creates and returns new koji_session based on the `conf.koji_profile`.
+    """
+
+    # We import koji here, because it does not support python3
+    import koji
+    koji_module = koji.get_profile_module(conf.koji_profile)
+    session_opts = {}
+    for key in ('krbservice', 'timeout', 'keepalive',
+                'max_retries', 'retry_interval', 'anon_retry',
+                'offline_retry', 'offline_retry_interval',
+                'debug', 'debug_xmlrpc', 'krb_rdns',
+                'use_fast_upload'):
+        value = getattr(koji_module.config, key, None)
+        if value is not None:
+            session_opts[key] = value
+    koji_session = koji.ClientSession(koji_module.config.server,
+                                      session_opts)
+    return koji_session
+
+
+def koji_get_inherited_tags(koji_session, tag, tags=None):
+    """
+    Returns list of ids of all tags the tag `tag` inherits from.
+    """
+
+    info = koji_session.getTag(tag)
+    ids = [info["id"]]
+    seen_tags = tags or set()
+    inheritance_data = koji_session.getInheritanceData(tag)
+    inheritance_data = [data for data in inheritance_data
+                        if data['parent_id'] not in seen_tags]
+
+    # Iterate over all the tags this tag inherits from.
+    for inherited in inheritance_data:
+        # Make a note to ourselves that we have seen this parent_tag.
+        parent_tag_id = inherited['parent_id']
+        seen_tags.add(parent_tag_id)
+
+        # Get tag info for the parent_tag.
+        info = koji_session.getTag(parent_tag_id)
+        if info is None:
+            log.error("Cannot get info about Koji tag %s", parent_tag_id)
+            return []
+
+        ids += koji_get_inherited_tags(koji_session, info['name'], seen_tags)
+
+    return ids
+
+
 def resolve_compose(compose):
     """
     Resolves various general compose values to the real ones. For example:
@@ -149,10 +200,8 @@ def resolve_compose(compose):
         revision = e.find("{http://linux.duke.edu/metadata/repo}revision").text
         compose.koji_event = int(revision)
     elif compose.source_type == PungiSourceType.KOJI_TAG:
-        # TODO: Get the koji_event of koji_tag, set it to compose.koji_event
-        # and use it in pungi.Pungi.run(...) as --koji-event arg when executing
-        # `pungi`. Then allow KOJI_TAG source_type in get_reusable_compose().
-        pass
+        koji_session = create_koji_session()
+        compose.koji_event = int(koji_session.getLastEvent()['id'])
     elif compose.source_type == PungiSourceType.MODULE:
         # Resolve the latest release of modules which do not have the release
         # string defined in the compose.source.
@@ -181,11 +230,6 @@ def get_reusable_compose(compose):
     of generating new one.
     """
 
-    # TODO: Once odcs.utils.resolve_compose(...) is implemented for Koji
-    # tag, we can remove this condition.
-    if compose.source_type == PungiSourceType.KOJI_TAG:
-        return None
-
     # Get all the active composes of the same source_type
     composes = db.session.query(Compose).filter(
         Compose.state == COMPOSE_STATES["done"],
@@ -208,12 +252,6 @@ def get_reusable_compose(compose):
                       old_compose)
             continue
 
-        if compose.koji_event != old_compose.koji_event:
-            log.debug("%r: Cannot reuse %r - koji_events not same, %d != %d",
-                      compose, old_compose, compose.koji_event,
-                      old_compose.koji_event)
-            continue
-
         if compose.flags != old_compose.flags:
             log.debug("%r: Cannot reuse %r - flags not same, %d != %d",
                       compose, old_compose, compose.flags,
@@ -224,6 +262,26 @@ def get_reusable_compose(compose):
             log.debug("%r: Cannot reuse %r - results not same, %d != %d",
                       compose, old_compose, compose.results,
                       old_compose.results)
+            continue
+
+        if compose.source_type == PungiSourceType.KOJI_TAG:
+            # For KOJI_TAG compose, check that all the inherited tags by our
+            # Koji tag have not changed since previous old_compose.
+            koji_session = create_koji_session()
+            tags = koji_get_inherited_tags(koji_session, compose.source)
+            if not tags:
+                continue
+            changed = koji_session.tagChangedSinceEvent(
+                old_compose.koji_event, tags)
+            if changed:
+                log.debug("%r: Cannot reuse %r - one of the tags changed "
+                          "since previous compose: %r", compose, old_compose,
+                          tags)
+                continue
+        elif compose.koji_event != old_compose.koji_event:
+            log.debug("%r: Cannot reuse %r - koji_events not same, %d != %d",
+                      compose, old_compose, compose.koji_event,
+                      old_compose.koji_event)
             continue
 
         return old_compose
@@ -278,7 +336,11 @@ def generate_compose(compose_id):
                 if compose.flags & COMPOSE_FLAGS["no_deps"]:
                     pungi_cfg.gather_method = "nodeps"
 
-                pungi = Pungi(pungi_cfg)
+                koji_event = None
+                if compose.source_type == PungiSourceType.KOJI_TAG:
+                    koji_event = compose.koji_event
+
+                pungi = Pungi(pungi_cfg, koji_event)
                 pungi.run()
 
             # If there is no exception generated by the pungi.run(), we know

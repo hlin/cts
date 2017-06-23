@@ -224,8 +224,9 @@ koji_profile = '{koji_profile}'
 
 
 class Pungi(object):
-    def __init__(self, pungi_cfg):
+    def __init__(self, pungi_cfg, koji_event=None):
         self.pungi_cfg = pungi_cfg
+        self.koji_event = koji_event
 
     def _write_cfg(self, fn, cfg):
         with open(fn, "w") as f:
@@ -251,9 +252,14 @@ class Pungi(object):
             self._write_cfg(os.path.join(td, "variants.xml"), variants_cfg)
             self._write_cfg(os.path.join(td, "comps.xml"), comps_cfg)
 
-            odcs.utils.execute_cmd([
+            pungi_cmd = [
                 conf.pungi_koji, "--config=%s" % os.path.join(td, "pungi.conf"),
-                "--target-dir=%s" % conf.target_dir, "--nightly"], cwd=td)
+                "--target-dir=%s" % conf.target_dir, "--nightly"]
+
+            if self.koji_event:
+                pungi_cmd += ["--koji-event", str(self.koji_event)]
+
+            odcs.utils.execute_cmd(pungi_cmd, cwd=td)
         finally:
             try:
                 if td is not None:

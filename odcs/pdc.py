@@ -98,7 +98,7 @@ class PDC(object):
             latest_modules.append(sorted(mods, key=lambda x: x['variant_release']).pop())
         return list(filter(lambda x: x in latest_modules, modules))
 
-    @odcs.utils.retry(wait_on=(requests.ConnectTimeout, requests.ConnectionError, BeanBagException), logger=log)
+    @odcs.utils.retry(wait_on=(requests.ConnectionError, BeanBagException), logger=log)
     def get_modules(self, **kwargs):
         """
         Query PDC with specified query parameters and return a list of modules.

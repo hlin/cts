@@ -24,7 +24,7 @@ import os
 import unittest
 import time
 
-from mock import patch
+from mock import patch, MagicMock
 from odcs import db, app
 from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.backend import ComposerThread, resolve_compose
@@ -74,6 +74,19 @@ class TestComposerThread(unittest.TestCase):
         db.session.add(compose)
         db.session.commit()
 
+    def _add_repo_composes(self):
+        old_c = Compose.create(
+            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
+            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+        old_c.state = COMPOSE_STATES["done"]
+        resolve_compose(old_c)
+        c = Compose.create(
+            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
+            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+        db.session.add(old_c)
+        db.session.add(c)
+        db.session.commit()
+
     @patch("odcs.utils.execute_cmd")
     def test_submit_build(self, execute_cmd):
         self._add_module_compose()
@@ -118,19 +131,6 @@ class TestComposerThread(unittest.TestCase):
         c = self._wait_for_compose_state(1, COMPOSE_STATES["failed"])
         self.assertEqual(c.state, COMPOSE_STATES["failed"])
 
-    def _add_repo_composes(self):
-        old_c = Compose.create(
-            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
-            COMPOSE_RESULTS["repository"], 3600, packages="ed")
-        old_c.state = COMPOSE_STATES["done"]
-        resolve_compose(old_c)
-        c = Compose.create(
-            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
-            COMPOSE_RESULTS["repository"], 3600, packages="ed")
-        db.session.add(old_c)
-        db.session.add(c)
-        db.session.commit()
-
     def test_submit_build_reuse_repo(self):
         self._add_repo_composes()
         c = db.session.query(Compose).filter(Compose.id == 2).one()
@@ -173,10 +173,15 @@ class TestComposerThread(unittest.TestCase):
         self.assertEqual(c.result_repo_dir, "./latest-odcs-2-1/compose/Temporary")
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary")
 
-    def test_submit_build_no_deps(self):
+    @patch("odcs.backend.create_koji_session")
+    def test_submit_build_no_deps(self, create_koji_session):
         """
         Checks that "no_deps" flags properly sets gather_method to nodeps.
         """
+        koji_session = MagicMock()
+        create_koji_session.return_value = koji_session
+        koji_session.getLastEvent.return_value = {"id": 123}
+
         def mocked_execute_cmd(args, stdout=None, stderr=None, cwd=None):
             pungi_cfg = open(os.path.join(cwd, "pungi.conf"), "r").read()
             self.assertTrue(pungi_cfg.find("gather_method = 'nodeps'") != -1)
@@ -189,3 +194,47 @@ class TestComposerThread(unittest.TestCase):
             self.composer.do_work()
             c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
             self.assertEqual(c.state, COMPOSE_STATES["done"])
+
+    @patch("odcs.backend.create_koji_session")
+    def test_submit_build_reuse_koji_tag(self, create_koji_session):
+        koji_session = MagicMock()
+        create_koji_session.return_value = koji_session
+        koji_session.getLastEvent.return_value = {"id": 123}
+        koji_session.tagChangedSinceEvent.return_value = False
+
+        self._add_tag_compose()
+        self._add_tag_compose()
+        old_c = db.session.query(Compose).filter(Compose.id == 1).one()
+        old_c.state = COMPOSE_STATES["done"]
+        resolve_compose(old_c)
+        db.session.commit()
+
+        self.composer.do_work()
+        c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
+        self.assertEqual(c.reused_id, 1)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+        self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+
+    @patch("odcs.utils.execute_cmd")
+    @patch("odcs.backend.create_koji_session")
+    def test_submit_build_reuse_koji_tag_tags_changed(
+            self, create_koji_session, execute_cmd):
+        koji_session = MagicMock()
+        create_koji_session.return_value = koji_session
+        koji_session.getLastEvent.return_value = {"id": 123}
+        koji_session.tagChangedSinceEvent.return_value = True
+
+        self._add_tag_compose()
+        self._add_tag_compose()
+        old_c = db.session.query(Compose).filter(Compose.id == 1).one()
+        old_c.state = COMPOSE_STATES["done"]
+        resolve_compose(old_c)
+        db.session.commit()
+
+        self.composer.do_work()
+        c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
+        self.assertEqual(c.reused_id, None)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+        self.assertEqual(c.result_repo_dir, "./latest-odcs-2-1/compose/Temporary")
+        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary")
