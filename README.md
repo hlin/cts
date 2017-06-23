@@ -13,6 +13,8 @@ In the mid-/long-term, Fedora releng would like to generate the main compose fro
 Current composes are also not event-based. For example in Fedora, the composes are built even when nothing changed on input side of a compose.
 
 
+More information can be find in the On Demand Compose Service Focus document: https://fedoraproject.org/wiki/Infrastructure/Factory2/Focus/ODCS.
+
 ## Dependencies
 
 On top of the classic `requirements.txt`, ODCS depends on Pungi (https://pagure.io/pungi/) in version 4.1.15 or newer.
@@ -51,3 +53,29 @@ $ ./submit_test_compose repo `pwd`/tests/repo ed
 ```
 
 You should then see the backend process generating the compose and once it's done, the resulting compose in `./test_composes/latest-Unknown-1/compose/Temporary` directory.
+
+## REST API
+
+### Submitting new compose request
+
+To submit new compose request, you can send POST request in the following format to `/odcs/1/composes`:
+
+```
+{
+  "source_type": "tag",
+  "source": "f26",
+  "packages": ["httpd"]
+}
+```
+
+This tells ODCS to create new compose from the Koji tag "f26" with the "httpd" packages and all the dependencies this package has in the "f26" Koji tag.
+
+The example above is the minimal example, but there are more JSON fields which can be used to influence the resulting compose:
+
+- **source_type** - "tag" for compose from Koji tag, "module" for compose from the Fedora module, "repo" for compose from local RPM repository.
+- **source** - For "tag" source_type, name of the tag. For "module" source_type, white-space separated list of module name-stream or name-stream-version. For "repo" source_type, full path to repository.
+- **packages** - List of packages to include in a compose. Must not be set for "module" source_type.
+- **seconds-to-live** - Number of seconds for which the compose should become available. After that, the compose is removed. The default and maximum value is defined by server-side configuration.
+- **flags** - List of flags influencing the resulting compose:
+  - **no_deps** - The resulting compose will contain only packages defined in the "packages" list without their dependencies.
+
