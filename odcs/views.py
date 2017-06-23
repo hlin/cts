@@ -27,7 +27,8 @@ from flask.views import MethodView
 from flask import request, jsonify
 
 from odcs import app, db, log, conf
-from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_FLAGS
+from odcs.errors import NotFound
+from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES
 from odcs.pungi import PungiSourceType
 from odcs.api_utils import pagination_metadata, filter_composes
 
@@ -72,7 +73,7 @@ class ODCSAPI(MethodView):
             if compose:
                 return jsonify(compose.json()), 200
             else:
-                raise ValueError('No such compose found.')
+                raise NotFound('No such compose found.')
 
     def post(self):
         owner = "Unknown"  # TODO
@@ -82,6 +83,32 @@ class ODCSAPI(MethodView):
         except Exception:
             log.exception('Invalid JSON submitted')
             raise ValueError('Invalid JSON submitted')
+
+        # If "id" is in data, it means client wants to regenerate an expired
+        # compose.
+        if "id" in data:
+            old_compose = Compose.query.filter(
+                Compose.id == data["id"],
+                Compose.state.in_(
+                    [COMPOSE_STATES["removed"],
+                     COMPOSE_STATES["failed"]])).first()
+            if not old_compose:
+                err = "No expired or failed compose with id %s" % data["id"]
+                log.error(err)
+                raise ValueError(err)
+
+            log.info("%r: Going to regenerate the compose", old_compose)
+
+            seconds_to_live = conf.seconds_to_live
+            if "seconds-to-live" in data:
+                seconds_to_live = max(int(seconds_to_live),
+                                      conf.max_seconds_to_live)
+
+            compose = Compose.create_copy(db.session, old_compose, owner,
+                                          seconds_to_live)
+            db.session.add(compose)
+            db.session.commit()
+            return jsonify(compose.json()), 200
 
         needed_keys = ["source_type", "source"]
         for key in needed_keys:

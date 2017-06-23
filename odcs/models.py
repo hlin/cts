@@ -108,6 +108,32 @@ class Compose(ODCSBase):
         session.add(compose)
         return compose
 
+    @classmethod
+    def create_copy(cls, session, compose, owner=None, seconds_to_live=None):
+        """
+        Creates new compose with all the options influencing the resulting
+        compose copied from the `compose`. The `owner` and `seconds_to_live`
+        can be set independently. The state of copies compose is "wait".
+        """
+        now = datetime.utcnow()
+        if not seconds_to_live:
+            seconds_to_live = conf.seconds_to_live
+
+        compose = cls(
+            owner=owner or compose.owner,
+            source_type=compose.source_type,
+            source=compose.source,
+            state="wait",
+            results=compose.results,
+            time_submitted=now,
+            time_to_expire=now + timedelta(seconds=seconds_to_live),
+            packages=compose.packages,
+            flags=compose.flags,
+            koji_event=compose.koji_event,
+        )
+        session.add(compose)
+        return compose
+
     @property
     def name(self):
         if self.reused_id:

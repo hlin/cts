@@ -200,8 +200,12 @@ def resolve_compose(compose):
         revision = e.find("{http://linux.duke.edu/metadata/repo}revision").text
         compose.koji_event = int(revision)
     elif compose.source_type == PungiSourceType.KOJI_TAG:
-        koji_session = create_koji_session()
-        compose.koji_event = int(koji_session.getLastEvent()['id'])
+        # If compose.koji_event is set, it means that we are regenerating
+        # previous compose and we have to respect the previous koji_event to
+        # get the same results.
+        if not compose.koji_event:
+            koji_session = create_koji_session()
+            compose.koji_event = int(koji_session.getLastEvent()['id'])
     elif compose.source_type == PungiSourceType.MODULE:
         # Resolve the latest release of modules which do not have the release
         # string defined in the compose.source.
@@ -236,6 +240,13 @@ def get_reusable_compose(compose):
         Compose.source_type == compose.source_type).all()
 
     for old_compose in composes:
+        # Skip the old_compose in case it reuses another compose. In that case
+        # the reused compose is also in composes list, so we won't miss it. We
+        # don't want chain of composes reusing each other, because it would
+        # break the time_to_expire handling.
+        if old_compose.reused_id:
+            continue
+
         packages = set(compose.packages.split(" ")) \
             if compose.packages else set()
         old_packages = set(old_compose.packages.split(" ")) \

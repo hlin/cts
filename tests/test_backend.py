@@ -22,6 +22,7 @@
 
 import unittest
 import os
+from mock import patch, MagicMock
 
 from odcs import db
 from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_STATES
@@ -54,6 +55,25 @@ class TestBackend(unittest.TestCase):
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.koji_event, 1496834159)
+
+    @patch("odcs.backend.create_koji_session")
+    def test_resolve_compose_repo_no_override_koji_event(
+            self, create_koji_session):
+        koji_session = MagicMock()
+        create_koji_session.return_value = koji_session
+        koji_session.getLastEvent.return_value = {"id": 123}
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+        c.koji_event = 1
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.koji_event, 1)
 
     def test_get_reusable_compose(self):
         old_c = Compose.create(
