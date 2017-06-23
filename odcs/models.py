@@ -24,10 +24,11 @@
 """ SQLAlchemy Database models for the Flask app
 """
 
-from datetime import datetime, timedelta
-from sqlalchemy.orm import validates
-from odcs import conf
 import os
+
+from datetime import datetime, timedelta
+from odcs import conf
+from sqlalchemy.orm import validates
 
 from odcs import db
 
@@ -64,6 +65,47 @@ INVERSA_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}
 
 class ODCSBase(db.Model):
     __abstract__ = True
+
+
+user_group_rels = db.Table(
+    'user_group_rels',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+    db.Column('group_id', db.Integer, db.ForeignKey('groups.id'))
+)
+
+
+class User(ODCSBase):
+    """User information table"""
+
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(75), nullable=False, unique=True)
+    krb_realm = db.Column(db.String(30), nullable=True, default='')
+
+    groups = db.relationship('Group',
+                             secondary=user_group_rels,
+                             backref=db.backref('users', lazy='dynamic'))
+
+    def in_groups(self, group_names):
+        """Test this user is in any given groups
+
+        :param list group_names: list of group names, each of them is a string.
+        :return: True if this user is in any given group, otherwise False.
+        :rtype: bool
+        """
+        return bool(set([group.name for group in self.groups]) &
+                    set(group_names))
+
+
+class Group(ODCSBase):
+    """Group which a user is a member of"""
+
+    __tablename__ = 'groups'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), unique=True)
 
 
 class Compose(ODCSBase):

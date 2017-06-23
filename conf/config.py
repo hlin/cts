@@ -39,6 +39,29 @@ class BaseConfiguration(object):
     PDC_INSECURE = True
     PDC_DEVELOP = True
 
+    # Used to authorize authenticated users.
+    # Each of them is a string representing a group name. So far, ODCS
+    # supports OpenIDC and Kerberos authentication depending on the
+    # concrete deployment environment. So, for
+    # OpenIDC authentication, they are FAS group names.
+    # Kerberos authentication, they are LDAP group names.
+    # If not allow anyone to perform actions, keep empty list here.
+    ALLOWED_GROUPS = []
+
+    # Select which authentication backend to work with. There are 3 choices
+    # noauth: no authentication is enabled. Useful for development particularly.
+    # kerberos: Kerberos authentication is enabled.
+    AUTH_BACKEND = 'noauth'
+
+    # Used for Kerberos authentication and to query user's groups.
+    # Format: ldap://hostname[:port]
+    # For example: ldap://ldap.example.com/
+    AUTH_LDAP_SERVER = ''
+
+    # Group base to query groups from LDAP server.
+    # Generally, it would be, for example, ou=groups,dc=example,dc=com
+    AUTH_LDAP_GROUP_BASE = ''
+
 
 class DevConfiguration(BaseConfiguration):
     DEBUG = True
@@ -66,6 +89,9 @@ class TestConfiguration(BaseConfiguration):
     # Global network-related values, in seconds
     NET_TIMEOUT = 3
     NET_RETRY_INTERVAL = 1
+
+    AUTH_LDAP_SERVER = 'ldap://ldap.example.com'
+    AUTH_LDAP_GROUP_BASE = 'ou=groups,dc=example,dc=com'
 
 
 class ProdConfiguration(BaseConfiguration):

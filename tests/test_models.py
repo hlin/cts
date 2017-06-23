@@ -19,25 +19,17 @@
 # SOFTWARE.
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
-
-import unittest
+# -*- coding: utf-8 -*-
 
 from odcs import db
 from odcs.models import Compose, COMPOSE_RESULTS
+from odcs.models import User, Group
 from odcs.pungi import PungiSourceType
 
+from utils import ModelsBaseTest
 
-class TestModels(unittest.TestCase):
-    def setUp(self):
-        db.session.remove()
-        db.drop_all()
-        db.create_all()
-        db.session.commit()
 
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        db.session.commit()
+class TestModels(ModelsBaseTest):
 
     def test_creating_event_and_builds(self):
         compose = Compose.create(
@@ -62,3 +54,80 @@ class TestModels(unittest.TestCase):
                          'time_to_expire': c.json()["time_to_expire"],
                          'flags': []}
         self.assertEqual(c.json(), expected_json)
+
+
+class TestUserGroups(ModelsBaseTest):
+
+    def test_create_user_and_groups(self):
+        user = User(username='tester 1',
+                    email='tester1@example.com',
+                    krb_realm='EXAMPLE.COM')
+        db.session.add(user)
+        user = User(username='tester 2',
+                    email='tester2@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        group = Group(name='default tester')
+        db.session.add(group)
+        group = Group(name='admin')
+        db.session.add(group)
+        db.session.commit()
+
+        self.assertEqual(2, db.session.query(User).count())
+        self.assertEqual(2, db.session.query(Group).count())
+
+    def test_add_users_to_group(self):
+        group = Group(name='default tester')
+        group.users.append(
+            User(username='tester 1',
+                 email='tester1@example.com',
+                 krb_realm='EXAMPLE.COM'))
+        group.users.append(
+            User(username='tester 2',
+                 email='tester2@example.com',
+                 krb_realm='EXAMPLE.COM'))
+        group.users.append(
+            User(username='tester 3',
+                 email='tester3@example.com',
+                 krb_realm='EXAMPLE.COM'))
+        db.session.add(group)
+        db.session.commit()
+
+        group = db.session.query(Group).get(group.id)
+        self.assertEqual(3, len(list(group.users)))
+
+    def test_add_user_to_groups(self):
+        group1 = Group(name='group1')
+        group2 = Group(name='group2')
+        user = User(username='tester 3',
+                    email='tester3@example.com',
+                    krb_realm='EXAMPLE.COM')
+        db.session.add(group1)
+        db.session.add(group2)
+        db.session.add(user)
+        user.groups.append(group1)
+        user.groups.append(group2)
+        db.session.commit()
+
+        user = db.session.query(User).get(user.id)
+        self.assertEqual('tester 3', user.username)
+        self.assertEqual(2, len(list(user.groups)))
+
+
+class TestUserModel(ModelsBaseTest):
+
+    def test_user_in_any_given_groups(self):
+        user = User(username='tester1',
+                    email='tester1@example.com')
+        db.session.add(user)
+        user.groups.append(Group(name='admin'))
+        user.groups.append(Group(name='manager'))
+        user.groups.append(Group(name='default tester'))
+        db.session.commit()
+
+        user = db.session.query(User).filter(User.username == 'tester1')[0]
+        self.assertTrue(user.in_groups(['manager', 'administrative']))
+        self.assertTrue(user.in_groups(['manager', 'admin']))
+        self.assertFalse(user.in_groups(['administrative']))
+        self.assertFalse(user.in_groups([]))

@@ -42,6 +42,9 @@ log = getLogger(__name__)
 
 from odcs import views
 
+from odcs.auth import init_auth
+init_auth(app, backend=conf.auth_backend)
+
 def json_error(status, error, message):
     response = jsonify(
         {'status': status,

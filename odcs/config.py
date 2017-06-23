@@ -154,6 +154,23 @@ class Config(object):
             'type': int,
             'default': 2,
             'desc': 'Number of concurrent Pungi processes.'},
+        'auth_ldap_server': {
+            'type': str,
+            'default': '',
+            'desc': "Server URL to query user's groups."},
+        'auth_ldap_group_base': {
+            'type': str,
+            'default': '',
+            'desc': "Group base to query user's groups from LDAP server."},
+        'allowed_groups': {
+            'type': list,
+            'default': [],
+            'desc': "List of group names to authorize user's request."},
+        'auth_backend': {
+            'type': str,
+            'default': 'noauth',
+            'desc': "Select which authentication backend is enabled and work "
+                    "with frond-end authentication together."},
     }
 
     def __init__(self, conf_section_obj):
