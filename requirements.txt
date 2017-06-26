@@ -16,3 +16,4 @@ Flask-Migrate
 Flask-SQLAlchemy
 Flask-Script
 requests
+jinja2

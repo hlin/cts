@@ -24,8 +24,11 @@
 import os
 import shutil
 import tempfile
-from odcs import conf, log
+import jinja2
+
 import odcs.utils
+from odcs import conf, log
+from odcs import comps
 
 
 class PungiSourceType:
@@ -103,57 +106,31 @@ class PungiConfig(object):
     def get_comps_config(self):
         if self.source_type == PungiSourceType.MODULE:
             return ""
-
-        cfg = """<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE comps PUBLIC "-//Red Hat, Inc.//DTD Comps info//EN" "comps.dtd">
-<comps>
-  <group>
-    <id>odcs-group</id>
-    <name>odcs-group</name>
-    <description>ODCS compose default group</description>
-    <default>false</default>
-    <uservisible>true</uservisible>
-    <packagelist>
-"""
-
+        odcs_comps = comps.Comps()
+        odcs_group = comps.Group('odcs-group', 'odcs-group', 'ODCS compose default group')
         for package in self.packages:
-            cfg += '      <packagereq type="default">%s</packagereq>\n' % package
+            odcs_group.add_package(comps.Package(package))
+        odcs_comps.add_group(odcs_group)
 
-        cfg += """
-    </packagelist>
-  </group>
-</comps>
-"""
-
-        return cfg
+        template = jinja2.Template(comps.COMPS_TEMPLATE)
+        return template.render(comps=odcs_comps)
 
     def get_variants_config(self):
-        cfg = """<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE variants PUBLIC "-//Red Hat, Inc.//DTD Variants info//EN" "variants2012.dtd">
-<variants>
-    <variant id="Temporary" name="Temporary" type="variant">
-        <arches>
-"""
-
+        odcs_product = comps.Product()
+        tmp_variant = comps.Variant('Temporary', 'Temporary', 'variant', self.source_type)
         for arch in self.arches:
-            cfg += "            <arch>%s</arch>\n" % arch
-        cfg += "        </arches>\n"
-
+            tmp_variant.add_arch(comps.Arch(arch))
         if self.source_type == PungiSourceType.MODULE:
-            cfg += "        <modules>\n"
             for module in self.source.split(" "):
-                cfg += "            <module>%s</module>\n" % module
-            cfg += "        </modules>"
+                tmp_variant.add_module(comps.Module(module))
         elif self.source_type == PungiSourceType.KOJI_TAG:
             if self.packages:
-                cfg += "        <groups>\n"
-                cfg += "            <group default=\"true\">odcs-group</group>\n"
-                cfg += "        </groups>"
-        cfg += """    </variant>
-</variants>
-"""
+                tmp_variant.add_group(comps.Group('odcs-group', 'odcs-group', 'ODCS compose default group'))
 
-        return cfg
+        odcs_product.add_variant(tmp_variant)
+
+        template = jinja2.Template(comps.VARIANTS_TEMPLATE)
+        return template.render(product=odcs_product)
 
     def get_pungi_config(self):
         if self.source_type == PungiSourceType.MODULE:
