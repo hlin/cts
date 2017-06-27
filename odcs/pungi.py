@@ -104,7 +104,7 @@ translate_paths = [
    ('/mnt/koji/compose/', 'http://kojipkgs.fedoraproject.org/compose/'),
 ]
 
-koji_profile = {{ config.koji_profile }}
+koji_profile = '{{ config.koji_profile }}'
 
 """
 
