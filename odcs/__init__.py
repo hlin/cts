@@ -23,12 +23,13 @@
 
 from logging import getLogger
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 from odcs.logger import init_logging
 from odcs.config import init_config
 from odcs.proxy import ReverseProxy
+from odcs.errors import NotFound
 
 app = Flask(__name__)
 app.wsgi_app = ReverseProxy(app.wsgi_app)
@@ -40,3 +41,26 @@ init_logging(conf)
 log = getLogger(__name__)
 
 from odcs import views
+
+def json_error(status, error, message):
+    response = jsonify(
+        {'status': status,
+         'error': error,
+         'message': message})
+    response.status_code = status
+    return response
+
+@app.errorhandler(ValueError)
+def validationerror_error(e):
+    """Flask error handler for ValueError exceptions"""
+    return json_error(400, 'Bad Request', e.args[0])
+
+@app.errorhandler(RuntimeError)
+def runtimeerror_error(e):
+    """Flask error handler for RuntimeError exceptions"""
+    return json_error(500, 'Internal Server Error', e.args[0])
+
+@app.errorhandler(NotFound)
+def notfound_error(e):
+    """Flask error handler for NotFound exceptions"""
+    return json_error(404, 'Not Found', e.args[0])

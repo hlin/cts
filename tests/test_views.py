@@ -84,6 +84,50 @@ class TestViews(unittest.TestCase):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
+    def test_submit_build_resurrection_removed(self):
+        self.c1.state = COMPOSE_STATES["removed"]
+        self.c1.reused_id = 1
+        db.session.commit()
+        rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
+        data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['id'], 3)
+        self.assertEqual(data['state_name'], 'wait')
+        self.assertEqual(data['source'], 'testmodule-master')
+        self.assertEqual(data['time_removed'], None)
+
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.reused_id, None)
+
+    def test_submit_build_resurrection_failed(self):
+        self.c1.state = COMPOSE_STATES["failed"]
+        self.c1.reused_id = 1
+        db.session.commit()
+        rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
+        data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['id'], 3)
+        self.assertEqual(data['state_name'], 'wait')
+        self.assertEqual(data['source'], 'testmodule-master')
+        self.assertEqual(data['time_removed'], None)
+
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.reused_id, None)
+
+    def test_submit_build_resurrection_no_removed(self):
+        db.session.commit()
+        rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
+        data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['message'], 'No expired or failed compose with id 1')
+
+    def test_submit_build_resurrection_not_found(self):
+        db.session.commit()
+        rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 100}))
+        data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['message'], 'No expired or failed compose with id 100')
+
     def test_query_compose(self):
         resp = self.client.get('/odcs/1/composes/1')
         data = json.loads(resp.data.decode('utf8'))
