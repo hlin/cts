@@ -171,6 +171,14 @@ class Config(object):
             'default': 'noauth',
             'desc': "Select which authentication backend is enabled and work "
                     "with frond-end authentication together."},
+        'auth_openidc_userinfo_uri': {
+            'type': str,
+            'default': '',
+            'desc': 'UserInfo endpoint to get user information from FAS.'},
+        'auth_openidc_required_scopes': {
+            'type': list,
+            'default': [],
+            'desc': 'Required scopes for submitting request to run new compose.'},
     }
 
     def __init__(self, conf_section_obj):

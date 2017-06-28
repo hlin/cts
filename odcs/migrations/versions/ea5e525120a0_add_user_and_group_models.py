@@ -23,9 +23,9 @@ def upgrade():
     )
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('username', sa.String(length=50), nullable=False),
-    sa.Column('email', sa.String(length=75), nullable=False),
-    sa.Column('krb_realm', sa.String(length=30), nullable=True),
+    sa.Column('username', sa.String(length=200), nullable=False),
+    sa.Column('email', sa.String(length=200), nullable=False),
+    sa.Column('krb_realm', sa.String(length=50), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )

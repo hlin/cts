@@ -51,6 +51,7 @@ class BaseConfiguration(object):
     # Select which authentication backend to work with. There are 3 choices
     # noauth: no authentication is enabled. Useful for development particularly.
     # kerberos: Kerberos authentication is enabled.
+    # openidc: OpenIDC authentication is enabled.
     AUTH_BACKEND = 'noauth'
 
     # Used for Kerberos authentication and to query user's groups.
@@ -61,6 +62,17 @@ class BaseConfiguration(object):
     # Group base to query groups from LDAP server.
     # Generally, it would be, for example, ou=groups,dc=example,dc=com
     AUTH_LDAP_GROUP_BASE = ''
+
+    AUTH_OPENIDC_USERINFO_URI = 'https://id.fedoraproject.org/openidc/UserInfo'
+
+    # Scope requested from Fedora Infra for permission of submitting request to
+    # run a new compose.
+    # See also: https://fedoraproject.org/wiki/Infrastructure/Authentication
+    # Add additional required scope in following list
+    AUTH_OPENIDC_REQUIRED_SCOPES = [
+        'openid',
+        'https://id.fedoraproject.org/scope/groups',
+    ]
 
 
 class DevConfiguration(BaseConfiguration):
@@ -76,6 +88,8 @@ class DevConfiguration(BaseConfiguration):
         mkdir(TARGET_DIR)
     except:
         pass
+
+    AUTH_OPENIDC_USERINFO_URI = 'https://iddev.fedorainfracloud.org/openidc/UserInfo'
 
 
 class TestConfiguration(BaseConfiguration):

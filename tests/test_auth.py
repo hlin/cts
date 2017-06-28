@@ -22,14 +22,19 @@
 # Written by Chenxiong Qi <cqi@redhat.com>
 
 
+import flask
 import unittest
 
-from mock import patch
+from mock import patch, Mock
 
-from odcs import db
-from odcs.models import User
+import odcs.auth
+
 from odcs.auth import load_krb_user_from_request
+from odcs.auth import load_openidc_user
 from odcs.auth import query_ldap_groups
+from odcs.auth import init_auth
+from odcs import app, db
+from odcs.models import User
 from utils import ModelsBaseTest
 from werkzeug.exceptions import Unauthorized
 
@@ -92,6 +97,134 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
         self.assertRaises(Unauthorized, load_krb_user_from_request)
 
 
+class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
+
+    def setUp(self):
+        super(TestLoadOpenIDCUserFromRequest, self).setUp()
+
+        self.user = User(username='tester1', email='tester1@example.com')
+        db.session.add(self.user)
+        db.session.commit()
+
+    @patch('odcs.auth.requests.get')
+    def test_create_new_user(self, get):
+        get.return_value.status_code = 200
+        get.return_value.json.return_value = {
+            'email': 'new_user@example.com',
+            'groups': ['tester', 'admin'],
+            'name': 'new_user',
+        }
+
+        environ_base = {
+            'REMOTE_USER': 'new_user',
+            'OIDC_access_token': '39283',
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+        }
+        with app.test_request_context(environ_base=environ_base):
+            load_openidc_user()
+
+            new_user = db.session.query(User).filter(
+                User.email == 'new_user@example.com')[0]
+
+            self.assertEqual(new_user, flask.g.user)
+            self.assertEqual('new_user', flask.g.user.username)
+            self.assertEqual('new_user@example.com', flask.g.user.email)
+            self.assertEqual(sorted(['admin', 'tester']),
+                             sorted([grp.name for grp in flask.g.user.groups]))
+
+    @patch('odcs.auth.requests.get')
+    def test_return_existing_user(self, get):
+        get.return_value.status_code = 200
+        get.return_value.json.return_value = {
+            'email': self.user.email,
+            'groups': ['tester', 'admin'],
+            'name': self.user.username,
+        }
+
+        environ_base = {
+            'REMOTE_USER': self.user.username,
+            'OIDC_access_token': '39283',
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+        }
+        with app.test_request_context(environ_base=environ_base):
+            original_users_count = db.session.query(User.id).count()
+
+            load_openidc_user()
+
+            users_count = db.session.query(User.id).count()
+            self.assertEqual(original_users_count, users_count)
+
+            # Ensure existing user is set in g
+            self.assertEqual(self.user, flask.g.user)
+
+    def test_401_if_remote_user_not_present(self):
+        environ_base = {
+            # Missing REMOTE_USER here
+            'OIDC_access_token': '39283',
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+        }
+        with app.test_request_context(environ_base=environ_base):
+            self.assertRaises(Unauthorized, load_openidc_user)
+
+    def test_401_if_access_token_not_present(self):
+        environ_base = {
+            'REMOTE_USER': 'tester1',
+            # Missing OIDC_access_token here
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+        }
+        with app.test_request_context(environ_base=environ_base):
+            self.assertRaises(Unauthorized, load_openidc_user)
+
+    @patch('odcs.auth.requests.get')
+    def test_use_iss_to_construct_email_if_email_is_missing(self, get):
+        get.return_value.status_code = 200
+        get.return_value.json.return_value = {
+            'groups': ['tester', 'admin'],
+            'name': self.user.username,
+        }
+
+        environ_base = {
+            'REMOTE_USER': 'new_user',
+            'OIDC_access_token': '39283',
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+        }
+        with app.test_request_context(environ_base=environ_base):
+            load_openidc_user()
+            self.assertEqual('new_user@iddev.fedorainfracloud.org',
+                             flask.g.user.email)
+
+    def test_401_if_scope_not_present(self):
+        environ_base = {
+            'REMOTE_USER': 'tester1',
+            'OIDC_access_token': '39283',
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            # Missing OIDC_CLAIM_scope here
+        }
+        with app.test_request_context(environ_base=environ_base):
+            self.assertRaises(Unauthorized, load_openidc_user)
+
+    def test_401_if_required_scope_not_present_in_token_scope(self):
+        environ_base = {
+            'REMOTE_USER': 'new_user',
+            'OIDC_access_token': '39283',
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+        }
+        with patch.object(odcs.auth.conf,
+                          'auth_openidc_required_scopes',
+                          ['new-compose']):
+            with app.test_request_context(environ_base=environ_base):
+                self.assertRaisesRegexp(
+                    Unauthorized,
+                    'Required OIDC scope new-compose not present.',
+                    load_openidc_user)
+
+
 class TestQueryLdapGroups(unittest.TestCase):
     """Test auth.query_ldap_groups"""
 
@@ -109,3 +242,30 @@ class TestQueryLdapGroups(unittest.TestCase):
         groups = query_ldap_groups('me')
         self.assertEqual(sorted(['odcsdev', 'freshmakerdev', 'devel']),
                          sorted(groups))
+
+
+class TestInitAuth(unittest.TestCase):
+    """Test init_auth"""
+
+    def test_select_kerberos_auth_backend(self):
+        app = Mock()
+        init_auth(app, 'kerberos')
+        app.before_request.assert_called_once_with(load_krb_user_from_request)
+
+    def test_select_openidc_auth_backend(self):
+        app = Mock()
+        init_auth(app, 'openidc')
+        app.before_request.assert_called_once_with(load_openidc_user)
+
+    def test_not_use_auth_backend(self):
+        app = Mock()
+        init_auth(app)
+        app.before_request.assert_not_called()
+
+        init_auth(app, 'noauth')
+        app.before_request.assert_not_called()
+
+    def test_error_if_select_an_unknown_backend(self):
+        app = Mock()
+        self.assertRaises(ValueError, init_auth, app, 'xxx')
+        self.assertRaises(ValueError, init_auth, app, '')

@@ -80,9 +80,9 @@ class User(ODCSBase):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(75), nullable=False, unique=True)
-    krb_realm = db.Column(db.String(30), nullable=True, default='')
+    username = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), nullable=False, unique=True)
+    krb_realm = db.Column(db.String(50), nullable=True, default='')
 
     groups = db.relationship('Group',
                              secondary=user_group_rels,
