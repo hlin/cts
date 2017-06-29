@@ -131,3 +131,30 @@ class TestUserModel(ModelsBaseTest):
         self.assertTrue(user.in_groups(['manager', 'admin']))
         self.assertFalse(user.in_groups(['administrative']))
         self.assertFalse(user.in_groups([]))
+
+    def test_find_by_email(self):
+        db.session.add(User(username='tester1', email='tester1@example.com'))
+        db.session.add(User(username='admin', email='admin@example.com'))
+        db.session.commit()
+
+        user = User.find_user_by_email('admin@example.com')
+        self.assertEqual('admin', user.username)
+
+    def test_create_user(self):
+        User.create_user(username='tester1', email='tester1@example.com')
+        User.create_user(username='tester2',
+                         email='tester2@example.com',
+                         krb_realm='EXAMPLE.COM',
+                         groups=['admins', 'testers'])
+        db.session.commit()
+
+        user = User.find_user_by_email('tester1@example.com')
+        self.assertEqual('tester1', user.username)
+        self.assertEqual('', user.krb_realm)
+        self.assertEqual([], [g.name for g in user.groups])
+
+        user = User.find_user_by_email('tester2@example.com')
+        self.assertEqual('tester2', user.username)
+        self.assertEqual('EXAMPLE.COM', user.krb_realm)
+        self.assertEqual(['admins', 'testers'],
+                         sorted([g.name for g in user.groups]))

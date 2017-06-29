@@ -32,28 +32,12 @@ from flask import abort
 from flask import g
 from flask import request
 
-from odcs.models import User, Group
-from odcs import db, conf, log
+from odcs import conf, log
+from odcs.models import User
+from odcs.models import commit_on_success
 
 
-def find_user_by_email(email):
-    try:
-        return db.session.query(User).filter(User.email == email)[0]
-    except IndexError:
-        return None
-
-
-def create_user(username, email, krb_realm=None, groups=[]):
-    user = User(username=username, email=email, krb_realm=krb_realm)
-    db.session.add(user)
-
-    for group in groups:
-        user.groups.append(Group(name=group))
-    db.session.commit()
-
-    return user
-
-
+@commit_on_success
 def load_krb_user_from_request():
     """Load Kerberos user from current request
 
@@ -75,12 +59,12 @@ def load_krb_user_from_request():
 
     email = remote_user.lower()
 
-    user = find_user_by_email(email)
+    user = User.find_user_by_email(email)
     if not user:
-        user = create_user(username=username,
-                           email=email,
-                           krb_realm=realm,
-                           groups=groups)
+        user = User.create_user(username=username,
+                                email=email,
+                                krb_realm=realm,
+                                groups=groups)
     g.user = user
 
 
@@ -101,6 +85,7 @@ def query_ldap_groups(uid):
     return group_names
 
 
+@commit_on_success
 def load_openidc_user():
     """Load FAS user from current request"""
     username = request.environ.get('REMOTE_USER')
@@ -125,9 +110,9 @@ def load_openidc_user():
         email = '{0}@{1}'.format(username, domain)
     groups = user_info.get('groups', [])
 
-    user = find_user_by_email(email)
+    user = User.find_user_by_email(email)
     if not user:
-        user = create_user(username=username, email=email, groups=groups)
+        user = User.create_user(username=username, email=email, groups=groups)
     g.user = user
 
 

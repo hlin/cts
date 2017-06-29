@@ -63,6 +63,18 @@ COMPOSE_FLAGS = {
 INVERSA_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}
 
 
+def commit_on_success(func):
+    def _decorator(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except:
+            db.session.rollback()
+            raise
+        finally:
+            db.session.commit()
+    return _decorator
+
+
 class ODCSBase(db.Model):
     __abstract__ = True
 
@@ -87,6 +99,29 @@ class User(ODCSBase):
     groups = db.relationship('Group',
                              secondary=user_group_rels,
                              backref=db.backref('users', lazy='dynamic'))
+
+    @classmethod
+    def find_user_by_email(cls, email):
+        """Find a user by email
+
+        :param str email: a string of email to find user
+        :return: user object if found, otherwise None is returned.
+        :rtype: User
+        """
+        try:
+            return db.session.query(cls).filter(cls.email == email)[0]
+        except IndexError:
+            return None
+
+    @classmethod
+    def create_user(cls, username, email, krb_realm=None, groups=[]):
+        user = cls(username=username, email=email, krb_realm=krb_realm)
+        db.session.add(user)
+
+        for group in groups:
+            user.groups.append(Group(name=group))
+
+        return user
 
     def in_groups(self, group_names):
         """Test this user is in any given groups
