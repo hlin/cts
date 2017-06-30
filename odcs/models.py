@@ -118,8 +118,13 @@ class User(ODCSBase):
         user = cls(username=username, email=email, krb_realm=krb_realm)
         db.session.add(user)
 
-        for group in groups:
-            user.groups.append(Group(name=group))
+        existing_groups = db.session.query(Group).filter(Group.name.in_(groups)).all()
+        new_group_names = set(groups) - set([grp.name for grp in existing_groups])
+
+        for group in existing_groups:
+            user.groups.append(group)
+        for name in new_group_names:
+            user.groups.append(Group(name=name))
 
         return user
 

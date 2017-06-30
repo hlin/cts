@@ -141,20 +141,39 @@ class TestUserModel(ModelsBaseTest):
         self.assertEqual('admin', user.username)
 
     def test_create_user(self):
-        User.create_user(username='tester1', email='tester1@example.com')
         User.create_user(username='tester2',
                          email='tester2@example.com',
                          krb_realm='EXAMPLE.COM',
                          groups=['admins', 'testers'])
         db.session.commit()
 
-        user = User.find_user_by_email('tester1@example.com')
-        self.assertEqual('tester1', user.username)
-        self.assertEqual('', user.krb_realm)
-        self.assertEqual([], [g.name for g in user.groups])
-
         user = User.find_user_by_email('tester2@example.com')
         self.assertEqual('tester2', user.username)
         self.assertEqual('EXAMPLE.COM', user.krb_realm)
         self.assertEqual(['admins', 'testers'],
                          sorted([g.name for g in user.groups]))
+
+    def test_no_duplicate_group_is_create(self):
+        group = Group(name='admins')
+        db.session.add(group)
+        db.session.commit()
+
+        User.create_user(username='tester2',
+                         email='tester2@example.com',
+                         krb_realm='EXAMPLE.COM',
+                         groups=['admins', 'testers'])
+        db.session.commit()
+
+        self.assertEqual(2, db.session.query(Group).count())
+        user = User.find_user_by_email('tester2@example.com')
+        self.assertEqual(['admins', 'testers'],
+                         sorted([grp.name for grp in user.groups]))
+
+    def test_no_group_is_added_if_no_groups(self):
+        User.create_user(username='tester1', email='tester1@example.com')
+        db.session.commit()
+
+        user = User.find_user_by_email('tester1@example.com')
+        self.assertEqual('tester1', user.username)
+        self.assertEqual('', user.krb_realm)
+        self.assertEqual([], [g.name for g in user.groups])
