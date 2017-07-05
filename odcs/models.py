@@ -79,13 +79,6 @@ class ODCSBase(db.Model):
     __abstract__ = True
 
 
-user_group_rels = db.Table(
-    'user_group_rels',
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
-    db.Column('group_id', db.Integer, db.ForeignKey('groups.id'))
-)
-
-
 class User(ODCSBase):
     """User information table"""
 
@@ -95,10 +88,6 @@ class User(ODCSBase):
     username = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(200), nullable=False, unique=True)
     krb_realm = db.Column(db.String(50), nullable=True, default='')
-
-    groups = db.relationship('Group',
-                             secondary=user_group_rels,
-                             backref=db.backref('users', lazy='dynamic'))
 
     @classmethod
     def find_user_by_email(cls, email):
@@ -114,38 +103,10 @@ class User(ODCSBase):
             return None
 
     @classmethod
-    def create_user(cls, username, email, krb_realm=None, groups=[]):
+    def create_user(cls, username, email, krb_realm=None):
         user = cls(username=username, email=email, krb_realm=krb_realm)
         db.session.add(user)
-
-        existing_groups = db.session.query(Group).filter(Group.name.in_(groups)).all()
-        new_group_names = set(groups) - set([grp.name for grp in existing_groups])
-
-        for group in existing_groups:
-            user.groups.append(group)
-        for name in new_group_names:
-            user.groups.append(Group(name=name))
-
         return user
-
-    def in_groups(self, group_names):
-        """Test this user is in any given groups
-
-        :param list group_names: list of group names, each of them is a string.
-        :return: True if this user is in any given group, otherwise False.
-        :rtype: bool
-        """
-        return bool(set([group.name for group in self.groups]) &
-                    set(group_names))
-
-
-class Group(ODCSBase):
-    """Group which a user is a member of"""
-
-    __tablename__ = 'groups'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(30), unique=True)
 
 
 class Compose(ODCSBase):

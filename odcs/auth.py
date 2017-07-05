@@ -50,6 +50,14 @@ def load_krb_user_from_request():
 
     username, realm = remote_user.split('@')
 
+    email = remote_user.lower()
+
+    user = User.find_user_by_email(email)
+    if not user:
+        user = User.create_user(username=username,
+                                email=email,
+                                krb_realm=realm)
+
     try:
         groups = query_ldap_groups(username)
     except ldap.SERVER_DOWN as e:
@@ -57,14 +65,7 @@ def load_krb_user_from_request():
                   username, e.args[0]['desc'])
         groups = []
 
-    email = remote_user.lower()
-
-    user = User.find_user_by_email(email)
-    if not user:
-        user = User.create_user(username=username,
-                                email=email,
-                                krb_realm=realm,
-                                groups=groups)
+    g.groups = groups
     g.user = user
 
 
@@ -108,11 +109,12 @@ def load_openidc_user():
                     ' Fallback to use iss to construct email address.')
         domain = urllib_parse.urlparse(request.environ['OIDC_CLAIM_iss']).netloc
         email = '{0}@{1}'.format(username, domain)
-    groups = user_info.get('groups', [])
 
     user = User.find_user_by_email(email)
     if not user:
-        user = User.create_user(username=username, email=email, groups=groups)
+        user = User.create_user(username=username, email=email)
+
+    g.groups = user_info.get('groups', [])
     g.user = user
 
 
@@ -152,3 +154,13 @@ def init_auth(app, backend=None):
         load_openidc_user = app.before_request(load_openidc_user)
     else:
         raise ValueError('Unknown backend name {0}.'.format(backend))
+
+
+def user_in_allowed_groups():
+    """Check if current user is in allowed groups
+
+    :return: True if current user is in allowed groups, otherwise False is
+        returned.
+    :rtype: bool
+    """
+    return bool(set(g.groups) & set(conf.allowed_groups))

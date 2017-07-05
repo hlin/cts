@@ -50,44 +50,47 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
         db.session.add(self.user)
         db.session.commit()
 
-    @patch('odcs.auth.query_ldap_groups', return_value=['devel', 'admin'])
-    @patch('odcs.auth.request')
-    @patch('odcs.auth.g')
-    def test_create_new_user(self, g, request, query_ldap_groups):
-        request.environ.get.return_value = 'newuser@EXAMPLE.COM'
+    @patch('odcs.auth.query_ldap_groups')
+    def test_create_new_user(self, query_ldap_groups):
+        query_ldap_groups.return_value = ['devel', 'admins']
 
-        load_krb_user_from_request()
+        environ_base = {
+            'REMOTE_USER': 'newuser@EXAMPLE.COM'
+        }
 
-        expected_user = db.session.query(User).filter(
-            User.email == 'newuser@example.com')[0]
+        with app.test_request_context(environ_base=environ_base):
+            load_krb_user_from_request()
 
-        self.assertEqual(expected_user.id, g.user.id)
-        self.assertEqual(expected_user.username, g.user.username)
-        self.assertEqual(expected_user.email, g.user.email)
-        self.assertEqual(expected_user.krb_realm, g.user.krb_realm)
+            expected_user = db.session.query(User).filter(
+                User.email == 'newuser@example.com')[0]
 
-        # Ensure user's groups are created
-        self.assertEqual(2, len(g.user.groups))
-        names = [group.name for group in g.user.groups]
-        self.assertEqual(['admin', 'devel'], sorted(names))
+            self.assertEqual(expected_user.id, flask.g.user.id)
+            self.assertEqual(expected_user.username, flask.g.user.username)
+            self.assertEqual(expected_user.email, flask.g.user.email)
+            self.assertEqual(expected_user.krb_realm, flask.g.user.krb_realm)
 
-    @patch('odcs.auth.query_ldap_groups', return_value=['devel', 'admin'])
-    @patch('odcs.auth.request')
-    @patch('odcs.auth.g')
-    def test_return_existing_user(self, g, request, query_ldap_groups):
-        request.environ.get.return_value = \
-            '{0}@EXAMPLE.COM'.format(self.user.username)
+            # Ensure user's groups are created
+            self.assertEqual(2, len(flask.g.groups))
+            self.assertEqual(['admins', 'devel'], sorted(flask.g.groups))
 
+    @patch('odcs.auth.query_ldap_groups')
+    def test_return_existing_user(self, query_ldap_groups):
+        query_ldap_groups.return_value = ['devel', 'admins']
         original_users_count = db.session.query(User.id).count()
 
-        load_krb_user_from_request()
+        environ_base = {
+            'REMOTE_USER': '{0}@EXAMPLE.COM'.format(self.user.username)
+        }
 
-        self.assertEqual(original_users_count, db.session.query(User.id).count())
-        self.assertEqual(self.user.id, g.user.id)
-        self.assertEqual(self.user.username, g.user.username)
-        self.assertEqual(self.user.email, g.user.email)
-        self.assertEqual(self.user.krb_realm, g.user.krb_realm)
-        self.assertEqual(len(self.user.groups), len(g.user.groups))
+        with app.test_request_context(environ_base=environ_base):
+            load_krb_user_from_request()
+
+            self.assertEqual(original_users_count, db.session.query(User.id).count())
+            self.assertEqual(self.user.id, flask.g.user.id)
+            self.assertEqual(self.user.username, flask.g.user.username)
+            self.assertEqual(self.user.email, flask.g.user.email)
+            self.assertEqual(self.user.krb_realm, flask.g.user.krb_realm)
+            self.assertEqual(['admins', 'devel'], sorted(flask.g.groups))
 
     @patch('odcs.auth.request')
     @patch('odcs.auth.g')
@@ -130,15 +133,14 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             self.assertEqual(new_user, flask.g.user)
             self.assertEqual('new_user', flask.g.user.username)
             self.assertEqual('new_user@example.com', flask.g.user.email)
-            self.assertEqual(sorted(['admin', 'tester']),
-                             sorted([grp.name for grp in flask.g.user.groups]))
+            self.assertEqual(sorted(['admin', 'tester']), sorted(flask.g.groups))
 
     @patch('odcs.auth.requests.get')
     def test_return_existing_user(self, get):
         get.return_value.status_code = 200
         get.return_value.json.return_value = {
             'email': self.user.email,
-            'groups': ['tester', 'admin'],
+            'groups': ['testers', 'admins'],
             'name': self.user.username,
         }
 
@@ -148,6 +150,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
             'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
         }
+
         with app.test_request_context(environ_base=environ_base):
             original_users_count = db.session.query(User.id).count()
 
@@ -157,7 +160,9 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             self.assertEqual(original_users_count, users_count)
 
             # Ensure existing user is set in g
-            self.assertEqual(self.user, flask.g.user)
+            self.assertEqual(self.user.id, flask.g.user.id)
+            self.assertEqual(self.user.email, flask.g.user.email)
+            self.assertEqual(['admins', 'testers'], sorted(flask.g.groups))
 
     def test_401_if_remote_user_not_present(self):
         environ_base = {
