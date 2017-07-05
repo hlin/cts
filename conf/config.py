@@ -52,7 +52,7 @@ class BaseConfiguration(object):
     # noauth: no authentication is enabled. Useful for development particularly.
     # kerberos: Kerberos authentication is enabled.
     # openidc: OpenIDC authentication is enabled.
-    AUTH_BACKEND = 'noauth'
+    AUTH_BACKEND = ''
 
     # Used for Kerberos authentication and to query user's groups.
     # Format: ldap://hostname[:port]
@@ -89,6 +89,7 @@ class DevConfiguration(BaseConfiguration):
     except:
         pass
 
+    AUTH_BACKEND = 'noauth'
     AUTH_OPENIDC_USERINFO_URI = 'https://iddev.fedorainfracloud.org/openidc/UserInfo'
 
 
@@ -104,6 +105,7 @@ class TestConfiguration(BaseConfiguration):
     NET_TIMEOUT = 3
     NET_RETRY_INTERVAL = 1
 
+    AUTH_BACKEND = 'noauth'
     AUTH_LDAP_SERVER = 'ldap://ldap.example.com'
     AUTH_LDAP_GROUP_BASE = 'ou=groups,dc=example,dc=com'
 

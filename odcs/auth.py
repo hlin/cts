@@ -143,8 +143,15 @@ def get_user_info(token):
     return r.json()
 
 
-def init_auth(app, backend=None):
-    if backend is None or backend == 'noauth':
+def init_auth(app, backend):
+    """Initialize authentication backend
+
+    Enable and initialize authentication backend to work with frontend
+    authentication module running in Apache.
+    """
+    if backend == 'noauth':
+        # Do not enable any authentication backend working with frontend
+        # authentication module in Apache.
         return
     if backend == 'kerberos':
         global load_krb_user_from_request

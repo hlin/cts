@@ -264,9 +264,6 @@ class TestInitAuth(unittest.TestCase):
 
     def test_not_use_auth_backend(self):
         app = Mock()
-        init_auth(app)
-        app.before_request.assert_not_called()
-
         init_auth(app, 'noauth')
         app.before_request.assert_not_called()
 
@@ -274,3 +271,4 @@ class TestInitAuth(unittest.TestCase):
         app = Mock()
         self.assertRaises(ValueError, init_auth, app, 'xxx')
         self.assertRaises(ValueError, init_auth, app, '')
+        self.assertRaises(ValueError, init_auth, app, None)
