@@ -85,7 +85,7 @@ class User(ODCSBase):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(200), nullable=False)
+    username = db.Column(db.String(200), nullable=False, unique=True)
 
     @classmethod
     def find_user_by_name(cls, username):

@@ -1,13 +1,13 @@
 """Create user model
 
-Revision ID: 758c0ce100a8
+Revision ID: 0d4d8e1cfe29
 Revises: 566733ac3811
-Create Date: 2017-07-06 11:39:46.952219
+Create Date: 2017-07-06 22:37:38.576275
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '758c0ce100a8'
+revision = '0d4d8e1cfe29'
 down_revision = '566733ac3811'
 
 from alembic import op
@@ -19,7 +19,8 @@ def upgrade():
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=200), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('username')
     )
     # ### end Alembic commands ###
 
