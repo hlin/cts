@@ -86,25 +86,23 @@ class User(ODCSBase):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(200), nullable=False)
-    email = db.Column(db.String(200), nullable=False, unique=True)
-    krb_realm = db.Column(db.String(50), nullable=True, default='')
 
     @classmethod
-    def find_user_by_email(cls, email):
-        """Find a user by email
+    def find_user_by_name(cls, username):
+        """Find a user by username
 
-        :param str email: a string of email to find user
+        :param str username: a string of username to find user
         :return: user object if found, otherwise None is returned.
         :rtype: User
         """
         try:
-            return db.session.query(cls).filter(cls.email == email)[0]
+            return db.session.query(cls).filter(cls.username == username)[0]
         except IndexError:
             return None
 
     @classmethod
-    def create_user(cls, username, email, krb_realm=None):
-        user = cls(username=username, email=email, krb_realm=krb_realm)
+    def create_user(cls, username):
+        user = cls(username=username)
         db.session.add(user)
         return user
 

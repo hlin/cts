@@ -59,26 +59,23 @@ class TestModels(ModelsBaseTest):
 class TestUserModel(ModelsBaseTest):
 
     def test_find_by_email(self):
-        db.session.add(User(username='tester1', email='tester1@example.com'))
-        db.session.add(User(username='admin', email='admin@example.com'))
+        db.session.add(User(username='tester1'))
+        db.session.add(User(username='admin'))
         db.session.commit()
 
-        user = User.find_user_by_email('admin@example.com')
+        user = User.find_user_by_name('admin')
         self.assertEqual('admin', user.username)
 
     def test_create_user(self):
-        User.create_user(username='tester2',
-                         email='tester2@example.com',
-                         krb_realm='EXAMPLE.COM')
+        User.create_user(username='tester2')
         db.session.commit()
 
-        user = User.find_user_by_email('tester2@example.com')
+        user = User.find_user_by_name('tester2')
         self.assertEqual('tester2', user.username)
-        self.assertEqual('EXAMPLE.COM', user.krb_realm)
 
     def test_no_group_is_added_if_no_groups(self):
-        User.create_user(username='tester1', email='tester1@example.com')
+        User.create_user(username='tester1')
         db.session.commit()
 
-        user = User.find_user_by_email('tester1@example.com')
+        user = User.find_user_by_name('tester1')
         self.assertEqual('tester1', user.username)

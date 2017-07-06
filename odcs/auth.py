@@ -27,7 +27,6 @@ import ldap
 
 from itertools import chain
 
-from six.moves import urllib_parse
 from flask import abort
 from flask import g
 from flask import request
@@ -50,13 +49,9 @@ def load_krb_user_from_request():
 
     username, realm = remote_user.split('@')
 
-    email = remote_user.lower()
-
-    user = User.find_user_by_email(email)
+    user = User.find_user_by_name(username)
     if not user:
-        user = User.create_user(username=username,
-                                email=email,
-                                krb_realm=realm)
+        user = User.create_user(username=username)
 
     try:
         groups = query_ldap_groups(username)
@@ -103,16 +98,10 @@ def load_openidc_user():
     validate_scopes(scope)
 
     user_info = get_user_info(token)
-    email = user_info.get('email')
-    if not email:
-        log.warning('Seems email is not present. Please check scope in client.'
-                    ' Fallback to use iss to construct email address.')
-        domain = urllib_parse.urlparse(request.environ['OIDC_CLAIM_iss']).netloc
-        email = '{0}@{1}'.format(username, domain)
 
-    user = User.find_user_by_email(email)
+    user = User.find_user_by_name(username)
     if not user:
-        user = User.create_user(username=username, email=email)
+        user = User.create_user(username=username)
 
     g.groups = user_info.get('groups', [])
     g.user = user

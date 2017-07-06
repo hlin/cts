@@ -44,9 +44,7 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
     def setUp(self):
         super(TestLoadKrbUserFromRequest, self).setUp()
 
-        self.user = User(username='tester1',
-                         email='tester1@example.com',
-                         krb_realm='EXAMPLE.COM')
+        self.user = User(username='tester1')
         db.session.add(self.user)
         db.session.commit()
 
@@ -62,12 +60,10 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
             load_krb_user_from_request()
 
             expected_user = db.session.query(User).filter(
-                User.email == 'newuser@example.com')[0]
+                User.username == 'newuser')[0]
 
             self.assertEqual(expected_user.id, flask.g.user.id)
             self.assertEqual(expected_user.username, flask.g.user.username)
-            self.assertEqual(expected_user.email, flask.g.user.email)
-            self.assertEqual(expected_user.krb_realm, flask.g.user.krb_realm)
 
             # Ensure user's groups are created
             self.assertEqual(2, len(flask.g.groups))
@@ -88,8 +84,6 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
             self.assertEqual(original_users_count, db.session.query(User.id).count())
             self.assertEqual(self.user.id, flask.g.user.id)
             self.assertEqual(self.user.username, flask.g.user.username)
-            self.assertEqual(self.user.email, flask.g.user.email)
-            self.assertEqual(self.user.krb_realm, flask.g.user.krb_realm)
             self.assertEqual(['admins', 'devel'], sorted(flask.g.groups))
 
     @patch('odcs.auth.request')
@@ -105,7 +99,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
     def setUp(self):
         super(TestLoadOpenIDCUserFromRequest, self).setUp()
 
-        self.user = User(username='tester1', email='tester1@example.com')
+        self.user = User(username='tester1')
         db.session.add(self.user)
         db.session.commit()
 
@@ -113,7 +107,6 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
     def test_create_new_user(self, get):
         get.return_value.status_code = 200
         get.return_value.json.return_value = {
-            'email': 'new_user@example.com',
             'groups': ['tester', 'admin'],
             'name': 'new_user',
         }
@@ -124,22 +117,20 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
             'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
         }
+
         with app.test_request_context(environ_base=environ_base):
             load_openidc_user()
 
-            new_user = db.session.query(User).filter(
-                User.email == 'new_user@example.com')[0]
+            new_user = db.session.query(User).filter(User.username == 'new_user')[0]
 
             self.assertEqual(new_user, flask.g.user)
             self.assertEqual('new_user', flask.g.user.username)
-            self.assertEqual('new_user@example.com', flask.g.user.email)
             self.assertEqual(sorted(['admin', 'tester']), sorted(flask.g.groups))
 
     @patch('odcs.auth.requests.get')
     def test_return_existing_user(self, get):
         get.return_value.status_code = 200
         get.return_value.json.return_value = {
-            'email': self.user.email,
             'groups': ['testers', 'admins'],
             'name': self.user.username,
         }
@@ -161,7 +152,6 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
 
             # Ensure existing user is set in g
             self.assertEqual(self.user.id, flask.g.user.id)
-            self.assertEqual(self.user.email, flask.g.user.email)
             self.assertEqual(['admins', 'testers'], sorted(flask.g.groups))
 
     def test_401_if_remote_user_not_present(self):
@@ -183,25 +173,6 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
         }
         with app.test_request_context(environ_base=environ_base):
             self.assertRaises(Unauthorized, load_openidc_user)
-
-    @patch('odcs.auth.requests.get')
-    def test_use_iss_to_construct_email_if_email_is_missing(self, get):
-        get.return_value.status_code = 200
-        get.return_value.json.return_value = {
-            'groups': ['tester', 'admin'],
-            'name': self.user.username,
-        }
-
-        environ_base = {
-            'REMOTE_USER': 'new_user',
-            'OIDC_access_token': '39283',
-            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
-            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
-        }
-        with app.test_request_context(environ_base=environ_base):
-            load_openidc_user()
-            self.assertEqual('new_user@iddev.fedorainfracloud.org',
-                             flask.g.user.email)
 
     def test_401_if_scope_not_present(self):
         environ_base = {
