@@ -21,13 +21,14 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import datetime
 import json
 
 from flask.views import MethodView
 from flask import request, jsonify
 
 from odcs import app, db, log, conf
-from odcs.errors import NotFound
+from odcs.errors import NotFound, BadRequest
 from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES
 from odcs.pungi import PungiSourceType
 from odcs.api_utils import pagination_metadata, filter_composes
@@ -51,6 +52,12 @@ api_v1 = {
         'url': '/odcs/1/composes/',
         'options': {
             'methods': ['POST'],
+        }
+    },
+    'composes_delete': {
+        'url': '/odcs/1/composes/<int:id>',
+        'options': {
+            'methods': ['DELETE'],
         }
     },
 }
@@ -160,6 +167,29 @@ class ODCSAPI(MethodView):
         db.session.commit()
 
         return jsonify(compose.json()), 200
+
+    def delete(self, id):
+        compose = Compose.query.filter_by(id=id).first()
+        if compose:
+            # can remove compose that is in state of 'done' or 'failed'
+            deletable_states = {n: COMPOSE_STATES[n] for n in ['done', 'failed']}
+            if compose.state not in deletable_states.values():
+                raise BadRequest('Compose (id=%s) can not be removed, its state need to be in %s.' %
+                                 (id, deletable_states.keys()))
+
+            # change compose.time_to_expire to now, so backend will
+            # delete this compose as it's an expired compose now
+            compose.time_to_expire = datetime.datetime.utcnow()
+            db.session.add(compose)
+            db.session.commit()
+            message = ("The delete request for compose (id=%s) has been accepted and will be"
+                       " processed by backend later." % compose.id)
+            response = jsonify({'status': 202,
+                                'message': message})
+            response.status_code = 202
+            return response
+        else:
+            raise NotFound('No such compose found.')
 
 
 def register_api_v1():

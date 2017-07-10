@@ -20,8 +20,10 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import datetime
 import unittest
 import json
+from freezegun import freeze_time
 
 from odcs import db, app
 from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS
@@ -38,15 +40,18 @@ class TestViews(unittest.TestCase):
         db.create_all()
         db.session.commit()
 
-        self.c1 = Compose.create(
-            db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
-            COMPOSE_RESULTS["repository"], 60)
-        self.c2 = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60)
-        db.session.add(self.c1)
-        db.session.add(self.c2)
-        db.session.commit()
+        self.initial_datetime = datetime.datetime(year=2016, month=1, day=1,
+                                                  hour=0, minute=0, second=0)
+        with freeze_time(self.initial_datetime):
+            self.c1 = Compose.create(
+                db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+                COMPOSE_RESULTS["repository"], 60)
+            self.c2 = Compose.create(
+                db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+                COMPOSE_RESULTS["repository"], 60)
+            db.session.add(self.c1)
+            db.session.add(self.c2)
+            db.session.commit()
 
     def tearDown(self):
         db.session.remove()
@@ -168,3 +173,57 @@ class TestViews(unittest.TestCase):
             '/odcs/1/composes/?source=f26')
         evs = json.loads(resp.data.decode('utf8'))['items']
         self.assertEqual(len(evs), 1)
+
+    def test_delete_compose(self):
+        with freeze_time(self.initial_datetime) as frozen_datetime:
+            c3 = Compose.create(
+                db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+                COMPOSE_RESULTS["repository"], 60)
+            c3.state = COMPOSE_STATES['done']
+            db.session.add(c3)
+            db.session.commit()
+
+            self.assertEqual(len(Compose.composes_to_expire()), 0)
+
+            resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
+
+            self.assertEqual(resp.status, '202 ACCEPTED')
+
+            data = json.loads(resp.data.decode('utf8'))
+            self.assertEqual(data['status'], 202)
+            self.assertEqual(data['message'],
+                             "The delete request for compose (id=%s) has been accepted and will be processed by backend later." % c3.id)
+
+            self.assertEqual(c3.time_to_expire, self.initial_datetime)
+
+            frozen_datetime.tick()
+            self.assertEqual(len(Compose.composes_to_expire()), 1)
+            expired_compose = Compose.composes_to_expire().pop()
+            self.assertEqual(expired_compose.id, c3.id)
+
+    def test_delete_not_allowed_states_compose(self):
+        for state in COMPOSE_STATES.keys():
+            if state not in ['done', 'failed']:
+                new_c = Compose.create(
+                    db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+                    COMPOSE_RESULTS["repository"], 60)
+                new_c.state = COMPOSE_STATES[state]
+                db.session.add(new_c)
+                db.session.commit()
+
+                resp = self.client.delete("/odcs/1/composes/%s" % new_c.id)
+                data = json.loads(resp.data.decode('utf8'))
+                self.assertEqual(resp.status, '400 BAD REQUEST')
+                self.assertEqual(data['status'], 400)
+                self.assertRegexpMatches(data['message'],
+                                         r"Compose \(id=%s\) can not be removed, its state need to be in .*." % new_c.id)
+                self.assertEqual(data['error'], 'Bad Request')
+
+    def test_delete_non_exist_compose(self):
+        resp = self.client.delete("/odcs/1/composes/999999")
+        data = json.loads(resp.data.decode('utf8'))
+
+        self.assertEqual(resp.status, '404 NOT FOUND')
+        self.assertEqual(data['status'], 404)
+        self.assertEqual(data['message'], "No such compose found.")
+        self.assertEqual(data['error'], 'Not Found')

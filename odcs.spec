@@ -36,6 +36,7 @@ BuildRequires:    python2-modulemd >= 1.1.0
 BuildRequires:    python-qpid
 BuildRequires:    python-futures
 BuildRequires:    python-openidc-client
+BuildRequires:    python-freezegun
 
 %if 0%{?rhel} && 0%{?rhel} <= 7
 BuildRequires:    python-setuptools

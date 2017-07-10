@@ -24,3 +24,7 @@
 
 class NotFound(ValueError):
     pass
+
+
+class BadRequest(ValueError):
+    pass
