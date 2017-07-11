@@ -36,7 +36,7 @@ class BaseConfiguration(object):
     SSL_ENABLED = False
 
     PDC_URL = 'https://pdc.fedoraproject.org/rest_api/v1'
-    PDC_INSECURE = True
+    PDC_INSECURE = False
     PDC_DEVELOP = True
 
     # Used to authorize authenticated users.
