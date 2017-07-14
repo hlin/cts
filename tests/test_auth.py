@@ -57,7 +57,7 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
         }
 
         with app.test_request_context(environ_base=environ_base):
-            load_krb_user_from_request()
+            load_krb_user_from_request(flask.request)
 
             expected_user = db.session.query(User).filter(
                 User.username == 'newuser')[0]
@@ -79,19 +79,17 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
         }
 
         with app.test_request_context(environ_base=environ_base):
-            load_krb_user_from_request()
+            load_krb_user_from_request(flask.request)
 
             self.assertEqual(original_users_count, db.session.query(User.id).count())
             self.assertEqual(self.user.id, flask.g.user.id)
             self.assertEqual(self.user.username, flask.g.user.username)
             self.assertEqual(['admins', 'devel'], sorted(flask.g.groups))
 
-    @patch('odcs.auth.request')
-    @patch('odcs.auth.g')
-    def test_401_if_remote_user_not_present(self, g, request):
-        request.environ.get.return_value = None
-
-        self.assertRaises(Unauthorized, load_krb_user_from_request)
+    def test_401_if_remote_user_not_present(self):
+        with app.test_request_context():
+            self.assertRaises(Unauthorized,
+                              load_krb_user_from_request, flask.request)
 
 
 class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
@@ -119,7 +117,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
         }
 
         with app.test_request_context(environ_base=environ_base):
-            load_openidc_user()
+            load_openidc_user(flask.request)
 
             new_user = db.session.query(User).filter(User.username == 'new_user')[0]
 
@@ -145,7 +143,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
         with app.test_request_context(environ_base=environ_base):
             original_users_count = db.session.query(User.id).count()
 
-            load_openidc_user()
+            load_openidc_user(flask.request)
 
             users_count = db.session.query(User.id).count()
             self.assertEqual(original_users_count, users_count)
@@ -162,7 +160,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
         }
         with app.test_request_context(environ_base=environ_base):
-            self.assertRaises(Unauthorized, load_openidc_user)
+            self.assertRaises(Unauthorized, load_openidc_user, flask.request)
 
     def test_401_if_access_token_not_present(self):
         environ_base = {
@@ -172,7 +170,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
         }
         with app.test_request_context(environ_base=environ_base):
-            self.assertRaises(Unauthorized, load_openidc_user)
+            self.assertRaises(Unauthorized, load_openidc_user, flask.request)
 
     def test_401_if_scope_not_present(self):
         environ_base = {
@@ -182,7 +180,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             # Missing OIDC_CLAIM_scope here
         }
         with app.test_request_context(environ_base=environ_base):
-            self.assertRaises(Unauthorized, load_openidc_user)
+            self.assertRaises(Unauthorized, load_openidc_user, flask.request)
 
     def test_401_if_required_scope_not_present_in_token_scope(self):
         environ_base = {
@@ -198,7 +196,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
                 self.assertRaisesRegexp(
                     Unauthorized,
                     'Required OIDC scope new-compose not present.',
-                    load_openidc_user)
+                    load_openidc_user, flask.request)
 
 
 class TestQueryLdapGroups(unittest.TestCase):
@@ -223,23 +221,22 @@ class TestQueryLdapGroups(unittest.TestCase):
 class TestInitAuth(unittest.TestCase):
     """Test init_auth"""
 
+    def setUp(self):
+        self.login_manager = Mock()
+
     def test_select_kerberos_auth_backend(self):
-        app = Mock()
-        init_auth(app, 'kerberos')
-        app.before_request.assert_called_once_with(load_krb_user_from_request)
+        init_auth(self.login_manager, 'kerberos')
+        self.login_manager.request_loader.assert_called_once_with(load_krb_user_from_request)
 
     def test_select_openidc_auth_backend(self):
-        app = Mock()
-        init_auth(app, 'openidc')
-        app.before_request.assert_called_once_with(load_openidc_user)
+        init_auth(self.login_manager, 'openidc')
+        self.login_manager.request_loader.assert_called_once_with(load_openidc_user)
 
     def test_not_use_auth_backend(self):
-        app = Mock()
-        init_auth(app, 'noauth')
-        app.before_request.assert_not_called()
+        init_auth(self.login_manager, 'noauth')
+        self.login_manager.request_loader.assert_not_called()
 
     def test_error_if_select_an_unknown_backend(self):
-        app = Mock()
-        self.assertRaises(ValueError, init_auth, app, 'xxx')
-        self.assertRaises(ValueError, init_auth, app, '')
-        self.assertRaises(ValueError, init_auth, app, None)
+        self.assertRaises(ValueError, init_auth, self.login_manager, 'xxx')
+        self.assertRaises(ValueError, init_auth, self.login_manager, '')
+        self.assertRaises(ValueError, init_auth, self.login_manager, None)

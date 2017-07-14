@@ -25,9 +25,14 @@ import unittest
 import json
 from freezegun import freeze_time
 
-from odcs import db, app
-from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS
+from odcs import db, app, login_manager
+from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS, User
 from odcs.pungi import PungiSourceType
+
+
+@login_manager.user_loader
+def user_loader(username):
+    return User(id=1, username=username)
 
 
 class TestViews(unittest.TestCase):
@@ -58,7 +63,14 @@ class TestViews(unittest.TestCase):
         db.drop_all()
         db.session.commit()
 
+    def login_user(self):
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = 'tester'
+            sess['_fresh'] = True
+
     def test_submit_build(self):
+        self.login_user()
+
         rv = self.client.post('/odcs/1/composes/', data=json.dumps(
             {'source_type': 'module', 'source': 'testmodule-master'}))
         data = json.loads(rv.data.decode('utf8'))
@@ -78,6 +90,8 @@ class TestViews(unittest.TestCase):
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
     def test_submit_build_nodeps(self):
+        self.login_user()
+
         rv = self.client.post('/odcs/1/composes/', data=json.dumps(
             {'source_type': 'tag', 'source': 'f26', 'packages': ['ed'],
              'flags': ['no_deps']}))
@@ -93,6 +107,8 @@ class TestViews(unittest.TestCase):
         self.c1.state = COMPOSE_STATES["removed"]
         self.c1.reused_id = 1
         db.session.commit()
+
+        self.login_user()
         rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
         data = json.loads(rv.data.decode('utf8'))
 
@@ -108,6 +124,9 @@ class TestViews(unittest.TestCase):
         self.c1.state = COMPOSE_STATES["failed"]
         self.c1.reused_id = 1
         db.session.commit()
+
+        self.login_user()
+
         rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
         data = json.loads(rv.data.decode('utf8'))
 
@@ -120,6 +139,8 @@ class TestViews(unittest.TestCase):
         self.assertEqual(c.reused_id, None)
 
     def test_submit_build_resurrection_no_removed(self):
+        self.login_user()
+
         db.session.commit()
         rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
         data = json.loads(rv.data.decode('utf8'))
@@ -127,6 +148,8 @@ class TestViews(unittest.TestCase):
         self.assertEqual(data['message'], 'No expired or failed compose with id 1')
 
     def test_submit_build_resurrection_not_found(self):
+        self.login_user()
+
         db.session.commit()
         rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 100}))
         data = json.loads(rv.data.decode('utf8'))
@@ -175,6 +198,8 @@ class TestViews(unittest.TestCase):
         self.assertEqual(len(evs), 1)
 
     def test_delete_compose(self):
+        self.login_user()
+
         with freeze_time(self.initial_datetime) as frozen_datetime:
             c3 = Compose.create(
                 db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
@@ -202,6 +227,8 @@ class TestViews(unittest.TestCase):
             self.assertEqual(expired_compose.id, c3.id)
 
     def test_delete_not_allowed_states_compose(self):
+        self.login_user()
+
         for state in COMPOSE_STATES.keys():
             if state not in ['done', 'failed']:
                 new_c = Compose.create(
@@ -220,6 +247,8 @@ class TestViews(unittest.TestCase):
                 self.assertEqual(data['error'], 'Bad Request')
 
     def test_delete_non_exist_compose(self):
+        self.login_user()
+
         resp = self.client.delete("/odcs/1/composes/999999")
         data = json.loads(resp.data.decode('utf8'))
 

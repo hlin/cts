@@ -89,6 +89,8 @@ class DevConfiguration(BaseConfiguration):
     except:
         pass
 
+    # Disable login_required in development environment
+    LOGIN_DISABLED = True
     AUTH_BACKEND = 'noauth'
     AUTH_OPENIDC_USERINFO_URI = 'https://iddev.fedorainfracloud.org/openidc/UserInfo'
 

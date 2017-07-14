@@ -26,6 +26,7 @@ import json
 
 from flask.views import MethodView
 from flask import request, jsonify
+from flask_login import login_required
 
 from odcs import app, db, log, conf
 from odcs.errors import NotFound, BadRequest
@@ -82,6 +83,7 @@ class ODCSAPI(MethodView):
             else:
                 raise NotFound('No such compose found.')
 
+    @login_required
     def post(self):
         owner = "Unknown"  # TODO
 
@@ -168,6 +170,7 @@ class ODCSAPI(MethodView):
 
         return jsonify(compose.json()), 200
 
+    @login_required
     def delete(self, id):
         compose = Compose.query.filter_by(id=id).first()
         if compose:
