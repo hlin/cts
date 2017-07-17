@@ -179,6 +179,10 @@ class Config(object):
             'type': list,
             'default': [],
             'desc': 'Required scopes for submitting request to run new compose.'},
+        'authorize_disabled': {
+            'type': bool,
+            'default': False,
+            'desc': 'Disable group based authorization.'},
     }
 
     def __init__(self, conf_section_obj):

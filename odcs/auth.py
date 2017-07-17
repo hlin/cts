@@ -24,6 +24,7 @@
 
 import requests
 import ldap
+import flask
 
 from itertools import chain
 
@@ -161,4 +162,4 @@ def user_in_allowed_groups():
         returned.
     :rtype: bool
     """
-    return bool(set(g.groups) & set(conf.allowed_groups))
+    return bool(set(flask.g.groups) & set(conf.allowed_groups))

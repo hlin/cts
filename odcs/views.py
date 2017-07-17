@@ -24,8 +24,10 @@
 import datetime
 import json
 
+import flask
+
 from flask.views import MethodView
-from flask import request, jsonify
+from flask import request, jsonify, abort
 from flask_login import login_required
 
 from odcs import app, db, log, conf
@@ -33,6 +35,19 @@ from odcs.errors import NotFound, BadRequest
 from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES
 from odcs.pungi import PungiSourceType
 from odcs.api_utils import pagination_metadata, filter_composes
+from odcs.auth import user_in_allowed_groups as _user_in_allowed_groups
+
+
+def user_in_allowed_groups(func):
+    """Only allow user who is in allowed groups to call endpoint"""
+    def _decorator(*args, **kwargs):
+        if conf.authorize_disabled:
+            return func(*args, **kwargs)
+        if _user_in_allowed_groups():
+            return func(*args, **kwargs)
+        abort(401, 'User {0} is not in allowed groups.'.format(
+            flask.g.user.username))
+    return _decorator
 
 
 api_v1 = {
@@ -84,6 +99,7 @@ class ODCSAPI(MethodView):
                 raise NotFound('No such compose found.')
 
     @login_required
+    @user_in_allowed_groups
     def post(self):
         owner = "Unknown"  # TODO
 
@@ -171,6 +187,7 @@ class ODCSAPI(MethodView):
         return jsonify(compose.json()), 200
 
     @login_required
+    @user_in_allowed_groups
     def delete(self, id):
         compose = Compose.query.filter_by(id=id).first()
         if compose:
