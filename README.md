@@ -77,5 +77,5 @@ The example above is the minimal example, but there are more JSON fields which c
 - **packages** - List of packages to include in a compose. Must not be set for "module" source_type.
 - **seconds-to-live** - Number of seconds for which the compose should become available. After that, the compose is removed. The default and maximum value is defined by server-side configuration.
 - **flags** - List of flags influencing the resulting compose:
-  - **no_deps** - The resulting compose will contain only packages defined in the "packages" list without their dependencies.
+    - **no_deps** - The resulting compose will contain only packages defined in the "packages" list without their dependencies.
 
