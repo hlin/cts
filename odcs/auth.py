@@ -24,12 +24,12 @@
 
 import requests
 import ldap
+import flask
 
 from itertools import chain
 
 from flask import abort
 from flask import g
-from flask import request
 
 from odcs import conf, log
 from odcs.models import User
@@ -37,7 +37,7 @@ from odcs.models import commit_on_success
 
 
 @commit_on_success
-def load_krb_user_from_request():
+def load_krb_user_from_request(request):
     """Load Kerberos user from current request
 
     REMOTE_USER needs to be set in environment variable, that is set by
@@ -62,6 +62,7 @@ def load_krb_user_from_request():
 
     g.groups = groups
     g.user = user
+    return user
 
 
 def query_ldap_groups(uid):
@@ -82,7 +83,7 @@ def query_ldap_groups(uid):
 
 
 @commit_on_success
-def load_openidc_user():
+def load_openidc_user(request):
     """Load FAS user from current request"""
     username = request.environ.get('REMOTE_USER')
     if not username:
@@ -105,6 +106,7 @@ def load_openidc_user():
 
     g.groups = user_info.get('groups', [])
     g.user = user
+    return user
 
 
 def validate_scopes(scope):
@@ -132,7 +134,7 @@ def get_user_info(token):
     return r.json()
 
 
-def init_auth(app, backend):
+def init_auth(login_manager, backend):
     """Initialize authentication backend
 
     Enable and initialize authentication backend to work with frontend
@@ -144,10 +146,11 @@ def init_auth(app, backend):
         return
     if backend == 'kerberos':
         global load_krb_user_from_request
-        load_krb_user_from_request = app.before_request(load_krb_user_from_request)
+        load_krb_user_from_request = login_manager.request_loader(
+            load_krb_user_from_request)
     elif backend == 'openidc':
         global load_openidc_user
-        load_openidc_user = app.before_request(load_openidc_user)
+        load_openidc_user = login_manager.request_loader(load_openidc_user)
     else:
         raise ValueError('Unknown backend name {0}.'.format(backend))
 
@@ -159,4 +162,4 @@ def user_in_allowed_groups():
         returned.
     :rtype: bool
     """
-    return bool(set(g.groups) & set(conf.allowed_groups))
+    return bool(set(flask.g.groups) & set(conf.allowed_groups))

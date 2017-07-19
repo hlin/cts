@@ -29,6 +29,7 @@ import os
 from datetime import datetime, timedelta
 from odcs import conf
 from sqlalchemy.orm import validates
+from flask_login import UserMixin
 
 from odcs import db
 
@@ -79,7 +80,7 @@ class ODCSBase(db.Model):
     __abstract__ = True
 
 
-class User(ODCSBase):
+class User(ODCSBase, UserMixin):
     """User information table"""
 
     __tablename__ = 'users'

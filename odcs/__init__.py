@@ -25,6 +25,7 @@ from logging import getLogger
 
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 
 from odcs.logger import init_logging
 from odcs.config import init_config
@@ -40,10 +41,13 @@ conf = init_config(app)
 init_logging(conf)
 log = getLogger(__name__)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+
 from odcs import views
 
 from odcs.auth import init_auth
-init_auth(app, backend=conf.auth_backend)
+init_auth(login_manager, conf.auth_backend)
 
 def json_error(status, error, message):
     response = jsonify(
