@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import contextlib
 import datetime
 import unittest
 import json
@@ -40,7 +41,7 @@ from odcs.views import user_in_allowed_groups
 
 @login_manager.user_loader
 def user_loader(username):
-    return User(id=1, username=username)
+    return User.find_user_by_name(username=username)
 
 
 class TestViews(unittest.TestCase):
@@ -50,7 +51,11 @@ class TestViews(unittest.TestCase):
         self.patch_allowed_groups = patch.object(odcs.auth.conf,
                                                  'allowed_groups',
                                                  new=['tester'])
+        self.patch_admin_groups = patch.object(odcs.auth.conf,
+                                               'admin_groups',
+                                               new=['admin'])
         self.patch_allowed_groups.start()
+        self.patch_admin_groups.start()
 
         self.client = app.test_client()
         db.session.remove()
@@ -77,18 +82,29 @@ class TestViews(unittest.TestCase):
         db.session.commit()
 
         self.patch_allowed_groups.stop()
+        self.patch_admin_groups.stop()
 
-    def login_user(self):
-        with self.client.session_transaction() as sess:
-            sess['user_id'] = 'tester'
-            sess['_fresh'] = True
+    @contextlib.contextmanager
+    def test_request_context(self, user=None, groups=None, **kwargs):
+        with app.test_request_context(**kwargs):
+            if user is not None:
+                if not User.find_user_by_name(user):
+                    User.create_user(username=user)
+                    db.session.commit()
+                flask.g.user = User.find_user_by_name(user)
+
+                if groups is not None:
+                    if isinstance(groups, list):
+                        flask.g.groups = groups
+                    else:
+                        flask.g.groups = [groups]
+                with self.client.session_transaction() as sess:
+                    sess['user_id'] = user
+                    sess['_fresh'] = True
+            yield
 
     def test_submit_build(self):
-        self.login_user()
-
-        with app.test_request_context():
-            flask.g.groups = ['tester']
-
+        with self.test_request_context(user='tester', groups=['tester']):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source_type': 'module', 'source': 'testmodule-master'}))
             data = json.loads(rv.data.decode('utf8'))
@@ -108,11 +124,7 @@ class TestViews(unittest.TestCase):
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
     def test_submit_build_nodeps(self):
-        self.login_user()
-
-        with app.test_request_context():
-            flask.g.groups = ['tester']
-
+        with self.test_request_context(user='tester', groups=['tester']):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source_type': 'tag', 'source': 'f26', 'packages': ['ed'],
                  'flags': ['no_deps']}))
@@ -129,11 +141,7 @@ class TestViews(unittest.TestCase):
         self.c1.reused_id = 1
         db.session.commit()
 
-        self.login_user()
-
-        with app.test_request_context():
-            flask.g.groups = ['tester']
-
+        with self.test_request_context(user='tester', groups=['tester']):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -150,11 +158,7 @@ class TestViews(unittest.TestCase):
         self.c1.reused_id = 1
         db.session.commit()
 
-        self.login_user()
-
-        with app.test_request_context():
-            flask.g.groups = ['tester']
-
+        with self.test_request_context(user='tester', groups=['tester']):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -167,24 +171,14 @@ class TestViews(unittest.TestCase):
         self.assertEqual(c.reused_id, None)
 
     def test_submit_build_resurrection_no_removed(self):
-        db.session.commit()
-        self.login_user()
-
-        with app.test_request_context():
-            flask.g.groups = ['tester']
-
+        with self.test_request_context(user='tester', groups=['tester']):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['message'], 'No expired or failed compose with id 1')
 
     def test_submit_build_resurrection_not_found(self):
-        self.login_user()
-        db.session.commit()
-
-        with app.test_request_context():
-            flask.g.groups = ['tester']
-
+        with self.test_request_context(user='tester', groups=['tester']):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 100}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -232,8 +226,6 @@ class TestViews(unittest.TestCase):
         self.assertEqual(len(evs), 1)
 
     def test_delete_compose(self):
-        self.login_user()
-
         with freeze_time(self.initial_datetime) as frozen_datetime:
             c3 = Compose.create(
                 db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
@@ -244,9 +236,7 @@ class TestViews(unittest.TestCase):
 
             self.assertEqual(len(Compose.composes_to_expire()), 0)
 
-            with app.test_request_context():
-                flask.g.groups = ['tester']
-
+            with self.test_request_context(user='tester', groups=['tester', 'admin']):
                 resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
                 data = json.loads(resp.data.decode('utf8'))
 
@@ -264,8 +254,6 @@ class TestViews(unittest.TestCase):
             self.assertEqual(expired_compose.id, c3.id)
 
     def test_delete_not_allowed_states_compose(self):
-        self.login_user()
-
         for state in COMPOSE_STATES.keys():
             if state not in ['done', 'failed']:
                 new_c = Compose.create(
@@ -274,11 +262,10 @@ class TestViews(unittest.TestCase):
                 new_c.state = COMPOSE_STATES[state]
                 db.session.add(new_c)
                 db.session.commit()
+                compose_id = new_c.id
 
-                with app.test_request_context():
-                    flask.g.groups = ['tester']
-
-                    resp = self.client.delete("/odcs/1/composes/%s" % new_c.id)
+                with self.test_request_context(user='tester', groups=['tester', 'admin']):
+                    resp = self.client.delete("/odcs/1/composes/%s" % compose_id)
                     data = json.loads(resp.data.decode('utf8'))
 
                 self.assertEqual(resp.status, '400 BAD REQUEST')
@@ -288,11 +275,7 @@ class TestViews(unittest.TestCase):
                 self.assertEqual(data['error'], 'Bad Request')
 
     def test_delete_non_exist_compose(self):
-        self.login_user()
-
-        with app.test_request_context():
-            flask.g.groups = ['tester']
-
+        with self.test_request_context(user='tester', groups=['tester', 'admin']):
             resp = self.client.delete("/odcs/1/composes/999999")
             data = json.loads(resp.data.decode('utf8'))
 
@@ -300,6 +283,13 @@ class TestViews(unittest.TestCase):
         self.assertEqual(data['status'], 404)
         self.assertEqual(data['message'], "No such compose found.")
         self.assertEqual(data['error'], 'Not Found')
+
+    def test_delete_compose_with_non_admin_user(self):
+        with self.test_request_context(user='tester', groups=['tester']):
+            resp = self.client.delete("/odcs/1/composes/%s" % self.c1.id)
+
+        self.assertEqual(resp.status, '401 UNAUTHORIZED')
+        self.assertEqual(resp.status_code, 401)
 
 
 class TestUserInAllowedGroupsDecorator(unittest.TestCase):

@@ -36,6 +36,7 @@ from odcs.models import Compose, COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES
 from odcs.pungi import PungiSourceType
 from odcs.api_utils import pagination_metadata, filter_composes
 from odcs.auth import user_in_allowed_groups as _user_in_allowed_groups
+from odcs.auth import admin_required
 
 
 def user_in_allowed_groups(func):
@@ -187,7 +188,7 @@ class ODCSAPI(MethodView):
         return jsonify(compose.json()), 200
 
     @login_required
-    @user_in_allowed_groups
+    @admin_required
     def delete(self, id):
         compose = Compose.query.filter_by(id=id).first()
         if compose:

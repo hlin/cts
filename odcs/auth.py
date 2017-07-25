@@ -22,6 +22,7 @@
 # Written by Chenxiong Qi <cqi@redhat.com>
 
 
+from functools import wraps
 import requests
 import ldap
 import flask
@@ -153,6 +154,19 @@ def init_auth(login_manager, backend):
         load_openidc_user = login_manager.request_loader(load_openidc_user)
     else:
         raise ValueError('Unknown backend name {0}.'.format(backend))
+
+
+def admin_required(f):
+    """Check if current user is in admin groups"""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if conf.authorize_disabled:
+            return f(*args, **kwargs)
+        if bool(set(flask.g.groups) & set(conf.admin_groups)):
+            return f(*args, **kwargs)
+        abort(401, 'User {0} is not in admin groups {1}.'.format(
+            flask.g.user.username, str(conf.admin_groups)))
+    return wrapper
 
 
 def user_in_allowed_groups():

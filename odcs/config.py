@@ -166,6 +166,10 @@ class Config(object):
             'type': list,
             'default': [],
             'desc': "List of group names to authorize user's request."},
+        'admin_groups': {
+            'type': list,
+            'default': [],
+            'desc': "List of group names that users in these groups will be treated as admin"},
         'auth_backend': {
             'type': str,
             'default': 'noauth',

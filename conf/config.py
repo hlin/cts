@@ -48,6 +48,10 @@ class BaseConfiguration(object):
     # If not allow anyone to perform actions, keep empty list here.
     ALLOWED_GROUPS = []
 
+    # Users in ADMIN_GROUPS will be treated as admin.
+    # The groups info is retrieved from backend authentication system.
+    ADMIN_GROUPS = []
+
     # Select which authentication backend to work with. There are 3 choices
     # noauth: no authentication is enabled. Useful for development particularly.
     # kerberos: Kerberos authentication is enabled.
