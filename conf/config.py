@@ -76,6 +76,9 @@ class BaseConfiguration(object):
     AUTH_OPENIDC_REQUIRED_SCOPES = [
         'openid',
         'https://id.fedoraproject.org/scope/groups',
+        'https://pagure.io/odcs/new-compose',
+        'https://pagure.io/odcs/renew-compose',
+        'https://pagure.io/odcs/delete-compose',
     ]
 
 

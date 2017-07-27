@@ -113,7 +113,10 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             'REMOTE_USER': 'new_user',
             'OIDC_access_token': '39283',
             'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
-            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups '
+                                'https://pagure.io/odcs/new-compose '
+                                'https://pagure.io/odcs/renew-compose '
+                                'https://pagure.io/odcs/delete-compose',
         }
 
         with app.test_request_context(environ_base=environ_base):
@@ -137,7 +140,10 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             'REMOTE_USER': self.user.username,
             'OIDC_access_token': '39283',
             'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
-            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups '
+                                'https://pagure.io/odcs/new-compose '
+                                'https://pagure.io/odcs/renew-compose '
+                                'https://pagure.io/odcs/delete-compose',
         }
 
         with app.test_request_context(environ_base=environ_base):
