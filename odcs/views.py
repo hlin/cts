@@ -86,9 +86,9 @@ class ODCSAPI(MethodView):
             p_query = filter_composes(request)
 
             json_data = {
-                'meta': pagination_metadata(p_query)
+                'meta': pagination_metadata(p_query, request.args),
+                'items': [item.json() for item in p_query.items]
             }
-            json_data['items'] = [item.json() for item in p_query.items]
 
             return jsonify(json_data), 200
 
