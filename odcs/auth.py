@@ -156,24 +156,24 @@ def init_auth(login_manager, backend):
         raise ValueError('Unknown backend name {0}.'.format(backend))
 
 
-def admin_required(f):
-    """Check if current user is in admin groups"""
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if conf.authorize_disabled:
-            return f(*args, **kwargs)
-        if bool(set(flask.g.groups) & set(conf.admin_groups)):
-            return f(*args, **kwargs)
-        abort(401, 'User {0} is not in admin groups {1}.'.format(
-            flask.g.user.username, str(conf.admin_groups)))
-    return wrapper
+def requires_role(role):
+    """Check if user is in the configured role.
 
-
-def user_in_allowed_groups():
-    """Check if current user is in allowed groups
-
-    :return: True if current user is in allowed groups, otherwise False is
-        returned.
-    :rtype: bool
+    :param str role: role name, supported roles: 'allowed_clients', 'admins'.
     """
-    return bool(set(flask.g.groups) & set(conf.allowed_groups))
+    valid_roles = ['allowed_clients', 'admins']
+    if role not in valid_roles:
+        raise ValueError("Unknown role <%s> specified, supported roles: %s." % (role, str(valid_roles)))
+
+    def wrapper(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            groups = getattr(conf, role).get('groups', [])
+            users = getattr(conf, role).get('users', [])
+            in_groups = bool(set(flask.g.groups) & set(groups))
+            in_users = flask.g.user.username in users
+            if in_groups or in_users:
+                return f(*args, **kwargs)
+            abort(401, 'User %s is not in role %s.' % (flask.g.user.username, role))
+        return wrapped
+    return wrapper

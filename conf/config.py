@@ -39,18 +39,20 @@ class BaseConfiguration(object):
     PDC_INSECURE = False
     PDC_DEVELOP = True
 
-    # Used to authorize authenticated users.
-    # Each of them is a string representing a group name. So far, ODCS
-    # supports OpenIDC and Kerberos authentication depending on the
-    # concrete deployment environment. So, for
-    # OpenIDC authentication, they are FAS group names.
-    # Kerberos authentication, they are LDAP group names.
-    # If not allow anyone to perform actions, keep empty list here.
-    ALLOWED_GROUPS = []
+    # Users are required to be in allowed_clients to generate composes,
+    # you can add group names or usernames (it can be normal user or host
+    # principal) into ALLOWED_CLIENTS. The group names are from ldap for
+    # kerberos users or FAS for openidc users.
+    ALLOWED_CLIENTS = {
+        'groups': [],
+        'users': [],
+    }
 
-    # Users in ADMIN_GROUPS will be treated as admin.
-    # The groups info is retrieved from backend authentication system.
-    ADMIN_GROUPS = []
+    # Users in ADMINS are granted with admin permission.
+    ADMINS = {
+        'groups': [],
+        'users': [],
+    }
 
     # Select which authentication backend to work with. There are 3 choices
     # noauth: no authentication is enabled. Useful for development particularly.

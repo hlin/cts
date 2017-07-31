@@ -162,14 +162,14 @@ class Config(object):
             'type': str,
             'default': '',
             'desc': "Group base to query user's groups from LDAP server."},
-        'allowed_groups': {
-            'type': list,
-            'default': [],
-            'desc': "List of group names to authorize user's request."},
-        'admin_groups': {
-            'type': list,
-            'default': [],
-            'desc': "List of group names that users in these groups will be treated as admin"},
+        'allowed_clients': {
+            'type': dict,
+            'default': {'groups': [], 'users': []},
+            'desc': "Groups and users that are allowed to generate composes."},
+        'admins': {
+            'type': dict,
+            'default': {'groups': [], 'users': []},
+            'desc': "Admin groups and users."},
         'auth_backend': {
             'type': str,
             'default': 'noauth',

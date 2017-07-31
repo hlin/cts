@@ -28,15 +28,13 @@ import json
 import flask
 
 from freezegun import freeze_time
-from mock import Mock, patch
-from werkzeug.exceptions import Unauthorized
+from mock import patch
 
 import odcs.auth
 
 from odcs import db, app, login_manager
 from odcs.models import Compose, COMPOSE_STATES, COMPOSE_RESULTS, User
 from odcs.pungi import PungiSourceType
-from odcs.views import user_in_allowed_groups
 
 
 @login_manager.user_loader
@@ -48,14 +46,18 @@ class TestViews(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.patch_allowed_groups = patch.object(odcs.auth.conf,
-                                                 'allowed_groups',
-                                                 new=['tester'])
-        self.patch_admin_groups = patch.object(odcs.auth.conf,
-                                               'admin_groups',
-                                               new=['admin'])
-        self.patch_allowed_groups.start()
-        self.patch_admin_groups.start()
+        patched_allowed_clients = {'groups': ['composer'],
+                                   'users': ['dev']}
+        patched_admins = {'groups': ['admin'],
+                          'users': ['root']}
+        self.patch_allowed_clients = patch.object(odcs.auth.conf,
+                                                  'allowed_clients',
+                                                  new=patched_allowed_clients)
+        self.patch_admins = patch.object(odcs.auth.conf,
+                                         'admins',
+                                         new=patched_admins)
+        self.patch_allowed_clients.start()
+        self.patch_admins.start()
 
         self.client = app.test_client()
         db.session.remove()
@@ -81,8 +83,8 @@ class TestViews(unittest.TestCase):
         db.drop_all()
         db.session.commit()
 
-        self.patch_allowed_groups.stop()
-        self.patch_admin_groups.stop()
+        self.patch_allowed_clients.stop()
+        self.patch_admins.stop()
 
     @contextlib.contextmanager
     def test_request_context(self, user=None, groups=None, **kwargs):
@@ -98,13 +100,15 @@ class TestViews(unittest.TestCase):
                         flask.g.groups = groups
                     else:
                         flask.g.groups = [groups]
+                else:
+                    flask.g.groups = []
                 with self.client.session_transaction() as sess:
                     sess['user_id'] = user
                     sess['_fresh'] = True
             yield
 
     def test_submit_build(self):
-        with self.test_request_context(user='tester', groups=['tester']):
+        with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source_type': 'module', 'source': 'testmodule-master'}))
             data = json.loads(rv.data.decode('utf8'))
@@ -124,7 +128,7 @@ class TestViews(unittest.TestCase):
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
     def test_submit_build_nodeps(self):
-        with self.test_request_context(user='tester', groups=['tester']):
+        with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source_type': 'tag', 'source': 'f26', 'packages': ['ed'],
                  'flags': ['no_deps']}))
@@ -141,7 +145,7 @@ class TestViews(unittest.TestCase):
         self.c1.reused_id = 1
         db.session.commit()
 
-        with self.test_request_context(user='tester', groups=['tester']):
+        with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -158,7 +162,7 @@ class TestViews(unittest.TestCase):
         self.c1.reused_id = 1
         db.session.commit()
 
-        with self.test_request_context(user='tester', groups=['tester']):
+        with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -171,14 +175,14 @@ class TestViews(unittest.TestCase):
         self.assertEqual(c.reused_id, None)
 
     def test_submit_build_resurrection_no_removed(self):
-        with self.test_request_context(user='tester', groups=['tester']):
+        with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['message'], 'No expired or failed compose with id 1')
 
     def test_submit_build_resurrection_not_found(self):
-        with self.test_request_context(user='tester', groups=['tester']):
+        with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 100}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -236,7 +240,7 @@ class TestViews(unittest.TestCase):
 
             self.assertEqual(len(Compose.composes_to_expire()), 0)
 
-            with self.test_request_context(user='tester', groups=['tester', 'admin']):
+            with self.test_request_context(user='root'):
                 resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
                 data = json.loads(resp.data.decode('utf8'))
 
@@ -264,7 +268,7 @@ class TestViews(unittest.TestCase):
                 db.session.commit()
                 compose_id = new_c.id
 
-                with self.test_request_context(user='tester', groups=['tester', 'admin']):
+                with self.test_request_context(user='root'):
                     resp = self.client.delete("/odcs/1/composes/%s" % compose_id)
                     data = json.loads(resp.data.decode('utf8'))
 
@@ -275,7 +279,7 @@ class TestViews(unittest.TestCase):
                 self.assertEqual(data['error'], 'Bad Request')
 
     def test_delete_non_exist_compose(self):
-        with self.test_request_context(user='tester', groups=['tester', 'admin']):
+        with self.test_request_context(user='root'):
             resp = self.client.delete("/odcs/1/composes/999999")
             data = json.loads(resp.data.decode('utf8'))
 
@@ -285,57 +289,42 @@ class TestViews(unittest.TestCase):
         self.assertEqual(data['error'], 'Not Found')
 
     def test_delete_compose_with_non_admin_user(self):
-        with self.test_request_context(user='tester', groups=['tester']):
+        with self.test_request_context(user='dev'):
             resp = self.client.delete("/odcs/1/composes/%s" % self.c1.id)
 
         self.assertEqual(resp.status, '401 UNAUTHORIZED')
         self.assertEqual(resp.status_code, 401)
 
+    def test_can_not_create_compose_with_non_composer_user(self):
+        with self.test_request_context(user='qa'):
+            resp = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source_type': 'module', 'source': 'testmodule-master'}))
 
-class TestUserInAllowedGroupsDecorator(unittest.TestCase):
-    """Test decorator user_in_allowed_groups"""
+        self.assertEqual(resp.status, '401 UNAUTHORIZED')
+        self.assertEqual(resp.status_code, 401)
 
-    def setUp(self):
-        self.mock_func = Mock()
-        self.decorated_func = user_in_allowed_groups(self.mock_func)
+    def test_can_create_compose_with_user_in_configured_groups(self):
+        with self.test_request_context(user='another_user', groups=['composer']):
+            resp = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source_type': 'module', 'source': 'testmodule-rawhide'}))
+        db.session.expire_all()
 
-        self.patch_allowed_groups = patch.object(odcs.auth.conf,
-                                                 'allowed_groups',
-                                                 new=['testers'])
-        self.patch_allowed_groups.start()
+        self.assertEqual(resp.status, '200 OK')
+        self.assertEqual(resp.status_code, 200)
+        c = db.session.query(Compose).filter(Compose.source == 'testmodule-rawhide').one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
-    def tearDown(self):
-        self.patch_allowed_groups.stop()
+    def test_can_delete_compose_with_user_in_configured_groups(self):
+        c3 = Compose.create(
+            db.session, "unknown", PungiSourceType.MODULE, "testmodule-testbranch",
+            COMPOSE_RESULTS["repository"], 60)
+        c3.state = COMPOSE_STATES['done']
+        db.session.add(c3)
+        db.session.commit()
 
-    def test_401_if_not_in_allowed_groups(self):
-        with app.test_request_context():
-            flask.g.groups = ['another_group']
-            flask.g.user = User(id=1, username='tester')
+        with self.test_request_context(user='another_admin', groups=['admin']):
+            resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
+            data = json.loads(resp.data.decode('utf8'))
 
-            self.assertRaises(Unauthorized, self.decorated_func, 1, 2, 3)
-            self.mock_func.assert_not_called()
-
-    def test_authorized_if_in_allowed_groups(self):
-        with app.test_request_context():
-            flask.g.groups = ['testers']
-            flask.g.user = User(id=1, username='tester')
-
-            self.decorated_func(1, 2, 3)
-            self.mock_func.assert_called_once_with(1, 2, 3)
-
-    @patch.object(odcs.views.conf, 'authorize_disabled', new=True)
-    def test_no_authorize_when_disable_authorize(self):
-        with app.test_request_context():
-            flask.g.groups = ['testers']
-            flask.g.user = User(id=1, username='tester')
-
-            self.decorated_func(1, 2, 3)
-            self.mock_func.assert_called_once_with(1, 2, 3)
-
-        with app.test_request_context():
-            flask.g.groups = ['another_groups']
-            flask.g.user = User(id=1, username='tester')
-
-            self.decorated_func(1, 2, 3)
-            self.assertEqual(2, self.mock_func.call_count)
-            self.mock_func.assert_called_with(1, 2, 3)
+        self.assertEqual(resp.status, '202 ACCEPTED')
+        self.assertEqual(data['status'], 202)

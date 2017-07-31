@@ -246,34 +246,3 @@ class TestInitAuth(unittest.TestCase):
         self.assertRaises(ValueError, init_auth, self.login_manager, 'xxx')
         self.assertRaises(ValueError, init_auth, self.login_manager, '')
         self.assertRaises(ValueError, init_auth, self.login_manager, None)
-
-
-class TestUserInAllowedGroups(unittest.TestCase):
-    """Test user_in_allowed_groups"""
-
-    @patch.object(odcs.auth.conf, 'allowed_groups', new=[])
-    def test_not_allow_when_allowed_groups_is_empty(self):
-        with app.test_request_context():
-            flask.g.groups = []
-            self.assertFalse(odcs.auth.user_in_allowed_groups())
-
-            flask.g.groups = ['testers']
-            self.assertFalse(odcs.auth.user_in_allowed_groups())
-
-    @patch.object(odcs.auth.conf, 'allowed_groups', new=['admins', 'testers'])
-    def test_not_allow_when_not_in_allowed_groups(self):
-        with app.test_request_context():
-            flask.g.groups = ['common']
-            self.assertFalse(odcs.auth.user_in_allowed_groups())
-
-    @patch.object(odcs.auth.conf, 'allowed_groups', new=['admins', 'testers'])
-    def test_allow_when_in_allowed_groups(self):
-        with app.test_request_context():
-            flask.g.groups = ['common', 'testers']
-            self.assertTrue(odcs.auth.user_in_allowed_groups())
-
-            flask.g.groups = ['common', 'testers', 'admins']
-            self.assertTrue(odcs.auth.user_in_allowed_groups())
-
-            flask.g.groups = ['testers', 'admins']
-            self.assertTrue(odcs.auth.user_in_allowed_groups())
