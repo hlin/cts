@@ -195,14 +195,13 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
             'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups',
         }
-        with patch.object(odcs.auth.conf,
-                          'auth_openidc_required_scopes',
-                          ['new-compose']):
+
+        with patch.object(odcs.auth.conf, 'auth_openidc_required_scopes', ['new-compose']):
             with app.test_request_context(environ_base=environ_base):
-                self.assertRaisesRegexp(
-                    Unauthorized,
-                    'Required OIDC scope new-compose not present.',
-                    load_openidc_user, flask.request)
+                with self.assertRaises(Unauthorized) as ctx:
+                    load_openidc_user(flask.request)
+                self.assertEqual(ctx.exception.code, 401)
+                self.assertEqual(ctx.exception.description, 'Required OIDC scope new-compose not present.')
 
 
 class TestQueryLdapGroups(unittest.TestCase):
