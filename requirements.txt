@@ -15,7 +15,7 @@ Flask
 Flask-Migrate
 Flask-SQLAlchemy
 Flask-Script
-Flask-Login==0.4.0
+Flask-Login
 requests
 jinja2
 pyldap
