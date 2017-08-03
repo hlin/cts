@@ -57,6 +57,11 @@ def json_error(status, error, message):
     response.status_code = status
     return response
 
+@app.errorhandler(NotFound)
+def notfound_error(e):
+    """Flask error handler for NotFound exceptions"""
+    return json_error(404, 'Not Found', e.args[0])
+
 @app.errorhandler(ValueError)
 def validationerror_error(e):
     """Flask error handler for ValueError exceptions"""
@@ -66,8 +71,3 @@ def validationerror_error(e):
 def runtimeerror_error(e):
     """Flask error handler for RuntimeError exceptions"""
     return json_error(500, 'Internal Server Error', e.args[0])
-
-@app.errorhandler(NotFound)
-def notfound_error(e):
-    """Flask error handler for NotFound exceptions"""
-    return json_error(404, 'Not Found', e.args[0])
