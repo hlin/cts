@@ -292,17 +292,23 @@ class TestViews(unittest.TestCase):
     def test_delete_compose_with_non_admin_user(self):
         with self.test_request_context(user='dev'):
             resp = self.client.delete("/odcs/1/composes/%s" % self.c1.id)
+            data = json.loads(resp.data.decode('utf8'))
 
-        self.assertEqual(resp.status, '401 UNAUTHORIZED')
-        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.status, '403 FORBIDDEN')
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(data['status'], 403)
+        self.assertEqual(data['message'], 'User dev is not in role admins.')
 
     def test_can_not_create_compose_with_non_composer_user(self):
         with self.test_request_context(user='qa'):
             resp = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source_type': 'module', 'source': 'testmodule-master'}))
+            data = json.loads(resp.data.decode('utf8'))
 
-        self.assertEqual(resp.status, '401 UNAUTHORIZED')
-        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.status, '403 FORBIDDEN')
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(data['status'], 403)
+        self.assertEqual(data['message'], 'User qa is not in role allowed_clients.')
 
     def test_can_create_compose_with_user_in_configured_groups(self):
         with self.test_request_context(user='another_user', groups=['composer']):
@@ -328,4 +334,7 @@ class TestViews(unittest.TestCase):
             data = json.loads(resp.data.decode('utf8'))
 
         self.assertEqual(resp.status, '202 ACCEPTED')
+        self.assertEqual(resp.status_code, 202)
         self.assertEqual(data['status'], 202)
+        self.assertRegexpMatches(data['message'],
+                                 r"The delete request for compose \(id=%s\) has been accepted and will be processed by backend later." % c3.id)

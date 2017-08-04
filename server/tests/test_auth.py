@@ -33,10 +33,10 @@ from odcs.server.auth import load_krb_user_from_request
 from odcs.server.auth import load_openidc_user
 from odcs.server.auth import query_ldap_groups
 from odcs.server.auth import init_auth
+from odcs.server.errors import Unauthorized
 from odcs.server import app, db
 from odcs.server.models import User
 from utils import ModelsBaseTest
-from werkzeug.exceptions import Unauthorized
 
 
 class TestLoadKrbUserFromRequest(ModelsBaseTest):
@@ -88,8 +88,9 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
 
     def test_401_if_remote_user_not_present(self):
         with app.test_request_context():
-            self.assertRaises(Unauthorized,
-                              load_krb_user_from_request, flask.request)
+            with self.assertRaises(Unauthorized) as ctx:
+                load_krb_user_from_request(flask.request)
+            self.assertTrue('REMOTE_USER is not present in request.' in ctx.exception.args)
 
 
 class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
@@ -200,8 +201,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             with app.test_request_context(environ_base=environ_base):
                 with self.assertRaises(Unauthorized) as ctx:
                     load_openidc_user(flask.request)
-                self.assertEqual(ctx.exception.code, 401)
-                self.assertEqual(ctx.exception.description, 'Required OIDC scope new-compose not present.')
+                self.assertTrue('Required OIDC scope new-compose not present.' in ctx.exception.args)
 
 
 class TestQueryLdapGroups(unittest.TestCase):

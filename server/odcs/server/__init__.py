@@ -30,7 +30,7 @@ from flask_login import LoginManager
 from odcs.server.logger import init_logging
 from odcs.server.config import init_config
 from odcs.server.proxy import ReverseProxy
-from odcs.server.errors import NotFound
+from odcs.server.errors import NotFound, Unauthorized, Forbidden
 
 app = Flask(__name__)
 app.wsgi_app = ReverseProxy(app.wsgi_app)
@@ -63,6 +63,18 @@ def json_error(status, error, message):
 def notfound_error(e):
     """Flask error handler for NotFound exceptions"""
     return json_error(404, 'Not Found', e.args[0])
+
+
+@app.errorhandler(Unauthorized)
+def unauthorized_error(e):
+    """Flask error handler for Unauthorized exceptions"""
+    return json_error(401, 'Unauthorized', e.args[0])
+
+
+@app.errorhandler(Forbidden)
+def forbidden_error(e):
+    """Flask error handler for Forbidden exceptions"""
+    return json_error(403, 'Forbidden', e.args[0])
 
 
 @app.errorhandler(ValueError)

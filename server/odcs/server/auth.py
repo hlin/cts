@@ -29,10 +29,10 @@ import flask
 
 from itertools import chain
 
-from flask import abort
 from flask import g
 
 from odcs.server import conf, log
+from odcs.server.errors import Unauthorized, Forbidden
 from odcs.server.models import User
 from odcs.server.models import commit_on_success
 
@@ -46,7 +46,7 @@ def load_krb_user_from_request(request):
     """
     remote_user = request.environ.get('REMOTE_USER')
     if not remote_user:
-        abort(401, 'REMOTE_USER is not present in request.')
+        raise Unauthorized('REMOTE_USER is not present in request.')
 
     username, realm = remote_user.split('@')
 
@@ -88,15 +88,15 @@ def load_openidc_user(request):
     """Load FAS user from current request"""
     username = request.environ.get('REMOTE_USER')
     if not username:
-        abort(401, 'REMOTE_USER is not present in request.')
+        raise Unauthorized('REMOTE_USER is not present in request.')
 
     token = request.environ.get('OIDC_access_token')
     if not token:
-        abort(401, 'Missing token passed into ODCS.')
+        raise Unauthorized('Missing token passed to ODCS.')
 
     scope = request.environ.get('OIDC_CLAIM_scope')
     if not scope:
-        abort(401, 'Missing OIDC_CLAIM_scope.')
+        raise Unauthorized('Missing OIDC_CLAIM_scope.')
     validate_scopes(scope)
 
     user_info = get_user_info(token)
@@ -120,7 +120,7 @@ def validate_scopes(scope):
     required_scopes = conf.auth_openidc_required_scopes
     for scope in required_scopes:
         if scope not in scopes:
-            abort(401, 'Required OIDC scope {0} not present.'.format(scope))
+            raise Unauthorized('Required OIDC scope {0} not present.'.format(scope))
 
 
 def get_user_info(token):
@@ -130,8 +130,9 @@ def get_user_info(token):
     }
     r = requests.get(conf.auth_openidc_userinfo_uri, headers=headers)
     if r.status_code != 200:
-        abort(401, 'Cannot get user information from {0} endpoint.'.format(
+        raise Unauthorized('Cannot get user information from {0} endpoint.'.format(
             conf.auth_openidc_userinfo_uri))
+
     return r.json()
 
 
@@ -174,6 +175,6 @@ def requires_role(role):
             in_users = flask.g.user.username in users
             if in_groups or in_users:
                 return f(*args, **kwargs)
-            abort(401, 'User %s is not in role %s.' % (flask.g.user.username, role))
+            raise Forbidden('User %s is not in role %s.' % (flask.g.user.username, role))
         return wrapped
     return wrapper
