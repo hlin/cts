@@ -90,7 +90,13 @@ class TestViews(unittest.TestCase):
     @contextlib.contextmanager
     def test_request_context(self, user=None, groups=None, **kwargs):
         with app.test_request_context(**kwargs):
+            patch_auth_backend = None
             if user is not None:
+                # authentication is disabled with auth_backend=noauth
+                patch_auth_backend = patch.object(odcs.server.auth.conf,
+                                                  'auth_backend',
+                                                  new='kerberos')
+                patch_auth_backend.start()
                 if not User.find_user_by_name(user):
                     User.create_user(username=user)
                     db.session.commit()
@@ -106,7 +112,11 @@ class TestViews(unittest.TestCase):
                 with self.client.session_transaction() as sess:
                     sess['user_id'] = user
                     sess['_fresh'] = True
-            yield
+            try:
+                yield
+            finally:
+                if patch_auth_backend is not None:
+                    patch_auth_backend.stop()
 
     def test_submit_build(self):
         with self.test_request_context(user='dev'):

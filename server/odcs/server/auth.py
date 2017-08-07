@@ -169,6 +169,9 @@ def requires_role(role):
     def wrapper(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
+            if conf.auth_backend == 'noauth':
+                return f(*args, **kwargs)
+
             groups = getattr(conf, role).get('groups', [])
             users = getattr(conf, role).get('users', [])
             in_groups = bool(set(flask.g.groups) & set(groups))

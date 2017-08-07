@@ -183,10 +183,6 @@ class Config(object):
             'type': list,
             'default': [],
             'desc': 'Required scopes for submitting request to run new compose.'},
-        'authorize_disabled': {
-            'type': bool,
-            'default': False,
-            'desc': 'Disable group based authorization.'},
     }
 
     def __init__(self, conf_section_obj):
@@ -206,6 +202,9 @@ class Config(object):
                 continue
             # set item (lower key)
             self.set_item(key.lower(), getattr(conf_section_obj, key))
+
+        # Used by Flask-Login to disable the @login_required decorator
+        self.login_disabled = self.auth_backend == 'noauth'
 
     def set_item(self, key, value):
         """
