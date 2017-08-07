@@ -20,7 +20,7 @@ SCRIPT
 $script_services = <<SCRIPT_SERVICES
     export ODCS_DEVELOPER_ENV=1
     cd /tmp/odcs
-    odcs-backend < /dev/null >& /tmp/odcs-backend.out &
+    odcs.server.backend < /dev/null >& /tmp/odcs.server.backend.out &
     python odcs/manage.py runssl --host 0.0.0.0 < /dev/null >& /tmp/odcs-frontend.out &
 SCRIPT_SERVICES
 

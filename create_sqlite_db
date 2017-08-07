@@ -1,4 +1,6 @@
 #!/bin/bash
 
-PYTHONPATH=. ODCS_DEVELOPER_ENV=1 python odcs/manage.py upgradedb
-PYTHONPATH=. ODCS_DEVELOPER_ENV=1 python odcs/manage.py db migrate
+export PYTHONPATH=./odcs-common:./odcs-server:./odcs-client
+
+ODCS_DEVELOPER_ENV=1 python odcs-server/odcs/server/manage.py upgradedb
+ODCS_DEVELOPER_ENV=1 python odcs-server/odcs/server/manage.py db migrate

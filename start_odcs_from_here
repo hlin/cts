@@ -1,14 +1,14 @@
 #!/bin/bash
 
-export PYTHONPATH=.
+export PYTHONPATH=./odcs-common:./odcs-server:./odcs-client
 export ODCS_DEVELOPER_ENV=1
 
-python odcs/manage.py runbackend &
+python odcs-server/odcs//server/manage.py runbackend &
 PIDS[0]=$!
 
 trap "kill ${PIDS[*]}" SIGINT
 
-python odcs/manage.py runssl
+python odcs-server/odcs/server/manage.py runssl
 if (($? != 0)); then
     wait
 fi

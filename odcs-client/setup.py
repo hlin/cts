@@ -6,8 +6,8 @@ with open('requirements.txt') as f:
 with open('test-requirements.txt') as f:
     test_requirements = f.readlines()
 
-setup(name='odcs',
-      description='On Demand Compose Service',
+setup(name='odcs-client',
+      description='On Demand Compose Service server',
       version='0.0.2',
       classifiers=[
           "Programming Language :: Python",
@@ -25,11 +25,4 @@ setup(name='odcs',
       zip_safe=False,
       install_requires=requirements,
       tests_require=test_requirements,
-      entry_points={
-          'console_scripts': ['odcs-upgradedb = odcs.server.manage:upgradedb',
-                              'odcs-gencert = odcs.server.manage:generatelocalhostcert',
-                              'odcs-frontend = odcs.server.manage:runssl',
-                              'odcs.server.backend = odcs.server.manage:runbackend',
-                              'odcs-manager = odcs.server.manage:manager_wrapper'],
-      },
       )

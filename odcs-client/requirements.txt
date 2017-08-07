@@ -1,0 +1,13 @@
+funcsigs  # Python2 only
+httplib2
+m2crypto
+m2ext
+mock
+munch
+pyOpenSSL
+python-fedora
+# qpid-python  # Python2 only; not necessary; just to hide warning messages
+six
+futures  # Python 2 only
+requests
+odcs-common

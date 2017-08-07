@@ -7,7 +7,7 @@ with open('test-requirements.txt') as f:
     test_requirements = f.readlines()
 
 setup(name='odcs',
-      description='On Demand Compose Service',
+      description='On Demand Compose Service server',
       version='0.0.2',
       classifiers=[
           "Programming Language :: Python",
@@ -32,4 +32,5 @@ setup(name='odcs',
                               'odcs.server.backend = odcs.server.manage:runbackend',
                               'odcs-manager = odcs.server.manage:manager_wrapper'],
       },
+      data_files=[('/etc/odcs/', ['conf/config.py'])]
       )

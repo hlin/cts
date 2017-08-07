@@ -3,9 +3,7 @@ include LICENSE
 include README.md
 include requirements.txt
 include test-requirements.txt
-recursive-include fedmsg.d *
 recursive-include contrib *
 recursive-include docs *.txt *.rst *.md
-recursive-include odcs-client *
-recursive-include odcs-common *
-recursive-include odcs-server *
+recursive-include odcs *
+recursive-include tests *
