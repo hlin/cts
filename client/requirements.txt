@@ -10,4 +10,3 @@ python-fedora
 six
 futures  # Python 2 only
 requests
-odcs-common
