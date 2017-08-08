@@ -4,16 +4,7 @@
 # the Free Software # Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-SUBDIRS := odcs-server odcs-client odcs-common
-ifdef WITH_SERVER
-    SUBDIRS += Server
-endif
-ifdef WITH_LABCONTROLLER
-    SUBDIRS += LabController
-endif
-ifdef WITH_INTTESTS
-    SUBDIRS += IntegrationTests
-endif
+SUBDIRS := server client common
 
 .PHONY: build
 build:

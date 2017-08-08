@@ -6,6 +6,6 @@ include test-requirements.txt
 recursive-include fedmsg.d *
 recursive-include contrib *
 recursive-include docs *.txt *.rst *.md
-recursive-include odcs-client *
-recursive-include odcs-common *
-recursive-include odcs-server *
+recursive-include client *
+recursive-include common *
+recursive-include server *
