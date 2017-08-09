@@ -31,6 +31,8 @@ from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.backend import ComposerThread, resolve_compose
 from odcs.server.pungi import PungiSourceType
 
+from pdc import mock_pdc
+
 thisdir = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -88,6 +90,7 @@ class TestComposerThread(unittest.TestCase):
         db.session.add(c)
         db.session.commit()
 
+    @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
     def test_submit_build(self, execute_cmd):
         self._add_module_compose()
@@ -100,13 +103,10 @@ class TestComposerThread(unittest.TestCase):
         self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
 
+    @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
-    @patch("odcs.server.pdc.PDC.get_latest_modules")
     def test_submit_build_module_without_release(
-            self, get_latest_modules, execute_cmd):
-        get_latest_modules.return_value = [
-            {"variant_uid": "testmodule-master-20170515074419"}]
-
+            self, execute_cmd):
         self._add_module_compose("testmodule-master")
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
@@ -118,13 +118,12 @@ class TestComposerThread(unittest.TestCase):
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.source, "testmodule-master-20170515074419")
 
+    @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
-    @patch("odcs.server.pdc.PDC.get_latest_modules")
     def test_submit_build_module_without_release_not_in_pdc(
-            self, get_latest_modules, execute_cmd):
-        get_latest_modules.return_value = []
+            self, execute_cmd):
 
-        self._add_module_compose("testmodule-master")
+        self._add_module_compose("testmodule2-master")
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
@@ -132,6 +131,7 @@ class TestComposerThread(unittest.TestCase):
         c = self._wait_for_compose_state(1, COMPOSE_STATES["failed"])
         self.assertEqual(c.state, COMPOSE_STATES["failed"])
 
+    @mock_pdc
     def test_submit_build_reuse_repo(self):
         self._add_repo_composes()
         c = db.session.query(Compose).filter(Compose.id == 2).one()
@@ -143,6 +143,7 @@ class TestComposerThread(unittest.TestCase):
         self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
 
+    @mock_pdc
     def test_submit_build_reuse_module(self):
         self._add_module_compose()
         self._add_module_compose()
@@ -158,6 +159,7 @@ class TestComposerThread(unittest.TestCase):
         self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
 
+    @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
     def test_submit_build_no_reuse_module(self, execute_cmd):
         self._add_module_compose()

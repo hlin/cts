@@ -23,11 +23,16 @@
 import inspect
 import requests
 import re
+import modulemd
 from pdc_client import PDCClient
 from beanbag.bbexcept import BeanBagException
 
 import odcs.server.utils
 from odcs.server import log
+
+
+class ModuleLookupError(Exception):
+    pass
 
 
 class PDC(object):
@@ -81,22 +86,112 @@ class PDC(object):
 
         return module_info
 
-    def get_latest_modules(self, **kwargs):
+    def get_latest_module(self, **kwargs):
         """
-        Query PDC with query parameters in kwargs and return a list of modules
-        which contains latest modules of each (module_name, module_version).
+        Query PDC and return the latest version of the module specified by kwargs
 
         :param kwargs: query parameters in keyword arguments, should only provide
                     valid query parameters supported by PDC's module query API.
-        :return: a list of modules
+                    Must include 'variant_id' and 'variant_version'.
+        :raises ModuleLookupError: if the module couldn't be found
+        :return: the latest version of the module.
         """
-        modules = self.get_modules(**kwargs)
-        active = kwargs.get('active', 'true')
-        latest_modules = []
-        for (name, version) in set([(m.get('variant_name'), m.get('variant_version')) for m in modules]):
-            mods = self.get_modules(variant_name=name, variant_version=version, active=active)
-            latest_modules.append(sorted(mods, key=lambda x: x['variant_release']).pop())
-        return list(filter(lambda x: x in latest_modules, modules))
+        if 'active' not in kwargs:
+            kwargs['active'] = True
+
+        if 'variant_release' not in kwargs:
+            # Ordering doesn't work
+            # https://github.com/product-definition-center/product-definition-center/issues/439,
+            # so if a release isn't specified, we have to get all builds and sort ourselves.
+            # We do this two-step to avoid downloading modulemd for all builds.
+            retval = self.get_modules(fields=['variant_release'], **kwargs)
+            if not retval:
+                raise ModuleLookupError(
+                    "Failed to find module {variant_id}-{variant_version} in the PDC."
+                    .format(**kwargs))
+            kwargs['variant_release'] = str(max(int(d['variant_release']) for d in retval))
+
+        retval = self.get_modules(**kwargs)
+        if not retval:
+            raise ModuleLookupError(
+                "Failed to find module {variant_id}-{variant_version}-{variant_release} in the PDC."
+                .format(**kwargs))
+        if len(retval) > 1:
+            raise ModuleLookupError(
+                "Multiple modules found in the PDC for "
+                "{variant_id}-{variant_version}-{variant_release}. "
+                "This shouldn't happen, please contact the ODCS maintainers."
+                .format(**kwargs))
+        return retval[0]
+
+    def _add_new_dependencies(self, module_map, modules):
+        """
+        Helper for ``validate_module_list()`` - scans ``modules`` and adds any missing
+        requirements to ``module_map``.
+
+        :param module_map: dict mapping module names to modules
+        :param modules: the list of modules to scan for dependencies.
+        :return: a list of any modules that were added to ``module_map``.
+        """
+
+        new_modules = []
+        for module in modules:
+            mmd = modulemd.ModuleMetadata()
+            mmd.loads(module['modulemd'])
+            for name, stream in mmd.requires.items():
+                if name in module_map:
+                    old_module = module_map[name]
+                    if stream != old_module['variant_version']:
+                        raise ModuleLookupError("Module %s requires %s:%s which conflicts with %s" %
+                                                (module['variant_uid'],
+                                                 name, stream,
+                                                 old_module['variant_uid']))
+                else:
+                    new_module = self.get_latest_module(variant_id=name,
+                                                        variant_version=stream)
+                    new_modules.append(new_module)
+                    module_map[name] = new_module
+
+        return new_modules
+
+    def validate_module_list(self, modules, expand=True):
+        """
+        Given a list of modules, checks that there are no conflicting duplicates,
+        removes any exact duplicates, and if ``expand`` is set, recursively adds
+        in required modules until all dependencies are specified.
+
+        :param modules: a list of modules as returned by ``get_modules()`` or
+                ``get_latest_module()``
+        :param expand: if required modules should be included in the returned
+                list.
+        :return: the list of modules with deduplication and expansion.
+        :raises ModuleLookupError: if a required module couldn't be found, or a
+                conflict occurred when resolving dependencies.
+        """
+
+        new_modules = []
+        module_map = {}
+
+        for module in modules:
+            if module['variant_id'] in module_map:
+                old_module = module_map[module['variant_id']]
+                if module['variant_uid'] != old_module['variant_uid']:
+                    raise ModuleLookupError("%s conflicts with %s" % (module['variant_uid'],
+                                                                      old_module['variant_uid']))
+                else:
+                    continue
+            module_map[module['variant_id']] = module
+            new_modules.append(module)
+
+        if expand:
+            added_module_list = new_modules
+            while True:
+                added_module_list = self._add_new_dependencies(module_map, added_module_list)
+                if len(added_module_list) == 0:
+                    break
+                new_modules.extend(added_module_list)
+
+        return new_modules
 
     @odcs.server.utils.retry(wait_on=(requests.ConnectionError, BeanBagException), logger=log)
     def get_modules(self, **kwargs):

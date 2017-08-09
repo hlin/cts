@@ -57,8 +57,8 @@ COMPOSE_RESULTS = {
 
 COMPOSE_FLAGS = {
     "no_flags": 0,
-    # Compose without pulling-in the dependencies of packages defined for
-    # a compose.
+    # Compose without pulling-in the dependencies of packages or modules
+    # defined for a compose.
     "no_deps": 1,
 }
 

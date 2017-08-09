@@ -202,7 +202,8 @@ class ODCS(object):
         :param list flags: List of flags influencing the resulting compose.
             Valid flags are 1) ``no_deps``, the resulting compose will contain
             only packages defined in the "packages" list without their
-            dependencies.
+            dependencies, or for ``source_type`` of "module", only the modules
+            listed in ``source`` without their dependencies.
         :return: the newly created Compose
         :rtype: dict
         """
