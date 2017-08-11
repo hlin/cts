@@ -211,20 +211,17 @@ def resolve_compose(compose):
         # string defined in the compose.source.
         pdc = odcs.server.pdc.PDC(conf)
         modules = compose.source.split(" ")
-        new_modules = []
+
+        specified_modules = []
         for module in modules:
             variant_dict = pdc.variant_dict_from_str(module)
-            if "variant_release" in variant_dict:
-                new_modules.append(module)
-            else:
-                variant_dict["active"] = "true"
-                latest_modules = pdc.get_latest_modules(**variant_dict)
-                if len(latest_modules) != 0:
-                    new_modules.append(latest_modules[0]["variant_uid"])
-                else:
-                    raise ValueError("%r: Cannot find latest version of "
-                                     "module %s in PDC", compose, module)
-        compose.source = ' '.join(new_modules)
+            specified_modules.append(pdc.get_latest_module(**variant_dict))
+
+        expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
+        new_modules = pdc.validate_module_list(specified_modules, expand=expand)
+
+        uids = sorted(m["variant_uid"] for m in new_modules)
+        compose.source = ' '.join(uids)
 
 
 def get_reusable_compose(compose):
