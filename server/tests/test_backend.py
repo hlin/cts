@@ -20,7 +20,6 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
-import unittest
 import os
 from mock import patch, MagicMock
 
@@ -30,23 +29,14 @@ from odcs.common.types import COMPOSE_FLAGS, COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.pdc import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
 from odcs.server.backend import resolve_compose, get_reusable_compose
+from utils import ModelsBaseTest
 
 from pdc import mock_pdc
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 
 
-class TestBackend(unittest.TestCase):
-    def setUp(self):
-        db.session.remove()
-        db.drop_all()
-        db.create_all()
-        db.session.commit()
-
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        db.session.commit()
+class TestBackend(ModelsBaseTest):
 
     def test_resolve_compose_repo(self):
         c = Compose.create(

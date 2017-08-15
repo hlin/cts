@@ -22,7 +22,6 @@
 
 import contextlib
 import datetime
-import unittest
 import json
 
 import flask
@@ -36,6 +35,7 @@ from odcs.server import db, app, login_manager
 from odcs.server.models import Compose, User
 from odcs.server.types import COMPOSE_STATES, COMPOSE_RESULTS
 from odcs.server.pungi import PungiSourceType
+from utils import ModelsBaseTest
 
 
 @login_manager.user_loader
@@ -43,14 +43,14 @@ def user_loader(username):
     return User.find_user_by_name(username=username)
 
 
-class TestViews(unittest.TestCase):
+class TestViews(ModelsBaseTest):
     maxDiff = None
 
     def setUp(self):
-        patched_allowed_clients = {'groups': ['composer'],
-                                   'users': ['dev']}
-        patched_admins = {'groups': ['admin'],
-                          'users': ['root']}
+        super(TestViews, self).setUp()
+
+        patched_allowed_clients = {'groups': ['composer'], 'users': ['dev']}
+        patched_admins = {'groups': ['admin'], 'users': ['root']}
         self.patch_allowed_clients = patch.object(odcs.server.auth.conf,
                                                   'allowed_clients',
                                                   new=patched_allowed_clients)
@@ -61,10 +61,6 @@ class TestViews(unittest.TestCase):
         self.patch_admins.start()
 
         self.client = app.test_client()
-        db.session.remove()
-        db.drop_all()
-        db.create_all()
-        db.session.commit()
 
         self.initial_datetime = datetime.datetime(year=2016, month=1, day=1,
                                                   hour=0, minute=0, second=0)
@@ -80,9 +76,7 @@ class TestViews(unittest.TestCase):
             db.session.commit()
 
     def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        db.session.commit()
+        super(TestViews, self).tearDown()
 
         self.patch_allowed_clients.stop()
         self.patch_admins.stop()

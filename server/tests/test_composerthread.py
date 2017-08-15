@@ -21,7 +21,6 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
 import os
-import unittest
 import time
 
 from mock import patch, MagicMock
@@ -31,26 +30,19 @@ from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.backend import ComposerThread, resolve_compose
 from odcs.server.pungi import PungiSourceType
 
+from utils import ModelsBaseTest
 from pdc import mock_pdc
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 
 
-class TestComposerThread(unittest.TestCase):
+class TestComposerThread(ModelsBaseTest):
     maxDiff = None
 
     def setUp(self):
         self.client = app.test_client()
-        db.session.remove()
-        db.drop_all()
-        db.create_all()
-        db.session.commit()
+        super(TestComposerThread, self).setUp()
         self.composer = ComposerThread()
-
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        db.session.commit()
 
     def _wait_for_compose_state(self, id, state):
         c = None

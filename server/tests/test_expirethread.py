@@ -20,8 +20,6 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
-import unittest
-
 from odcs.server import db
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
@@ -29,15 +27,14 @@ from odcs.server.backend import ExpireThread
 from odcs.server.pungi import PungiSourceType
 from datetime import datetime, timedelta
 
+from utils import ModelsBaseTest
 
-class TestExpireThread(unittest.TestCase):
+
+class TestExpireThread(ModelsBaseTest):
     maxDiff = None
 
     def setUp(self):
-        db.session.remove()
-        db.drop_all()
-        db.create_all()
-        db.session.commit()
+        super(TestExpireThread, self).setUp()
 
         compose = Compose.create(
             db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
@@ -46,11 +43,6 @@ class TestExpireThread(unittest.TestCase):
         db.session.commit()
 
         self.expire = ExpireThread()
-
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        db.session.commit()
 
     def test_no_expire(self):
         """
