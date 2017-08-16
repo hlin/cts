@@ -122,24 +122,30 @@ class ODCSAPI(MethodView):
             db.session.commit()
             return jsonify(compose.json()), 200
 
-        needed_keys = ["source_type", "source"]
-        for key in needed_keys:
-            if key not in data:
-                err = "Missing %s" % key
-                log.error(err)
-                raise ValueError(err)
-
-        source_type = data["source_type"]
-        if source_type in PUNGI_SOURCE_TYPE_NAMES:
-            source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
-        else:
-            err = "Unknown source_type %s" % source_type
+        source_data = data.get('source', None)
+        if not isinstance(source_data, dict):
+            err = "Invalid source configuration provided: %s" % str(data)
             log.error(err)
             raise ValueError(err)
 
-        source = data["source"].split(" ")
+        needed_keys = ["type", "source"]
+        for key in needed_keys:
+            if key not in source_data:
+                err = "Missing %s in source configuration, received: %s" % (key, str(source_data))
+                log.error(err)
+                raise ValueError(err)
+
+        source_type = source_data["type"]
+        if source_type in PUNGI_SOURCE_TYPE_NAMES:
+            source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
+        else:
+            err = "Unknown source type %s" % source_type
+            log.error(err)
+            raise ValueError(err)
+
+        source = source_data["source"].split(" ")
         if not source:
-            err = "No source data provided"
+            err = "No source provided for %s" % source_type
             log.error(err)
             raise ValueError(err)
         source = ' '.join(filter(None, source))
@@ -150,8 +156,8 @@ class ODCSAPI(MethodView):
                                   conf.max_seconds_to_live)
 
         packages = None
-        if "packages" in data:
-            packages = ' '.join(data["packages"])
+        if "packages" in source_data:
+            packages = ' '.join(source_data["packages"])
 
         flags = 0
         if "flags" in data:

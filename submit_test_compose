@@ -1,16 +1,12 @@
 #!/bin/bash
 
-if [ $# -gt 3 ]
-then
-	curl --data "{\"source_type\": \"$1\", \"source\": \"$2\", \"packages\": [\"$3\"], \"seconds-to-live\": $4}" localhost:5005/odcs/1/composes/
-	exit 0
+if [ $# -gt 3 ]; then
+    data="{\"source\": {\"type\": \"$1\", \"source\": \"$2\", \"packages\": [\"$3\"]}, \"seconds-to-live\": $4}"
+elif [ $# -gt 2 ]; then
+    data="{\"source\": {\"type\": \"$1\", \"source\": \"$2\", \"packages\": [\"$3\"]}}"
+else
+    data="{\"source\": {\"type\": \"$1\", \"source\": \"$2\"}}"
 fi
 
+curl --data "$data" localhost:5005/odcs/1/composes/
 
-if [ $# -gt 2 ]
-then
-	curl --data "{\"source_type\": \"$1\", \"source\": \"$2\", \"packages\": [\"$3\"]}" localhost:5005/odcs/1/composes/
-	exit 0
-fi
-
-curl --data "{\"source_type\": \"$1\", \"source\": \"$2\"}" localhost:5005/odcs/1/composes/

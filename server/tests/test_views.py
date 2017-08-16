@@ -121,7 +121,7 @@ class TestViews(unittest.TestCase):
     def test_submit_build(self):
         with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
-                {'source_type': 'module', 'source': 'testmodule-master'}))
+                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(rv.data.decode('utf8'))
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
@@ -141,7 +141,7 @@ class TestViews(unittest.TestCase):
     def test_submit_build_nodeps(self):
         with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
-                {'source_type': 'tag', 'source': 'f26', 'packages': ['ed'],
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
                  'flags': ['no_deps']}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -312,7 +312,7 @@ class TestViews(unittest.TestCase):
     def test_can_not_create_compose_with_non_composer_user(self):
         with self.test_request_context(user='qa'):
             resp = self.client.post('/odcs/1/composes/', data=json.dumps(
-                {'source_type': 'module', 'source': 'testmodule-master'}))
+                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(resp.data.decode('utf8'))
 
         self.assertEqual(resp.status, '403 FORBIDDEN')
@@ -323,7 +323,7 @@ class TestViews(unittest.TestCase):
     def test_can_create_compose_with_user_in_configured_groups(self):
         with self.test_request_context(user='another_user', groups=['composer']):
             resp = self.client.post('/odcs/1/composes/', data=json.dumps(
-                {'source_type': 'module', 'source': 'testmodule-rawhide'}))
+                {'source': {'type': 'module', 'source': 'testmodule-rawhide'}}))
         db.session.expire_all()
 
         self.assertEqual(resp.status, '200 OK')

@@ -62,9 +62,11 @@ To submit new compose request, you can send POST request in the following format
 
 ```
 {
-  "source_type": "tag",
-  "source": "f26",
-  "packages": ["httpd"]
+  "source": {
+    "type": "tag",
+    "source": "f26",
+    "packages": ["httpd"]
+  }
 }
 ```
 
@@ -72,10 +74,10 @@ This tells ODCS to create new compose from the Koji tag "f26" with the "httpd" p
 
 The example above is the minimal example, but there are more JSON fields which can be used to influence the resulting compose:
 
-- **source_type** - "tag" for compose from Koji tag, "module" for compose from the Fedora module, "repo" for compose from local RPM repository.
-- **source** - For "tag" source_type, name of the tag. For "module" source_type, white-space separated list of module name-stream or name-stream-version. For "repo" source_type, full path to repository.
-- **packages** - List of packages to include in a compose. Must not be set for "module" source_type.
+- **source** - This is a dict to define where to fetch packages to generate the compose.
+    - **type** - "tag" for compose from Koji tag, "module" for compose from the Fedora module, "repo" for compose from local RPM repository.
+    - **source** - For "tag" source_type, name of the tag. For "module" source_type, white-space separated list of module name-stream or name-stream-version. For "repo" source_type, full path to repository.
+    - **packages** - List of packages to include in a compose. Must not be set for "module" source_type.
 - **seconds-to-live** - Number of seconds for which the compose should become available. After that, the compose is removed. The default and maximum value is defined by server-side configuration.
 - **flags** - List of flags influencing the resulting compose:
     - **no_deps** - The resulting compose will contain only packages defined in the "packages" list without their dependencies, or for a module compose, only the modules listed in "source" without their dependencies.
-
