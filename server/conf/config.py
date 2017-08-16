@@ -83,6 +83,26 @@ class BaseConfiguration(object):
         'https://pagure.io/odcs/delete-compose',
     ]
 
+    # Select backend where message will be sent to. Currently, umb is supported
+    # which means the Unified Message Bus.
+    MESSAGING_BACKEND = ''  # fedmsg or umb
+
+    # List of broker URLs. Each of them is a string consisting of domain and
+    # optiona port.
+    MESSAGING_BROKER_URLS = []
+
+    # Path to certificate file used to authenticate ODCS by messaging broker.
+    MESSAGING_CERT_FILE = ''
+
+    # Path to private key file used to authenticate ODCS by messaging broker.
+    MESSAGING_KEY_FILE = ''
+
+    MESSAGING_CA_CERT = ''
+
+    # The topic specific to selected messaging backend.
+    # For umb, it is the ActiveMQ virtual topic e.g. VirtualTopic.eng.service
+    MESSAGING_TOPIC = ''
+
 
 class DevConfiguration(BaseConfiguration):
     DEBUG = True
@@ -117,6 +137,8 @@ class TestConfiguration(BaseConfiguration):
     AUTH_BACKEND = 'noauth'
     AUTH_LDAP_SERVER = 'ldap://ldap.example.com'
     AUTH_LDAP_GROUP_BASE = 'ou=groups,dc=example,dc=com'
+
+    MESSAGING_BACKEND = 'rhmsg'
 
 
 class ProdConfiguration(BaseConfiguration):

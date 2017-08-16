@@ -24,6 +24,11 @@
 import unittest
 
 from odcs.server import db
+from sqlalchemy import event
+from odcs.server.events import cache_composes_if_state_changed
+from odcs.server.events import start_to_publish_messages
+
+from flask.ext.sqlalchemy import SignallingSession
 
 
 class ModelsBaseTest(unittest.TestCase):
@@ -32,13 +37,50 @@ class ModelsBaseTest(unittest.TestCase):
     Database and schemas are initialized on behalf of developers.
     """
 
+    disable_event_handlers = True
+
     def setUp(self):
+        # Not all tests need handlers of event before_commit and after_commit.
+        event.remove(SignallingSession, 'before_commit',
+                     cache_composes_if_state_changed)
+        event.remove(SignallingSession, 'after_commit',
+                     start_to_publish_messages)
+
         db.session.remove()
         db.drop_all()
         db.create_all()
         db.session.commit()
 
+        setup_composes = getattr(self, 'setup_composes', None)
+        if setup_composes is not None:
+            assert callable(setup_composes)
+            setup_composes()
+
+        if hasattr(self, 'setup_composes'):
+            getattr(self, 'setup_composes')()
+
+        # And, if tests which need such event handlers or just tests those
+        # handlers, add them back.
+        if not self.disable_event_handlers:
+            event.listen(SignallingSession, 'before_commit',
+                         cache_composes_if_state_changed)
+            event.listen(SignallingSession, 'after_commit',
+                         start_to_publish_messages)
+
     def tearDown(self):
+        if not self.disable_event_handlers:
+            event.remove(SignallingSession, 'before_commit',
+                         cache_composes_if_state_changed)
+            event.remove(SignallingSession, 'after_commit',
+                         start_to_publish_messages)
+
         db.session.remove()
         db.drop_all()
         db.session.commit()
+
+        # Nothing special here. Just do what should be done in tearDown to
+        # to restore enviornment for each test method.
+        event.listen(SignallingSession, 'before_commit',
+                     cache_composes_if_state_changed)
+        event.listen(SignallingSession, 'after_commit',
+                     start_to_publish_messages)

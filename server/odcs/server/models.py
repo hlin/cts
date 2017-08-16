@@ -27,13 +27,25 @@
 import os
 
 from datetime import datetime, timedelta
-from odcs.server import conf
-from sqlalchemy.orm import validates
-from flask_login import UserMixin
 
+from flask_login import UserMixin
+from sqlalchemy.orm import validates
+
+from odcs.server import conf
 from odcs.server import db
+from odcs.server.events import cache_composes_if_state_changed
+from odcs.server.events import start_to_publish_messages
 from odcs.server.types import (
     COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS)
+
+from sqlalchemy import event
+from flask.ext.sqlalchemy import SignallingSession
+
+event.listen(SignallingSession, 'before_commit',
+             cache_composes_if_state_changed)
+
+event.listen(SignallingSession, 'after_commit',
+             start_to_publish_messages)
 
 
 def commit_on_success(func):

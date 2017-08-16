@@ -183,6 +183,30 @@ class Config(object):
             'type': list,
             'default': [],
             'desc': 'Required scopes for submitting request to run new compose.'},
+        'messaging_backend': {
+            'type': str,
+            'default': '',
+            'desc': 'Messaging backend, fedmsg or umb.'},
+        'messaging_broker_urls': {
+            'type': list,
+            'default': [],
+            'desc': 'List of messaging broker URLs.'},
+        'messaging_cert_file': {
+            'type': str,
+            'default': '',
+            'desc': 'Path to certificate file used to authenticate ODCS by broker.'},
+        'messaging_key_file': {
+            'type': str,
+            'default': '',
+            'desc': 'Path to private key file used to authenticate ODCS by broker.'},
+        'messaging_ca_cert': {
+            'type': str,
+            'default': '',
+            'desc': 'Path to trusted CA certificate bundle.'},
+        'messaging_topic': {
+            'type': str,
+            'default': '',
+            'desc': 'Messaging topic to which messages are sent.'},
     }
 
     def __init__(self, conf_section_obj):
