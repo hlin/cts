@@ -300,7 +300,7 @@ def get_reusable_compose(compose):
 def reuse_compose(compose, compose_to_reuse):
     """
     Changes the attribute of `compose` in a way it reuses
-    the `compose_to-reuse`.
+    the `compose_to_reuse`.
     """
 
     # Set the reuse_id
