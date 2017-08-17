@@ -129,7 +129,7 @@ class ExpireThread(BackendThread):
             compose.state = COMPOSE_STATES["removed"]
             compose.time_removed = datetime.utcnow()
             db.session.commit()
-            if os.path.exists(compose.toplevel_dir):
+            if not compose.reused_id and os.path.exists(compose.toplevel_dir):
                 self._remove_compose_dir(compose.toplevel_dir)
 
 
