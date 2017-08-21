@@ -27,7 +27,7 @@ import json
 import flask
 
 from freezegun import freeze_time
-from mock import patch
+from mock import patch, PropertyMock
 
 import odcs.server.auth
 
@@ -342,3 +342,56 @@ class TestViews(ModelsBaseTest):
         self.assertEqual(data['status'], 202)
         self.assertRegexpMatches(data['message'],
                                  r"The delete request for compose \(id=%s\) has been accepted and will be processed by backend later." % c3.id)
+
+    @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
+    @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)
+    def test_use_seconds_to_live_in_request(self, mock_seconds_to_live, mock_max_seconds_to_live):
+        # if we have 'seconds-to-live' in request < conf.max_seconds_to_live
+        # the value from request will be used
+        mock_seconds_to_live.return_value = 60 * 60 * 24
+        mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
+
+        with self.test_request_context(user='dev'):
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 12}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        time_submitted = datetime.datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
+        time_to_expire = datetime.datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
+        delta = datetime.timedelta(hours=12)
+        self.assertEqual(time_to_expire - time_submitted, delta)
+
+    @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
+    @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)
+    def test_use_max_seconds_to_live_in_conf(self, mock_seconds_to_live, mock_max_seconds_to_live):
+        # if we have 'seconds-to-live' in request > conf.max_seconds_to_live
+        # conf.max_seconds_to_live will be used
+        mock_seconds_to_live.return_value = 60 * 60 * 24
+        mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
+
+        with self.test_request_context(user='dev'):
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        time_submitted = datetime.datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
+        time_to_expire = datetime.datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
+        delta = datetime.timedelta(days=3)
+        self.assertEqual(time_to_expire - time_submitted, delta)
+
+    @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
+    @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)
+    def test_use_seconds_to_live_in_conf(self, mock_seconds_to_live, mock_max_seconds_to_live):
+        # if we don't have 'seconds-to-live' in request, conf.seconds_to_live will be used
+        mock_seconds_to_live.return_value = 60 * 60 * 24
+        mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
+
+        with self.test_request_context(user='dev'):
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        time_submitted = datetime.datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
+        time_to_expire = datetime.datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
+        delta = datetime.timedelta(hours=24)
+        self.assertEqual(time_to_expire - time_submitted, delta)

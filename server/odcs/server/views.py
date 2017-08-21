@@ -96,6 +96,17 @@ class ODCSAPI(MethodView):
             log.exception('Invalid JSON submitted')
             raise ValueError('Invalid JSON submitted')
 
+        seconds_to_live = conf.seconds_to_live
+        if "seconds-to-live" in data:
+            try:
+                seconds_to_live_in_request = int(data['seconds-to-live'])
+            except ValueError as e:
+                err = 'Invalid seconds-to-live specified in request: %s' % data
+                log.error(err)
+                raise ValueError(err)
+
+            seconds_to_live = min(seconds_to_live_in_request, conf.max_seconds_to_live)
+
         # If "id" is in data, it means client wants to regenerate an expired
         # compose.
         if "id" in data:
@@ -110,11 +121,6 @@ class ODCSAPI(MethodView):
                 raise ValueError(err)
 
             log.info("%r: Going to regenerate the compose", old_compose)
-
-            seconds_to_live = conf.seconds_to_live
-            if "seconds-to-live" in data:
-                seconds_to_live = max(int(seconds_to_live),
-                                      conf.max_seconds_to_live)
 
             compose = Compose.create_copy(db.session, old_compose, owner,
                                           seconds_to_live)
@@ -149,11 +155,6 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise ValueError(err)
         source = ' '.join(filter(None, source))
-
-        seconds_to_live = conf.seconds_to_live
-        if "seconds-to-live" in data:
-            seconds_to_live = max(int(seconds_to_live),
-                                  conf.max_seconds_to_live)
 
         packages = None
         if "packages" in source_data:
