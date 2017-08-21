@@ -34,7 +34,8 @@ __all__ = ('publish',)
 def publish(msgs):
     """Start to send messages to message broker"""
     backend = _get_messaging_backend()
-    backend(msgs)
+    if backend is not None:
+        backend(msgs)
 
 
 def _umb_send_msg(msgs):
@@ -62,6 +63,8 @@ def _get_messaging_backend():
     if conf.messaging_backend == 'rhmsg':
         return _umb_send_msg
     # TODO: elif conf.messaging_backend == 'fedmsg':
-    else:
+    elif conf.messaging_backend:
         raise ValueError(
             'Unknown messaging backend {0}'.format(conf.messaging_backend))
+    else:
+        return None
