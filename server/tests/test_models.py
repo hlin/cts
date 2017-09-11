@@ -50,6 +50,7 @@ class TestModels(ModelsBaseTest):
                          'state_name': 'wait', 'source': u'testmodule-master',
                          'owner': u'me',
                          'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
+                         'result_repofile': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary/odcs-1.repo',
                          'time_submitted': c.json()["time_submitted"], 'id': 1,
                          'time_removed': None,
                          'time_to_expire': c.json()["time_to_expire"],

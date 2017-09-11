@@ -84,7 +84,8 @@ class TestComposerThread(ModelsBaseTest):
 
     @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
-    def test_submit_build(self, execute_cmd):
+    @patch("odcs.server.backend._write_repo_file")
+    def test_submit_build(self, wrf, execute_cmd):
         self._add_module_compose()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
@@ -97,8 +98,9 @@ class TestComposerThread(ModelsBaseTest):
 
     @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
+    @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_module_without_release(
-            self, execute_cmd):
+            self, wrf, execute_cmd):
         self._add_module_compose("testmodule-master")
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
@@ -112,8 +114,9 @@ class TestComposerThread(ModelsBaseTest):
 
     @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
+    @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_module_without_release_not_in_pdc(
-            self, execute_cmd):
+            self, wrf, execute_cmd):
 
         self._add_module_compose("testmodule2-master")
         c = db.session.query(Compose).filter(Compose.id == 1).one()
@@ -153,7 +156,8 @@ class TestComposerThread(ModelsBaseTest):
 
     @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
-    def test_submit_build_no_reuse_module(self, execute_cmd):
+    @patch("odcs.server.backend._write_repo_file")
+    def test_submit_build_no_reuse_module(self, wrf, execute_cmd):
         self._add_module_compose()
         self._add_module_compose("testmodule-master-20170515074418")
         old_c = db.session.query(Compose).filter(Compose.id == 1).one()
@@ -169,7 +173,8 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary")
 
     @patch("odcs.server.backend.create_koji_session")
-    def test_submit_build_no_deps(self, create_koji_session):
+    @patch("odcs.server.backend._write_repo_file")
+    def test_submit_build_no_deps(self, wrf, create_koji_session):
         """
         Checks that "no_deps" flags properly sets gather_method to nodeps.
         """
@@ -213,8 +218,9 @@ class TestComposerThread(ModelsBaseTest):
 
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend.create_koji_session")
+    @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_reuse_koji_tag_tags_changed(
-            self, create_koji_session, execute_cmd):
+            self, wrf, create_koji_session, execute_cmd):
         koji_session = MagicMock()
         create_koji_session.return_value = koji_session
         koji_session.getLastEvent.return_value = {"id": 123}

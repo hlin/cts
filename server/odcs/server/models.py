@@ -191,6 +191,23 @@ class Compose(ODCSBase):
         return conf.target_dir_url + "/" \
             + os.path.join(self.latest_dir, "compose", "Temporary")
 
+    @property
+    def result_repofile_path(self):
+        """
+        Returns path to .repo file.
+        """
+        return os.path.join(self.toplevel_dir, "compose", "Temporary",
+                            self.name + ".repo")
+
+    @property
+    def result_repofile_url(self):
+        """
+        Returns public URL to repofile.
+        """
+        return conf.target_dir_url + "/" \
+            + os.path.join(self.latest_dir, "compose", "Temporary",
+                           self.name + ".repo")
+
     @validates('state')
     def validate_state(self, key, field):
         if field in COMPOSE_STATES.values():
@@ -218,6 +235,7 @@ class Compose(ODCSBase):
             'time_done': self._utc_datetime_to_iso(self.time_done),
             'time_removed': self._utc_datetime_to_iso(self.time_removed),
             'result_repo': self.result_repo_url,
+            'result_repofile': self.result_repofile_url,
             'flags': flags,
         }
 

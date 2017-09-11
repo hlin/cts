@@ -27,7 +27,7 @@ $ tox -e py27,py35,flake8
 
 ## Testing local composes from plain RPM repositories
 
-You can test ODCS by generating compose form the `./tests/repo` repository using following commands:
+You can test ODCS by generating compose form the `./server/tests/repo` repository using following commands:
 
 ```
 $ ./create_sqlite_db
@@ -37,7 +37,7 @@ $ ./start_odcs_from_here
 And in another terminal, submit a request to frontend:
 
 ```
-$ ./submit_test_compose repo `pwd`/tests/repo ed
+$ ./submit_test_compose repo `pwd`/server/tests/repo ed
 {
   "id": 1,
   "owner": "Unknown",

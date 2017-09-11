@@ -122,6 +122,7 @@ class TestViews(ModelsBaseTest):
                          'state_name': 'wait', 'source': u'testmodule-master',
                          'owner': u'Unknown',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
+                         'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_removed': None,
                          'time_to_expire': data["time_to_expire"],
