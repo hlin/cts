@@ -396,3 +396,27 @@ class TestViews(ModelsBaseTest):
         time_to_expire = datetime.datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
         delta = datetime.timedelta(hours=24)
         self.assertEqual(time_to_expire - time_submitted, delta)
+
+    @patch.object(odcs.server.config.Config, 'auth_backend', new_callable=PropertyMock)
+    def test_anonymous_user_can_submit_build_with_noauth_backend(self, mock_auth_backend):
+        mock_auth_backend.return_value = 'noauth'
+
+        with self.test_request_context():
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
+                         'state_name': 'wait', 'source': u'testmodule-master',
+                         'owner': u'Unknown',
+                         'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
+                         'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
+                         'time_submitted': data["time_submitted"], 'id': data['id'],
+                         'time_removed': None,
+                         'time_to_expire': data["time_to_expire"],
+                         'flags': []}
+        self.assertEqual(data, expected_json)
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])

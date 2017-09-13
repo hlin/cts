@@ -30,6 +30,7 @@ import flask
 from itertools import chain
 
 from flask import g
+from flask_login import login_required as _login_required
 
 from odcs.server import conf, log
 from odcs.server.errors import Unauthorized, Forbidden
@@ -181,3 +182,13 @@ def requires_role(role):
             raise Forbidden('User %s is not in role %s.' % (flask.g.user.username, role))
         return wrapped
     return wrapper
+
+
+def login_required(f):
+    """Wrapper of flask_login's login_required to ingore auth check when auth backend is 'noauth'."""
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if conf.auth_backend == 'noauth':
+            return f(*args, **kwargs)
+        return _login_required(f)(*args, **kwargs)
+    return wrapped
