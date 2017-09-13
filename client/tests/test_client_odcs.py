@@ -238,9 +238,9 @@ class TestNewCompose(unittest.TestCase):
         requests.post.assert_called_once_with(
             self.odcs._make_endpoint('composes/'),
             data=json.dumps({
-                'source': 'cf-1.0-rhel-5',
-                'source_type': 'tag',
-                'packages': ['libdnet']
+                'source': {'source': 'cf-1.0-rhel-5',
+                           'type': 'tag',
+                           'packages': ['libdnet']}
             }),
             headers={'Content-Type': 'application/json'}
         )
