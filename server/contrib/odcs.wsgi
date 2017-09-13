@@ -3,4 +3,4 @@
 import logging
 logging.basicConfig(level='DEBUG')
 
-from odcs import app as application
+from odcs.server import app as application
