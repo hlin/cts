@@ -208,11 +208,10 @@ class ODCS(object):
         :rtype: dict
         """
         request_data = {
-            'source': source,
-            'source_type': source_type,
+            'source': {'source': source, 'type': source_type}
         }
         if packages:
-            request_data['packages'] = packages
+            request_data['source']['packages'] = packages
         if seconds_to_live is not None:
             request_data['seconds-to-live'] = seconds_to_live
         if flags:
