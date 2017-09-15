@@ -21,8 +21,9 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
 import contextlib
-import datetime
 import json
+
+from datetime import datetime, timedelta
 
 import flask
 
@@ -43,11 +44,10 @@ def user_loader(username):
     return User.find_user_by_name(username=username)
 
 
-class TestViews(ModelsBaseTest):
-    maxDiff = None
+class ViewBaseTest(ModelsBaseTest):
 
     def setUp(self):
-        super(TestViews, self).setUp()
+        super(ViewBaseTest, self).setUp()
 
         patched_allowed_clients = {'groups': ['composer'], 'users': ['dev']}
         patched_admins = {'groups': ['admin'], 'users': ['root']}
@@ -62,21 +62,10 @@ class TestViews(ModelsBaseTest):
 
         self.client = app.test_client()
 
-        self.initial_datetime = datetime.datetime(year=2016, month=1, day=1,
-                                                  hour=0, minute=0, second=0)
-        with freeze_time(self.initial_datetime):
-            self.c1 = Compose.create(
-                db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
-                COMPOSE_RESULTS["repository"], 60)
-            self.c2 = Compose.create(
-                db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-                COMPOSE_RESULTS["repository"], 60)
-            db.session.add(self.c1)
-            db.session.add(self.c2)
-            db.session.commit()
+        self.setup_test_data()
 
     def tearDown(self):
-        super(TestViews, self).tearDown()
+        super(ViewBaseTest, self).tearDown()
 
         self.patch_allowed_clients.stop()
         self.patch_admins.stop()
@@ -111,6 +100,27 @@ class TestViews(ModelsBaseTest):
             finally:
                 if patch_auth_backend is not None:
                     patch_auth_backend.stop()
+
+    def setup_test_data(self):
+        """Set up data for running tests"""
+
+
+class TestViews(ViewBaseTest):
+    maxDiff = None
+
+    def setup_test_data(self):
+        self.initial_datetime = datetime(year=2016, month=1, day=1,
+                                         hour=0, minute=0, second=0)
+        with freeze_time(self.initial_datetime):
+            self.c1 = Compose.create(
+                db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+                COMPOSE_RESULTS["repository"], 60)
+            self.c2 = Compose.create(
+                db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+                COMPOSE_RESULTS["repository"], 60)
+            db.session.add(self.c1)
+            db.session.add(self.c2)
+            db.session.commit()
 
     def test_submit_build(self):
         with self.test_request_context(user='dev'):
@@ -185,14 +195,14 @@ class TestViews(ModelsBaseTest):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
-        self.assertEqual(data['message'], 'No expired or failed compose with id 1')
+        self.assertEqual(data['message'], 'No compose with id 1 found')
 
     def test_submit_build_resurrection_not_found(self):
         with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 100}))
             data = json.loads(rv.data.decode('utf8'))
 
-        self.assertEqual(data['message'], 'No expired or failed compose with id 100')
+        self.assertEqual(data['message'], 'No compose with id 100 found')
 
     def test_query_compose(self):
         resp = self.client.get('/odcs/1/composes/1')
@@ -357,9 +367,9 @@ class TestViews(ModelsBaseTest):
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 12}))
             data = json.loads(rv.data.decode('utf8'))
 
-        time_submitted = datetime.datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
-        time_to_expire = datetime.datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
-        delta = datetime.timedelta(hours=12)
+        time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
+        time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
+        delta = timedelta(hours=12)
         self.assertEqual(time_to_expire - time_submitted, delta)
 
     @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
@@ -375,9 +385,9 @@ class TestViews(ModelsBaseTest):
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
             data = json.loads(rv.data.decode('utf8'))
 
-        time_submitted = datetime.datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
-        time_to_expire = datetime.datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
-        delta = datetime.timedelta(days=3)
+        time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
+        time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
+        delta = timedelta(days=3)
         self.assertEqual(time_to_expire - time_submitted, delta)
 
     @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
@@ -392,9 +402,9 @@ class TestViews(ModelsBaseTest):
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(rv.data.decode('utf8'))
 
-        time_submitted = datetime.datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
-        time_to_expire = datetime.datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
-        delta = datetime.timedelta(hours=24)
+        time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
+        time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
+        delta = timedelta(hours=24)
         self.assertEqual(time_to_expire - time_submitted, delta)
 
     @patch.object(odcs.server.config.Config, 'auth_backend', new_callable=PropertyMock)
@@ -420,3 +430,92 @@ class TestViews(ModelsBaseTest):
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+
+class TestExtendExpiration(ViewBaseTest):
+    """Test view post to extend expiration"""
+
+    def setup_test_data(self):
+        self.initial_datetime = datetime(year=2016, month=1, day=1,
+                                         hour=0, minute=0, second=0)
+        with freeze_time(self.initial_datetime):
+            self.c1 = Compose.create(
+                db.session, "me", PungiSourceType.KOJI_TAG, "f25",
+                COMPOSE_RESULTS["repository"], 60)
+            self.c2 = Compose.create(
+                db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+                COMPOSE_RESULTS["repository"], 60)
+            self.c3 = Compose.create(
+                db.session, "me", PungiSourceType.KOJI_TAG, "f27",
+                COMPOSE_RESULTS["repository"], 60)
+            self.c4 = Compose.create(
+                db.session, "me", PungiSourceType.KOJI_TAG, "master",
+                COMPOSE_RESULTS["repository"], 60)
+
+            map(db.session.add, (self.c1, self.c2, self.c3, self.c4))
+            db.session.commit()
+
+            self.c1.reused_id = self.c2.id
+            self.c2.reused_id = self.c3.id
+            db.session.commit()
+
+            # Store for retrieving them back for assertion
+            self.c1_id = self.c1.id
+            self.c3_id = self.c3.id
+
+    def test_fail_if_extend_non_existing_compose(self):
+        post_data = json.dumps({
+            'id': 999,
+            'seconds-to-live': 600
+        })
+        with self.test_request_context():
+            rv = self.client.post('/odcs/1/composes/', data=post_data)
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual('No compose with id 999 found', data['message'])
+
+    def test_fail_if_compose_is_not_done(self):
+        self.c1.state = COMPOSE_STATES['wait']
+        db.session.commit()
+
+        post_data = json.dumps({
+            'id': self.c1.id,
+            'seconds-to-live': 600
+        })
+        with self.test_request_context():
+            rv = self.client.post('/odcs/1/composes/', data=post_data)
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual('No compose with id {0} found'.format(self.c1.id),
+                         data['message'])
+
+    def test_extend_compose_expiration(self):
+        fake_utcnow = datetime.utcnow()
+
+        self.c2.state = COMPOSE_STATES['done']
+        self.c2.time_to_expire = fake_utcnow - timedelta(seconds=10)
+        db.session.commit()
+
+        expected_seconds_to_live = 60 * 60 * 3
+        expected_time_to_expire = fake_utcnow + timedelta(
+            seconds=expected_seconds_to_live)
+        post_data = json.dumps({
+            'id': self.c2.id,
+            'seconds-to-live': expected_seconds_to_live
+        })
+
+        with self.test_request_context():
+            with freeze_time(fake_utcnow):
+                rv = self.client.post('/odcs/1/composes/', data=post_data)
+                data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(
+            Compose._utc_datetime_to_iso(expected_time_to_expire),
+            data['time_to_expire'])
+
+        # Compose reusing self.c2 and the one self.c2 reuses should also be
+        # extended.
+        c1 = db.session.query(Compose).filter(Compose.id == self.c1_id).first()
+        self.assertEqual(expected_time_to_expire, c1.time_to_expire)
+        c3 = db.session.query(Compose).filter(Compose.id == self.c3_id).first()
+        self.assertEqual(expected_time_to_expire, c3.time_to_expire)

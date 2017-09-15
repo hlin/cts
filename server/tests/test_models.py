@@ -21,6 +21,9 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+from datetime import timedelta
+
 from odcs.server import db
 from odcs.server.models import Compose
 from odcs.server.types import COMPOSE_RESULTS
@@ -81,3 +84,58 @@ class TestUserModel(ModelsBaseTest):
 
         user = User.find_user_by_name('tester1')
         self.assertEqual('tester1', user.username)
+
+
+class ComposeModel(ModelsBaseTest):
+    """Test Compose Model"""
+
+    def setUp(self):
+        super(ComposeModel, self).setUp()
+
+        self.c1 = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60)
+        self.c2 = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1')
+        self.c3 = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1')
+        self.c4 = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1')
+
+        map(db.session.add, (self.c1, self.c2, self.c3, self.c4))
+        db.session.commit()
+
+        self.c1.reused_id = self.c3.id
+        self.c2.reused_id = self.c3.id
+        self.c3.reused_id = self.c4.id
+        db.session.commit()
+
+    def test_get_reused_compose(self):
+        compose = self.c3.get_reused_compose()
+        self.assertEqual(self.c4, compose)
+
+    def test_get_reusing_composes(self):
+        composes = self.c3.get_reusing_composes()
+        self.assertEqual(2, len(composes))
+        self.assertEqual([self.c1, self.c2], list(composes))
+
+    def test_extend_expiration(self):
+        from_now = datetime.utcnow()
+        seconds_to_live = 100
+        self.c1.extend_expiration(from_now, seconds_to_live)
+        db.session.commit()
+
+        expected_time_to_expire = from_now + timedelta(seconds=seconds_to_live)
+        self.assertEqual(expected_time_to_expire, self.c1.time_to_expire)
+
+    def test_not_extend_expiration(self):
+        from_now = datetime.utcnow()
+        seconds_to_live = (self.c1.time_to_expire - datetime.utcnow()).seconds / 2
+
+        orig_time_to_expire = self.c1.time_to_expire
+        self.c1.extend_expiration(from_now, seconds_to_live)
+
+        self.assertEqual(orig_time_to_expire, self.c1.time_to_expire)

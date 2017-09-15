@@ -263,3 +263,20 @@ class Compose(ODCSBase):
         return "<Compose %s, type %r, state %s, owner %s>" % (
             self.source, self.source_type,
             INVERSE_COMPOSE_STATES[self.state], self.owner)
+
+    def get_reused_compose(self):
+        """Get compose this compose reuses"""
+        return db.session.query(Compose).filter(
+            Compose.id == self.reused_id).first()
+
+    def get_reusing_composes(self):
+        """Get composes that are reusing this compose"""
+        return db.session.query(Compose).filter(
+            Compose.reused_id == self.id).all()
+
+    def extend_expiration(self, _from, seconds_to_live):
+        """Extend time to expire"""
+        new_expiration = max(self.time_to_expire,
+                             _from + timedelta(seconds=seconds_to_live))
+        if new_expiration != self.time_to_expire:
+            self.time_to_expire = new_expiration

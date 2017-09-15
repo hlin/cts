@@ -113,19 +113,37 @@ class ODCSAPI(MethodView):
                 Compose.id == data["id"],
                 Compose.state.in_(
                     [COMPOSE_STATES["removed"],
+                     COMPOSE_STATES["done"],
                      COMPOSE_STATES["failed"]])).first()
+
             if not old_compose:
-                err = "No expired or failed compose with id %s" % data["id"]
+                err = "No compose with id %s found" % data["id"]
                 log.error(err)
                 raise ValueError(err)
 
-            log.info("%r: Going to regenerate the compose", old_compose)
+            state = old_compose.state
+            if state in (COMPOSE_STATES['removed'], COMPOSE_STATES['failed']):
+                log.info("%r: Going to regenerate the compose", old_compose)
+                compose = Compose.create_copy(db.session, old_compose, owner,
+                                              seconds_to_live)
+                db.session.add(compose)
+                db.session.commit()
+                return jsonify(compose.json()), 200
 
-            compose = Compose.create_copy(db.session, old_compose, owner,
-                                          seconds_to_live)
-            db.session.add(compose)
+            # Otherwise, just extend expiration to make it usable for longer time.
+            extend_from = datetime.datetime.utcnow()
+            old_compose.extend_expiration(extend_from, seconds_to_live)
+            log.info('Extended time_to_expire for compose %r to %s',
+                     old_compose, old_compose.time_to_expire)
+            # As well as extending those composes that reuse this this compose,
+            # and the one this compose reuses.
+            reused_compose = old_compose.get_reused_compose()
+            if reused_compose:
+                reused_compose.extend_expiration(extend_from, seconds_to_live)
+            for c in old_compose.get_reusing_composes():
+                c.extend_expiration(extend_from, seconds_to_live)
             db.session.commit()
-            return jsonify(compose.json()), 200
+            return jsonify(old_compose.json()), 200
 
         source_data = data.get('source', None)
         if not isinstance(source_data, dict):
