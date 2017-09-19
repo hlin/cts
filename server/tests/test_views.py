@@ -130,7 +130,7 @@ class TestViews(ViewBaseTest):
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
-                         'owner': u'Unknown',
+                         'owner': u'dev',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
                          'time_submitted': data["time_submitted"], 'id': data['id'],
@@ -418,7 +418,7 @@ class TestViews(ViewBaseTest):
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
-                         'owner': u'Unknown',
+                         'owner': u'unknown',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
                          'time_submitted': data["time_submitted"], 'id': data['id'],
