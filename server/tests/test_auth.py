@@ -245,3 +245,13 @@ class TestInitAuth(unittest.TestCase):
         self.assertRaises(ValueError, init_auth, self.login_manager, 'xxx')
         self.assertRaises(ValueError, init_auth, self.login_manager, '')
         self.assertRaises(ValueError, init_auth, self.login_manager, None)
+
+    def test_init_auth_no_ldap_server(self):
+        with patch.object(odcs.server.auth.conf, 'auth_ldap_server', ''):
+            self.assertRaises(ValueError, init_auth, self.login_manager,
+                              'kerberos')
+
+    def test_init_auths_no_ldap_group_base(self):
+        with patch.object(odcs.server.auth.conf, 'auth_ldap_group_base', ''):
+            self.assertRaises(ValueError, init_auth, self.login_manager,
+                              'kerberos')

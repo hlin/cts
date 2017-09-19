@@ -38,6 +38,26 @@ from odcs.server.models import User
 from odcs.server.models import commit_on_success
 
 
+def _validate_kerberos_config():
+    """
+    Validates the kerberos configuration and raises ValueError in case of
+    error.
+    """
+    errors = []
+    if not conf.auth_ldap_server:
+        errors.append("kerberos authentication enabled with no LDAP server configured, "
+                      "check AUTH_LDAP_SERVER in your config.")
+
+    if not conf.auth_ldap_group_base:
+        errors.append("kerberos authentication enabled with no LDAP group base configured, "
+                      "check AUTH_LDAP_GROUP_BASE in your config.")
+
+    if errors:
+        for error in errors:
+            log.exception(error)
+        raise ValueError("Invalid configuration for kerberos authentication.")
+
+
 @commit_on_success
 def load_krb_user_from_request(request):
     """Load Kerberos user from current request
@@ -68,14 +88,8 @@ def load_krb_user_from_request(request):
 
 
 def query_ldap_groups(uid):
-    ldap_server = conf.auth_ldap_server
-    assert ldap_server, 'LDAP server must be configured in advance.'
-
-    group_base = conf.auth_ldap_group_base
-    assert group_base, 'Group base must be configured in advance.'
-
-    client = ldap.initialize(ldap_server)
-    groups = client.search_s(group_base,
+    client = ldap.initialize(conf.auth_ldap_server)
+    groups = client.search_s(conf.auth_ldap_group_base,
                              ldap.SCOPE_ONELEVEL,
                              attrlist=['cn', 'gidNumber'],
                              filterstr='memberUid={0}'.format(uid))
@@ -148,6 +162,7 @@ def init_auth(login_manager, backend):
         # authentication module in Apache.
         return
     if backend == 'kerberos':
+        _validate_kerberos_config()
         global load_krb_user_from_request
         load_krb_user_from_request = login_manager.request_loader(
             load_krb_user_from_request)
