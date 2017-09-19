@@ -146,6 +146,7 @@ def init_auth(login_manager, backend):
     if backend == 'noauth':
         # Do not enable any authentication backend working with frontend
         # authentication module in Apache.
+        log.warn("Authorization is disabled in ODCS configuration.")
         return
     if backend == 'kerberos':
         global load_krb_user_from_request
