@@ -172,7 +172,7 @@ class Config(object):
             'desc': "Admin groups and users."},
         'auth_backend': {
             'type': str,
-            'default': 'noauth',
+            'default': '',
             'desc': "Select which authentication backend is enabled and work "
                     "with frond-end authentication together."},
         'auth_openidc_userinfo_uri': {
