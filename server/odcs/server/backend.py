@@ -31,7 +31,7 @@ from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType
 from concurrent.futures import ThreadPoolExecutor
 import odcs.server.utils
 import odcs.server.pdc
-import xml.etree.ElementTree
+import defusedxml.ElementTree
 
 
 class BackendThread(object):
@@ -196,7 +196,7 @@ def resolve_compose(compose):
     if compose.source_type == PungiSourceType.REPO:
         # We treat "revision" of local repo as koji_event for the simplicity.
         repomd = os.path.join(compose.source, "repodata", "repomd.xml")
-        e = xml.etree.ElementTree.parse(repomd).getroot()
+        e = defusedxml.ElementTree.parse(repomd).getroot()
         revision = e.find("{http://linux.duke.edu/metadata/repo}revision").text
         compose.koji_event = int(revision)
     elif compose.source_type == PungiSourceType.KOJI_TAG:
