@@ -25,7 +25,7 @@ import datetime
 import json
 
 from flask.views import MethodView
-from flask import request, jsonify
+from flask import request, jsonify, g
 
 from odcs.server import app, db, log, conf
 from odcs.server.errors import NotFound, BadRequest
@@ -87,7 +87,12 @@ class ODCSAPI(MethodView):
     @login_required
     @requires_role('allowed_clients')
     def post(self):
-        owner = "Unknown"  # TODO
+        if conf.auth_backend == "noauth":
+            owner = "unknown"
+            log.warn("Cannot determine the owner of compose, because "
+                     "'noauth' auth_backend is used.")
+        else:
+            owner = g.user.username
 
         try:
             data = json.loads(request.get_data().decode("utf-8"))
