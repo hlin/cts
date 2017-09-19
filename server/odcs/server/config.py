@@ -24,8 +24,8 @@
 
 import imp
 import os
+import sys
 
-from os import sys
 from odcs.server import logger
 
 
@@ -42,8 +42,11 @@ def init_config(app):
     try:
         with open(config_file):
             config_section = 'ProdConfiguration'
-    except:
-        pass
+    except (OSError, IOError) as e:
+        # Use stderr here, because logging is not initialized so far...
+        sys.stderr.write("WARN: Cannot open %s: %s\n" % (
+            config_file, e.strerror))
+        sys.stderr.write("WARN: DevConfiguration will be used.\n")
 
     # try getting config_file from os.environ
     if 'ODCS_CONFIG_FILE' in os.environ:
