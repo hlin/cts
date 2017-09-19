@@ -44,6 +44,7 @@ BuildRequires:    python-flask-sqlalchemy
 BuildRequires:    python-flask-migrate
 BuildRequires:    python-nose
 BuildRequires:    python-mock
+BuildRequires:    python-defusedxml
 %else
 BuildRequires:    python2-setuptools
 BuildRequires:    python2-flask-sqlalchemy
@@ -51,6 +52,7 @@ BuildRequires:    python2-flask-migrate
 BuildRequires:    python2-nose
 BuildRequires:    python2-mock
 BuildRequires:    python2-tabulate
+BuildRequires:    python2-defusedxml
 %endif
 
 BuildRequires:    systemd
@@ -78,11 +80,13 @@ Requires:    python-openidc-client
 Requires:    python-flask-sqlalchemy
 Requires:    python-flask-migrate
 Requires:    python-mock
+Requires:    python-defusedxml
 %else
 Requires:    python2-flask-sqlalchemy
 Requires:    python2-flask-migrate
 Requires:    python2-mock
 Requires:    python2-systemd
+Requires:    python2-defusedxml
 %endif
 
 
