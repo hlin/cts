@@ -124,7 +124,7 @@ class ODCSAPI(MethodView):
             if not old_compose:
                 err = "No compose with id %s found" % data["id"]
                 log.error(err)
-                raise ValueError(err)
+                raise NotFound(err)
 
             state = old_compose.state
             if state in (COMPOSE_STATES['removed'], COMPOSE_STATES['failed']):
