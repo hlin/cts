@@ -22,7 +22,6 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
 import datetime
-import json
 
 from flask.views import MethodView
 from flask import request, jsonify
@@ -89,11 +88,9 @@ class ODCSAPI(MethodView):
     def post(self):
         owner = "Unknown"  # TODO
 
-        try:
-            data = json.loads(request.get_data().decode("utf-8"))
-        except Exception:
-            log.exception('Invalid JSON submitted')
-            raise ValueError('Invalid JSON submitted')
+        data = request.get_json(force=True)
+        if not data:
+            raise ValueError('No JSON POST data submitted')
 
         seconds_to_live = conf.seconds_to_live
         if "seconds-to-live" in data:
