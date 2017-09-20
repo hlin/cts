@@ -159,12 +159,18 @@ class ODCSAPI(MethodView):
                 raise ValueError(err)
 
         source_type = source_data["type"]
-        if source_type in PUNGI_SOURCE_TYPE_NAMES:
-            source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
-        else:
-            err = "Unknown source type %s" % source_type
+        if source_type not in PUNGI_SOURCE_TYPE_NAMES:
+            err = 'Unknown source type "%s"' % source_type
             log.error(err)
             raise ValueError(err)
+
+        if source_type not in conf.allowed_source_types:
+            err = 'Source type "%s" is not allowed by ODCS configuration' % (
+                source_type)
+            log.error(err)
+            raise ValueError(err)
+
+        source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
 
         source = source_data["source"].split(" ")
         if not source:

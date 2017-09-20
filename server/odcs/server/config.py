@@ -154,6 +154,10 @@ class Config(object):
             'type': int,
             'default': 2,
             'desc': 'Number of concurrent Pungi processes.'},
+        'allowed_source_types': {
+            'type': list,
+            'default': ["tag", "module"],
+            'desc': 'Allowed source types.'},
         'auth_ldap_server': {
             'type': str,
             'default': '',

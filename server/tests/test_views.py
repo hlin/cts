@@ -204,6 +204,25 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(data['message'], 'No compose with id 100 found')
 
+    def test_submit_build_not_allowed_source_type(self):
+        with self.test_request_context(user='dev'):
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'repo', 'source': '/path'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(
+            data['message'],
+            'Source type "repo" is not allowed by ODCS configuration')
+
+    def test_submit_build_unknown_source_type(self):
+        with self.test_request_context(user='dev'):
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'unknown', 'source': '/path'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(
+            data['message'], 'Unknown source type "unknown"')
+
     def test_query_compose(self):
         resp = self.client.get('/odcs/1/composes/1')
         data = json.loads(resp.data.decode('utf8'))
