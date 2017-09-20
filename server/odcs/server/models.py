@@ -38,7 +38,7 @@ from odcs.server.events import start_to_publish_messages
 from odcs.server.types import (
     COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS)
 
-from sqlalchemy import event
+from sqlalchemy import event, or_
 from flask.ext.sqlalchemy import SignallingSession
 
 event.listen(SignallingSession, 'before_commit',
@@ -256,7 +256,8 @@ class Compose(ODCSBase):
     def composes_to_expire(cls):
         now = datetime.utcnow()
         return Compose.query.filter(
-            Compose.state == COMPOSE_STATES["done"],
+            or_(Compose.state == COMPOSE_STATES["done"],
+                Compose.state == COMPOSE_STATES["failed"]),
             Compose.time_to_expire < now).all()
 
     def __repr__(self):

@@ -26,7 +26,7 @@ from datetime import timedelta
 
 from odcs.server import db
 from odcs.server.models import Compose
-from odcs.server.types import COMPOSE_RESULTS
+from odcs.server.types import COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.models import User
 from odcs.server.pungi import PungiSourceType
 
@@ -139,3 +139,20 @@ class ComposeModel(ModelsBaseTest):
         self.c1.extend_expiration(from_now, seconds_to_live)
 
         self.assertEqual(orig_time_to_expire, self.c1.time_to_expire)
+
+    def test_composes_to_expire(self):
+        now = datetime.utcnow()
+        self.c1.time_to_expire = now - timedelta(seconds=60)
+        self.c1.state = COMPOSE_STATES["done"]
+        self.c2.time_to_expire = now - timedelta(seconds=60)
+        self.c2.state = COMPOSE_STATES["failed"]
+        self.c3.time_to_expire = now + timedelta(seconds=60)
+        self.c3.state = COMPOSE_STATES["done"]
+        self.c4.time_to_expire = now + timedelta(seconds=60)
+        self.c4.state = COMPOSE_STATES["failed"]
+        db.session.commit()
+
+        composes = Compose.composes_to_expire()
+        self.assertTrue(self.c1 in composes)
+        self.assertTrue(self.c2 in composes)
+        self.assertTrue(self.c3 not in composes)
