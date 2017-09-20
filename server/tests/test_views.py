@@ -122,6 +122,16 @@ class TestViews(ViewBaseTest):
             db.session.add(self.c2)
             db.session.commit()
 
+    def test_submit_invalid_json(self):
+        with self.test_request_context(user='dev'):
+            rv = self.client.post('/odcs/1/composes/', data="{")
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(rv.status, '400 BAD REQUEST')
+        self.assertEqual(data["error"], "Bad Request")
+        self.assertEqual(data["status"], 400)
+        self.assertTrue(data["message"].find("Failed to decode JSON object") != -1)
+
     def test_submit_build(self):
         with self.test_request_context(user='dev'):
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(

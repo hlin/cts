@@ -26,6 +26,7 @@ from logging import getLogger
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from werkzeug.exceptions import BadRequest
 
 from odcs.server.logger import init_logging
 from odcs.server.config import init_config
@@ -87,3 +88,9 @@ def validationerror_error(e):
 def runtimeerror_error(e):
     """Flask error handler for RuntimeError exceptions"""
     return json_error(500, 'Internal Server Error', e.args[0])
+
+
+@app.errorhandler(BadRequest)
+def badrequest_error(e):
+    """Flask error handler for RuntimeError exceptions"""
+    return json_error(e.code, 'Bad Request', e.get_description())
