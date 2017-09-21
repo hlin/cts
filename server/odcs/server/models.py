@@ -30,6 +30,7 @@ from datetime import datetime, timedelta
 
 from flask_login import UserMixin
 from sqlalchemy.orm import validates
+from sqlalchemy.schema import Index
 
 from odcs.server import conf
 from odcs.server import db
@@ -103,18 +104,18 @@ class Compose(ODCSBase):
     # Koji event id at which the compose has been generated
     koji_event = db.Column(db.Integer)
     # COMPOSES_STATES
-    state = db.Column(db.Integer, nullable=False)
+    state = db.Column(db.Integer, nullable=False, index=True)
     # COMPOSE_RESULTS
     results = db.Column(db.Integer, nullable=False)
     # White-space separated list of packages
     packages = db.Column(db.String)
     # COMPOSE_FLAGS
     flags = db.Column(db.Integer)
-    time_to_expire = db.Column(db.DateTime, nullable=False)
+    time_to_expire = db.Column(db.DateTime, nullable=False, index=True)
     time_submitted = db.Column(db.DateTime, nullable=False)
     time_done = db.Column(db.DateTime)
     time_removed = db.Column(db.DateTime)
-    reused_id = db.Column(db.Integer)
+    reused_id = db.Column(db.Integer, index=True)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
@@ -281,3 +282,6 @@ class Compose(ODCSBase):
                              _from + timedelta(seconds=seconds_to_live))
         if new_expiration != self.time_to_expire:
             self.time_to_expire = new_expiration
+
+
+Index('idx_source_type__state', Compose.source_type, Compose.state)
