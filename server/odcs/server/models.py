@@ -114,7 +114,7 @@ class Compose(ODCSBase):
     time_submitted = db.Column(db.DateTime, nullable=False)
     time_done = db.Column(db.DateTime)
     time_removed = db.Column(db.DateTime)
-    reused_id = db.Column(db.Integer)
+    reused_id = db.Column(db.Integer, index=True)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
