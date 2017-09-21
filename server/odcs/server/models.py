@@ -110,7 +110,7 @@ class Compose(ODCSBase):
     packages = db.Column(db.String)
     # COMPOSE_FLAGS
     flags = db.Column(db.Integer)
-    time_to_expire = db.Column(db.DateTime, nullable=False)
+    time_to_expire = db.Column(db.DateTime, nullable=False, index=True)
     time_submitted = db.Column(db.DateTime, nullable=False)
     time_done = db.Column(db.DateTime)
     time_removed = db.Column(db.DateTime)
