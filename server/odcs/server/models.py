@@ -30,6 +30,7 @@ from datetime import datetime, timedelta
 
 from flask_login import UserMixin
 from sqlalchemy.orm import validates
+from sqlalchemy.schema import Index
 
 from odcs.server import conf
 from odcs.server import db
@@ -281,3 +282,6 @@ class Compose(ODCSBase):
                              _from + timedelta(seconds=seconds_to_live))
         if new_expiration != self.time_to_expire:
             self.time_to_expire = new_expiration
+
+
+Index('idx_source_type__state', Compose.source_type, Compose.state)
