@@ -103,7 +103,7 @@ class Compose(ODCSBase):
     # Koji event id at which the compose has been generated
     koji_event = db.Column(db.Integer)
     # COMPOSES_STATES
-    state = db.Column(db.Integer, nullable=False)
+    state = db.Column(db.Integer, nullable=False, index=True)
     # COMPOSE_RESULTS
     results = db.Column(db.Integer, nullable=False)
     # White-space separated list of packages
