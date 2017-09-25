@@ -122,6 +122,7 @@ def load_openidc_user(request):
 
     g.groups = user_info.get('groups', [])
     g.user = user
+    g.oidc_scopes = scope.split(' ')
     return user
 
 
@@ -136,6 +137,26 @@ def validate_scopes(scope):
     for scope in required_scopes:
         if scope not in scopes:
             raise Unauthorized('Required OIDC scope {0} not present.'.format(scope))
+
+
+def require_oidc_scope(scope):
+    """Check if required scopes is in OIDC scopes within request"""
+    full_scope = '{0}{1}'.format(conf.oidc_base_namespace, scope)
+    if full_scope not in g.oidc_scopes:
+        log.error('Request does not have required scope %s', scope)
+        raise Forbidden('Request does not have required OIDC scope.')
+
+
+def require_scopes(*scopes):
+    """Check if required scopes is in OIDC scopes within request"""
+    def wrapper(f):
+        @wraps(f)
+        def decorator(*args, **kwargs):
+            for scope in scopes:
+                require_oidc_scope(scope)
+            return f(*args, **kwargs)
+        return decorator
+    return wrapper
 
 
 def get_user_info(token):

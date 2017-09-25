@@ -29,12 +29,14 @@ from mock import patch, Mock
 
 import odcs.server.auth
 
+from odcs.server.auth import init_auth
 from odcs.server.auth import load_krb_user_from_request
 from odcs.server.auth import load_openidc_user
 from odcs.server.auth import query_ldap_groups
-from odcs.server.auth import init_auth
+from odcs.server.auth import require_scopes
 from odcs.server.errors import Unauthorized
-from odcs.server import app, db
+from odcs.server.errors import Forbidden
+from odcs.server import app, conf, db
 from odcs.server.models import User
 from utils import ModelsBaseTest
 
@@ -255,3 +257,30 @@ class TestInitAuth(unittest.TestCase):
         with patch.object(odcs.server.auth.conf, 'auth_ldap_group_base', ''):
             self.assertRaises(ValueError, init_auth, self.login_manager,
                               'kerberos')
+
+
+class TestDecoratorRequireScopes(unittest.TestCase):
+    """Test decorator require_scopes"""
+
+    @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
+    def test_function_is_called(self):
+        with app.test_request_context():
+            flask.g.oidc_scopes = ['http://example.com/renew-compose']
+
+            mock_func = Mock()
+            mock_func.__name__ = 'real_function'
+            decorated_func = require_scopes('renew-compose')(mock_func)
+            decorated_func(1, 2, 3)
+
+        mock_func.assert_called_once_with(1, 2, 3)
+
+    @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
+    def test_function_is_not_called_if_scope_is_not_present(self):
+        with app.test_request_context():
+            flask.g.oidc_scopes = ['http://example.com/new-compose',
+                                   'http://example.com/renew-compose']
+
+            mock_func = Mock()
+            mock_func.__name__ = 'real_function'
+            decorated_func = require_scopes('delete-compose')(mock_func)
+            self.assertRaises(Forbidden, decorated_func, 1, 2, 3)

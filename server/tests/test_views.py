@@ -32,7 +32,7 @@ from mock import patch, PropertyMock
 
 import odcs.server.auth
 
-from odcs.server import db, app, login_manager
+from odcs.server import conf, db, app, login_manager
 from odcs.server.models import Compose, User
 from odcs.server.types import COMPOSE_STATES, COMPOSE_RESULTS
 from odcs.server.pungi import PungiSourceType
@@ -108,6 +108,16 @@ class ViewBaseTest(ModelsBaseTest):
 class TestViews(ViewBaseTest):
     maxDiff = None
 
+    def setUp(self):
+        super(TestViews, self).setUp()
+        self.oidc_base_namespace = patch.object(conf, 'oidc_base_namespace',
+                                                new='http://example.com/')
+        self.oidc_base_namespace.start()
+
+    def tearDown(self):
+        self.oidc_base_namespace.stop()
+        super(TestViews, self).tearDown()
+
     def setup_test_data(self):
         self.initial_datetime = datetime(year=2016, month=1, day=1,
                                          hour=0, minute=0, second=0)
@@ -124,6 +134,10 @@ class TestViews(ViewBaseTest):
 
     def test_submit_invalid_json(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data="{")
             data = json.loads(rv.data.decode('utf8'))
 
@@ -134,6 +148,10 @@ class TestViews(ViewBaseTest):
 
     def test_submit_build(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(rv.data.decode('utf8'))
@@ -155,6 +173,10 @@ class TestViews(ViewBaseTest):
 
     def test_submit_build_nodeps(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
                  'flags': ['no_deps']}))
@@ -172,6 +194,10 @@ class TestViews(ViewBaseTest):
         db.session.commit()
 
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -189,6 +215,10 @@ class TestViews(ViewBaseTest):
         db.session.commit()
 
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -202,6 +232,10 @@ class TestViews(ViewBaseTest):
 
     def test_submit_build_resurrection_no_removed(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -209,6 +243,10 @@ class TestViews(ViewBaseTest):
 
     def test_submit_build_resurrection_not_found(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 100}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -216,6 +254,10 @@ class TestViews(ViewBaseTest):
 
     def test_submit_build_not_allowed_source_type(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'repo', 'source': '/path'}}))
             data = json.loads(rv.data.decode('utf8'))
@@ -226,6 +268,10 @@ class TestViews(ViewBaseTest):
 
     def test_submit_build_unknown_source_type(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'unknown', 'source': '/path'}}))
             data = json.loads(rv.data.decode('utf8'))
@@ -286,6 +332,10 @@ class TestViews(ViewBaseTest):
             self.assertEqual(len(Compose.composes_to_expire()), 0)
 
             with self.test_request_context(user='root'):
+                flask.g.oidc_scopes = [
+                    '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
+                ]
+
                 resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
                 data = json.loads(resp.data.decode('utf8'))
 
@@ -314,6 +364,10 @@ class TestViews(ViewBaseTest):
                 compose_id = new_c.id
 
                 with self.test_request_context(user='root'):
+                    flask.g.oidc_scopes = [
+                        '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
+                    ]
+
                     resp = self.client.delete("/odcs/1/composes/%s" % compose_id)
                     data = json.loads(resp.data.decode('utf8'))
 
@@ -325,6 +379,10 @@ class TestViews(ViewBaseTest):
 
     def test_delete_non_exist_compose(self):
         with self.test_request_context(user='root'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
+            ]
+
             resp = self.client.delete("/odcs/1/composes/999999")
             data = json.loads(resp.data.decode('utf8'))
 
@@ -335,6 +393,10 @@ class TestViews(ViewBaseTest):
 
     def test_delete_compose_with_non_admin_user(self):
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
+            ]
+
             resp = self.client.delete("/odcs/1/composes/%s" % self.c1.id)
             data = json.loads(resp.data.decode('utf8'))
 
@@ -345,6 +407,10 @@ class TestViews(ViewBaseTest):
 
     def test_can_not_create_compose_with_non_composer_user(self):
         with self.test_request_context(user='qa'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             resp = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(resp.data.decode('utf8'))
@@ -356,6 +422,10 @@ class TestViews(ViewBaseTest):
 
     def test_can_create_compose_with_user_in_configured_groups(self):
         with self.test_request_context(user='another_user', groups=['composer']):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             resp = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-rawhide'}}))
         db.session.expire_all()
@@ -374,6 +444,10 @@ class TestViews(ViewBaseTest):
         db.session.commit()
 
         with self.test_request_context(user='another_admin', groups=['admin']):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
+            ]
+
             resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
             data = json.loads(resp.data.decode('utf8'))
 
@@ -392,6 +466,10 @@ class TestViews(ViewBaseTest):
         mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
 
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 12}))
             data = json.loads(rv.data.decode('utf8'))
@@ -410,6 +488,10 @@ class TestViews(ViewBaseTest):
         mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
 
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
             data = json.loads(rv.data.decode('utf8'))
@@ -427,6 +509,10 @@ class TestViews(ViewBaseTest):
         mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
 
         with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(rv.data.decode('utf8'))
@@ -464,6 +550,16 @@ class TestViews(ViewBaseTest):
 class TestExtendExpiration(ViewBaseTest):
     """Test view post to extend expiration"""
 
+    def setUp(self):
+        super(TestExtendExpiration, self).setUp()
+        self.oidc_base_namespace = patch.object(conf, 'oidc_base_namespace',
+                                                new='http://example.com/')
+        self.oidc_base_namespace.start()
+
+    def tearDown(self):
+        self.oidc_base_namespace.stop()
+        super(TestExtendExpiration, self).tearDown()
+
     def setup_test_data(self):
         self.initial_datetime = datetime(year=2016, month=1, day=1,
                                          hour=0, minute=0, second=0)
@@ -492,12 +588,16 @@ class TestExtendExpiration(ViewBaseTest):
             self.c1_id = self.c1.id
             self.c3_id = self.c3.id
 
+    @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
     def test_fail_if_extend_non_existing_compose(self):
         post_data = json.dumps({
             'id': 999,
             'seconds-to-live': 600
         })
         with self.test_request_context():
+            flask.g.oidc_scopes = ['http://example.com/new-compose',
+                                   'http://example.com/renew-compose']
+
             rv = self.client.post('/odcs/1/composes/', data=post_data)
             data = json.loads(rv.data.decode('utf8'))
 
@@ -512,6 +612,10 @@ class TestExtendExpiration(ViewBaseTest):
             'seconds-to-live': 600
         })
         with self.test_request_context():
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
             rv = self.client.post('/odcs/1/composes/', data=post_data)
             data = json.loads(rv.data.decode('utf8'))
 
@@ -534,6 +638,9 @@ class TestExtendExpiration(ViewBaseTest):
         })
 
         with self.test_request_context():
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
             with freeze_time(fake_utcnow):
                 rv = self.client.post('/odcs/1/composes/', data=post_data)
                 data = json.loads(rv.data.decode('utf8'))
