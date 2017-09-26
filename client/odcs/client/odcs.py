@@ -168,6 +168,7 @@ class ODCS(object):
         resource_url = self._make_endpoint(resource_path)
         r = request_method(resource_url, **request_data)
         if r.status_code not in (200, 202):
+            print r.text
             r.raise_for_status()
         return r
 
