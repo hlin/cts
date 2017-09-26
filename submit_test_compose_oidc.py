@@ -19,6 +19,8 @@ scopes = [
     'openid',
     'https://id.fedoraproject.org/scope/groups',
     'https://pagure.io/odcs/new-compose',
+    'https://pagure.io/odcs/renew-compose',
+    'https://pagure.io/odcs/delete-compose',
 ]
 try:
     token = oidc.get_token(scopes, new_token=True)
