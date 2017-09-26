@@ -38,6 +38,6 @@ result = client.new_compose(
     source='module-base-runtime-master-20170313200124',
     source_type='tag',
     packages=['libselinux'],
-    flags=['nodeps'],
+    flags=['no_deps'],
 )
 print result
