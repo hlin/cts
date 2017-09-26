@@ -216,7 +216,7 @@ class Config(object):
             'desc': 'Messaging topic to which messages are sent.'},
         'oidc_base_namespace': {
             'type': str,
-            'default': 'https://pagure.io/odcs/ ',
+            'default': 'https://pagure.io/odcs/',
             'desc': 'Base namespace of OIDC scopes.'},
     }
 
