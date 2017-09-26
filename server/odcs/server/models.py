@@ -40,7 +40,7 @@ from odcs.server.types import (
     COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS)
 
 from sqlalchemy import event, or_
-from flask.ext.sqlalchemy import SignallingSession
+from flask_sqlalchemy import SignallingSession
 
 event.listen(SignallingSession, 'before_commit',
              cache_composes_if_state_changed)

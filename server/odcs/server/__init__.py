@@ -36,9 +36,10 @@ from odcs.server.errors import NotFound, Unauthorized, Forbidden
 app = Flask(__name__)
 app.wsgi_app = ReverseProxy(app.wsgi_app)
 
+conf = init_config(app)
+
 db = SQLAlchemy(app)
 
-conf = init_config(app)
 init_logging(conf)
 log = getLogger(__name__)
 

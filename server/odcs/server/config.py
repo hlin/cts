@@ -214,6 +214,10 @@ class Config(object):
             'type': str,
             'default': '',
             'desc': 'Messaging topic to which messages are sent.'},
+        'oidc_base_namespace': {
+            'type': str,
+            'default': 'https://pagure.io/odcs/ ',
+            'desc': 'Base namespace of OIDC scopes.'},
     }
 
     def __init__(self, conf_section_obj):

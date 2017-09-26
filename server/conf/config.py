@@ -54,6 +54,11 @@ class BaseConfiguration(object):
         'users': [],
     }
 
+    # OIDC base namespace
+    # See also section pagure.io/odcs in
+    # https://fedoraproject.org/wiki/Infrastructure/Authentication
+    OIDC_BASE_NAMESPACE = 'https://pagure.io/odcs/'
+
     # Select which authentication backend to work with. There are 3 choices
     # noauth: no authentication is enabled. Useful for development particularly.
     # kerberos: Kerberos authentication is enabled.
@@ -75,12 +80,15 @@ class BaseConfiguration(object):
     # run a new compose.
     # See also: https://fedoraproject.org/wiki/Infrastructure/Authentication
     # Add additional required scope in following list
+    #
+    # ODCS has additional scopes, which will be checked later when specific
+    # API is called.
+    # https://pagure.io/odcs/new-compose
+    # https://pagure.io/odcs/renew-compose
+    # https://pagure.io/odcs/delete-compose
     AUTH_OPENIDC_REQUIRED_SCOPES = [
         'openid',
         'https://id.fedoraproject.org/scope/groups',
-        'https://pagure.io/odcs/new-compose',
-        'https://pagure.io/odcs/renew-compose',
-        'https://pagure.io/odcs/delete-compose',
     ]
 
     # Select backend where message will be sent to. Currently, umb is supported

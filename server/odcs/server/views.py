@@ -33,6 +33,7 @@ from odcs.server.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES)
 from odcs.server.api_utils import pagination_metadata, filter_composes
 from odcs.server.auth import requires_role, login_required
+from odcs.server.auth import require_oidc_scope
 
 
 api_v1 = {
@@ -96,6 +97,12 @@ class ODCSAPI(MethodView):
         data = request.get_json(force=True)
         if not data:
             raise ValueError('No JSON POST data submitted')
+
+        if conf.auth_backend != "noauth":
+            if 'id' in data:
+                require_oidc_scope('renew-compose')
+            else:
+                require_oidc_scope('new-compose')
 
         seconds_to_live = conf.seconds_to_live
         if "seconds-to-live" in data:
@@ -204,6 +211,8 @@ class ODCSAPI(MethodView):
     @login_required
     @requires_role('admins')
     def delete(self, id):
+        require_oidc_scope('delete-compose')
+
         compose = Compose.query.filter_by(id=id).first()
         if compose:
             # can remove compose that is in state of 'done' or 'failed'
