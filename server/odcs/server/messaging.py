@@ -59,10 +59,23 @@ def _umb_send_msg(msgs):
             producer.send(outgoing_msg)
 
 
+def _fedmsg_send_msg(msgs):
+    """Send message to fedmsg!  Yay!"""
+
+    import fedmsg
+
+    for msg in msgs:
+        # "event" is typically just "state-changed"
+        event = msg.get('event', 'event')
+        topic = "compose.%s" % event
+        fedmsg.publish(topic=topic, msg=msg)
+
+
 def _get_messaging_backend():
     if conf.messaging_backend == 'rhmsg':
         return _umb_send_msg
-    # TODO: elif conf.messaging_backend == 'fedmsg':
+    elif conf.messaging_backend == 'fedmsg':
+        return _fedmsg_send_msg
     elif conf.messaging_backend:
         raise ValueError(
             'Unknown messaging backend {0}'.format(conf.messaging_backend))
