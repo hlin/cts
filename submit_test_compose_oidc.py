@@ -97,6 +97,6 @@ result = client.new_compose(
     source=args.source,
     source_type=args.source_type,
     packages=args.packages,
-    flags=args.flags,
+    flags=[args.flag],
 )
 print(result)
