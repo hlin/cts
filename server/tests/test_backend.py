@@ -145,3 +145,32 @@ class TestBackend(ModelsBaseTest):
 
         reused_c = get_reusable_compose(c)
         self.assertEqual(reused_c, old_c)
+
+    def test_get_reusable_compose_attrs_not_the_same(self):
+        old_c = Compose.create(
+            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
+            COMPOSE_RESULTS["repository"], 3600, packages="ed", sigkeys="123")
+        old_c.state = COMPOSE_STATES["done"]
+        resolve_compose(old_c)
+        db.session.add(old_c)
+        db.session.commit()
+
+        attrs = {}
+        attrs["packages"] = "ed foo"
+        attrs["sigkeys"] = "321"
+        attrs["koji_event"] = 123456
+        attrs["source"] = "123"
+        for attr, value in attrs.items():
+            c = Compose.create(
+                db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
+                COMPOSE_RESULTS["repository"], 3600, packages="ed")
+            setattr(c, attr, value)
+
+            # Do not resolve compose for non-existing source...
+            if attr != "source":
+                resolve_compose(c)
+
+            db.session.add(c)
+            db.session.commit()
+            reused_c = get_reusable_compose(c)
+            self.assertEqual(reused_c, None)

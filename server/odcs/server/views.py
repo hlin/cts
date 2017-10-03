@@ -192,6 +192,10 @@ class ODCSAPI(MethodView):
         if "packages" in source_data:
             packages = ' '.join(source_data["packages"])
 
+        sigkeys = ""
+        if "sigkeys" in source_data:
+            sigkeys = ' '.join(source_data["sigkeys"])
+
         flags = 0
         if "flags" in data:
             for name in data["flags"]:
@@ -202,7 +206,7 @@ class ODCSAPI(MethodView):
         compose = Compose.create(
             db.session, owner, source_type, source,
             COMPOSE_RESULTS["repository"], seconds_to_live,
-            packages, flags)
+            packages, flags, sigkeys)
         db.session.add(compose)
         db.session.commit()
 

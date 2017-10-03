@@ -103,6 +103,9 @@ class Compose(ODCSBase):
     source = db.Column(db.String, nullable=False)
     # Koji event id at which the compose has been generated
     koji_event = db.Column(db.Integer)
+    # White-space separated list sigkeys to define the key using which
+    # the package in compose must be signed.
+    sigkeys = db.Column(db.String)
     # COMPOSES_STATES
     state = db.Column(db.Integer, nullable=False, index=True)
     # COMPOSE_RESULTS
@@ -119,12 +122,13 @@ class Compose(ODCSBase):
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
-               seconds_to_live, packages=None, flags=0):
+               seconds_to_live, packages=None, flags=0, sigkeys=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
             source_type=source_type,
             source=source,
+            sigkeys=sigkeys,
             state="wait",
             results=results,
             time_submitted=now,
@@ -238,6 +242,7 @@ class Compose(ODCSBase):
             'result_repo': self.result_repo_url,
             'result_repofile': self.result_repofile_url,
             'flags': flags,
+            'sigkeys': self.sigkeys if self.sigkeys else ""
         }
 
     @staticmethod
