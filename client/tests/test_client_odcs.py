@@ -232,7 +232,8 @@ class TestNewCompose(unittest.TestCase):
 
         new_compose = self.odcs.new_compose('cf-1.0-rhel-5',
                                             'tag',
-                                            packages=['libdnet'])
+                                            packages=['libdnet'],
+                                            sigkeys=['123', '456'])
 
         self.assertEqual(fake_new_compose, new_compose)
         requests.post.assert_called_once_with(
@@ -240,7 +241,8 @@ class TestNewCompose(unittest.TestCase):
             data=json.dumps({
                 'source': {'source': 'cf-1.0-rhel-5',
                            'type': 'tag',
-                           'packages': ['libdnet']}
+                           'packages': ['libdnet'],
+                           'sigkeys': ['123', '456']}
             }),
             headers={'Content-Type': 'application/json'}
         )

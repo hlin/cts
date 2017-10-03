@@ -188,7 +188,8 @@ class ODCS(object):
         return self._make_request('delete', resource_path, data)
 
     def new_compose(self, source, source_type,
-                    seconds_to_live=None, packages=[], flags=[]):
+                    seconds_to_live=None, packages=[], flags=[],
+                    sigkeys=None):
         """Request a new compose
 
         :param str source: from where to grab and make new compose, different
@@ -208,6 +209,8 @@ class ODCS(object):
             only packages defined in the "packages" list without their
             dependencies, or for ``source_type`` of "module", only the modules
             listed in ``source`` without their dependencies.
+        :param list sigkeys: List of signature keys by which the packages
+            in compose must be signed.
         :return: the newly created Compose
         :rtype: dict
         """
@@ -216,6 +219,8 @@ class ODCS(object):
         }
         if packages:
             request_data['source']['packages'] = packages
+        if sigkeys:
+            request_data['source']['sigkeys'] = sigkeys
         if seconds_to_live is not None:
             request_data['seconds-to-live'] = seconds_to_live
         if flags:

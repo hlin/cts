@@ -272,6 +272,15 @@ def get_reusable_compose(compose):
                       old_compose.results)
             continue
 
+        sigkeys = set(compose.sigkeys.split(" ")) \
+            if compose.sigkeys else set()
+        old_sigkeys = set(old_compose.sigkeys.split(" ")) \
+            if old_compose.sigkeys else set()
+        if sigkeys != old_sigkeys:
+            log.debug("%r: Cannot reuse %r - sigkeys not same", compose,
+                      old_compose)
+            continue
+
         if compose.source_type == PungiSourceType.KOJI_TAG:
             # For KOJI_TAG compose, check that all the inherited tags by our
             # Koji tag have not changed since previous old_compose.
@@ -356,7 +365,8 @@ def generate_compose(compose_id):
             else:
                 # Generate PungiConfig and run Pungi
                 pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
-                                        compose.source, packages=packages)
+                                        compose.source, packages=packages,
+                                        sigkeys=compose.sigkeys)
                 if compose.flags & COMPOSE_FLAGS["no_deps"]:
                     pungi_cfg.gather_method = "nodeps"
 

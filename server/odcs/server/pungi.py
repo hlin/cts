@@ -45,7 +45,11 @@ bootable = {{ config.bootable }}
 variants_file='variants.xml'
 
 {%- if config.sigkeys %}
-sigkeys = {{ config.sigkeys }}
+sigkeys = [
+{%- for sigkey in config.sigkeys %}
+        '{{ sigkey }}',
+{%- endfor%}
+]
 {%- else %}
 sigkeys = [None]
 {%- endif %}
@@ -106,11 +110,11 @@ koji_profile = '{{ config.koji_profile }}'
 
 class PungiConfig(object):
     def __init__(self, release_name, release_version, source_type, source,
-                 packages=None, arches=None):
+                 packages=None, arches=None, sigkeys=None):
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
-        self.sigkeys = []
+        self.sigkeys = sigkeys.split(" ") if sigkeys else []
         self.pdc_url = conf.pdc_url
         self.pdc_insecure = conf.pdc_insecure
         self.pdc_develop = conf.pdc_develop

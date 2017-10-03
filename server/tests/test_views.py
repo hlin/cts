@@ -164,7 +164,8 @@ class TestViews(ViewBaseTest):
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_removed': None,
                          'time_to_expire': data["time_to_expire"],
-                         'flags': []}
+                         'flags': [],
+                         'sigkeys': ''}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -183,6 +184,23 @@ class TestViews(ViewBaseTest):
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['flags'], ['no_deps'])
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_sigkeys(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed'],
+                            'sigkeys': ["123", "456"]}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['sigkeys'], '123 456')
 
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
@@ -539,7 +557,8 @@ class TestViews(ViewBaseTest):
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_removed': None,
                          'time_to_expire': data["time_to_expire"],
-                         'flags': []}
+                         'flags': [],
+                         'sigkeys': ''}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
