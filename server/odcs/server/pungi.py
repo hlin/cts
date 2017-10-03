@@ -45,7 +45,11 @@ bootable = {{ config.bootable }}
 variants_file='variants.xml'
 
 {%- if config.sigkeys %}
-sigkeys = {{ config.sigkeys }}
+sigkeys = [
+{%- for sigkey in config.sigkeys %}
+        '{{ sigkey }}',
+{%- endfor%}
+]
 {%- else %}
 sigkeys = [None]
 {%- endif %}
