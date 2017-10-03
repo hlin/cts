@@ -263,6 +263,7 @@ class TestDecoratorRequireScopes(unittest.TestCase):
     """Test decorator require_scopes"""
 
     @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
+    @patch.object(conf, 'auth_backend', new='openidc')
     def test_function_is_called(self):
         with app.test_request_context():
             flask.g.oidc_scopes = ['http://example.com/renew-compose']
@@ -275,6 +276,7 @@ class TestDecoratorRequireScopes(unittest.TestCase):
         mock_func.assert_called_once_with(1, 2, 3)
 
     @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
+    @patch.object(conf, 'auth_backend', new='openidc')
     def test_function_is_not_called_if_scope_is_not_present(self):
         with app.test_request_context():
             flask.g.oidc_scopes = ['http://example.com/new-compose',
@@ -284,3 +286,16 @@ class TestDecoratorRequireScopes(unittest.TestCase):
             mock_func.__name__ = 'real_function'
             decorated_func = require_scopes('delete-compose')(mock_func)
             self.assertRaises(Forbidden, decorated_func, 1, 2, 3)
+
+    @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
+    @patch.object(conf, 'auth_backend', new='kerberos')
+    def test_function_is_called_for_non_openidc_backend(self):
+        with app.test_request_context():
+            flask.g.oidc_scopes = ['http://example.com/new-compose',
+                                   'http://example.com/renew-compose']
+
+            mock_func = Mock()
+            mock_func.__name__ = 'real_function'
+            decorated_func = require_scopes('delete-compose')(mock_func)
+            decorated_func(1, 2, 3)
+            mock_func.assert_called_once_with(1, 2, 3)
