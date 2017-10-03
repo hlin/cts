@@ -167,8 +167,12 @@ class ODCS(object):
         request_method = getattr(requests, method)
         resource_url = self._make_endpoint(resource_path)
         r = request_method(resource_url, **request_data)
+
+        # Print error, for debugging
         if r.status_code not in (200, 202):
-            r.raise_for_status()
+            print r.text
+
+        r.raise_for_status()
         return r
 
     def _get(self, resource_path, data=None):
