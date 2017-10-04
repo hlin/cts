@@ -170,7 +170,7 @@ class ODCS(object):
 
         # Print error, for debugging
         if r.status_code not in (200, 202):
-            print r.text
+            print(r.text)
 
         r.raise_for_status()
         return r
