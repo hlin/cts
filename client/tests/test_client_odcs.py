@@ -59,13 +59,13 @@ class TestMakeEndPoint(unittest.TestCase):
         endpoint_url = odcs._make_endpoint('composes/')
         self.assertEqual(
             '{0}api/{1}/composes/'.format(self.server_url,
-                                           odcs.api_version),
+                                          odcs.api_version),
             endpoint_url)
 
         endpoint_url = odcs._make_endpoint('/composes/')
         self.assertEqual(
             '{0}api/{1}/composes/'.format(self.server_url,
-                                           odcs.api_version),
+                                          odcs.api_version),
             endpoint_url)
 
 
