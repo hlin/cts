@@ -206,6 +206,24 @@ class TestViews(ViewBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
+    @patch.object(odcs.server.config.Config, 'sigkeys', new_callable=PropertyMock)
+    def test_submit_build_default_sigkeys(self, sigkeys):
+        with self.test_request_context(user='dev'):
+            sigkeys.return_value = ["x", "y"]
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['sigkeys'], 'x y')
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
     def test_submit_build_resurrection_removed(self):
         self.c1.state = COMPOSE_STATES["removed"]
         self.c1.reused_id = 1
