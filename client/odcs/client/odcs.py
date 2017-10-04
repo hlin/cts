@@ -129,7 +129,7 @@ class ODCS(object):
         """
         return urllib_parse.urljoin(
             self._server_url,
-            'odcs/{0}/{1}'.format(self.api_version, resource_path.lstrip('/')))
+            'api/{0}/{1}'.format(self.api_version, resource_path.lstrip('/')))
 
     def _make_request(self, method, resource_path, data=None):
         """Make a HTTP request to server

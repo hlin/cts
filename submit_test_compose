@@ -8,5 +8,5 @@ else
     data="{\"source\": {\"type\": \"$1\", \"source\": \"$2\"}}"
 fi
 
-curl --data "$data" localhost:5005/odcs/1/composes/
+curl --data "$data" localhost:5005/api/1/composes/
 

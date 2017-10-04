@@ -58,7 +58,7 @@ You should then see the backend process generating the compose and once it's don
 
 ### Submitting new compose request
 
-To submit new compose request, you can send POST request in the following format to `/odcs/1/composes`:
+To submit new compose request, you can send POST request in the following format to `/api/1/composes`:
 
 ```
 {

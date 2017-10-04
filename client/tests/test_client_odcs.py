@@ -58,13 +58,13 @@ class TestMakeEndPoint(unittest.TestCase):
 
         endpoint_url = odcs._make_endpoint('composes/')
         self.assertEqual(
-            '{0}odcs/{1}/composes/'.format(self.server_url,
+            '{0}api/{1}/composes/'.format(self.server_url,
                                            odcs.api_version),
             endpoint_url)
 
         endpoint_url = odcs._make_endpoint('/composes/')
         self.assertEqual(
-            '{0}odcs/{1}/composes/'.format(self.server_url,
+            '{0}api/{1}/composes/'.format(self.server_url,
                                            odcs.api_version),
             endpoint_url)
 
@@ -163,7 +163,7 @@ class TestGetCompose(unittest.TestCase):
 
         self.assertEqual(fake_compose, compose)
         requests.get.assert_called_once_with(
-            '{0}odcs/{1}/composes/1'.format(
+            '{0}api/{1}/composes/1'.format(
                 self.server_url, self.odcs.api_version))
 
 

@@ -38,26 +38,26 @@ from odcs.server.auth import require_oidc_scope
 
 api_v1 = {
     'composes': {
-        'url': '/odcs/1/composes/',
+        'url': '/api/1/composes/',
         'options': {
             'defaults': {'id': None},
             'methods': ['GET'],
         }
     },
     'compose': {
-        'url': '/odcs/1/composes/<int:id>',
+        'url': '/api/1/composes/<int:id>',
         'options': {
             'methods': ['GET'],
         }
     },
     'composes_post': {
-        'url': '/odcs/1/composes/',
+        'url': '/api/1/composes/',
         'options': {
             'methods': ['POST'],
         }
     },
     'composes_delete': {
-        'url': '/odcs/1/composes/<int:id>',
+        'url': '/api/1/composes/<int:id>',
         'options': {
             'methods': ['DELETE'],
         }

@@ -138,7 +138,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data="{")
+            rv = self.client.post('/api/1/composes/', data="{")
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(rv.status, '400 BAD REQUEST')
@@ -152,7 +152,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -178,7 +178,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
                  'flags': ['no_deps']}))
             data = json.loads(rv.data.decode('utf8'))
@@ -195,7 +195,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed'],
                             'sigkeys': ["123", "456"]}}))
             data = json.loads(rv.data.decode('utf8'))
@@ -216,7 +216,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
+            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['id'], 3)
@@ -237,7 +237,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
+            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['id'], 3)
@@ -254,7 +254,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 1}))
+            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 1}))
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['message'], 'No compose with id 1 found')
@@ -265,7 +265,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps({'id': 100}))
+            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 100}))
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['message'], 'No compose with id 100 found')
@@ -276,7 +276,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'repo', 'source': '/path'}}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -290,7 +290,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'unknown', 'source': '/path'}}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -298,43 +298,43 @@ class TestViews(ViewBaseTest):
             data['message'], 'Unknown source type "unknown"')
 
     def test_query_compose(self):
-        resp = self.client.get('/odcs/1/composes/1')
+        resp = self.client.get('/api/1/composes/1')
         data = json.loads(resp.data.decode('utf8'))
         self.assertEqual(data['id'], 1)
         self.assertEqual(data['source'], "testmodule-master")
 
     def test_query_composes(self):
-        resp = self.client.get('/odcs/1/composes/')
+        resp = self.client.get('/api/1/composes/')
         evs = json.loads(resp.data.decode('utf8'))['items']
         self.assertEqual(len(evs), 2)
 
     def test_query_compose_owner(self):
-        resp = self.client.get('/odcs/1/composes/?owner=me')
+        resp = self.client.get('/api/1/composes/?owner=me')
         evs = json.loads(resp.data.decode('utf8'))['items']
         self.assertEqual(len(evs), 1)
         self.assertEqual(evs[0]['source'], 'f26')
 
     def test_query_compose_state_done(self):
         resp = self.client.get(
-            '/odcs/1/composes/?state=%d' % COMPOSE_STATES["done"])
+            '/api/1/composes/?state=%d' % COMPOSE_STATES["done"])
         evs = json.loads(resp.data.decode('utf8'))['items']
         self.assertEqual(len(evs), 0)
 
     def test_query_compose_state_wait(self):
         resp = self.client.get(
-            '/odcs/1/composes/?state=%d' % COMPOSE_STATES["wait"])
+            '/api/1/composes/?state=%d' % COMPOSE_STATES["wait"])
         evs = json.loads(resp.data.decode('utf8'))['items']
         self.assertEqual(len(evs), 2)
 
     def test_query_compose_source_type(self):
         resp = self.client.get(
-            '/odcs/1/composes/?source_type=%d' % PungiSourceType.MODULE)
+            '/api/1/composes/?source_type=%d' % PungiSourceType.MODULE)
         evs = json.loads(resp.data.decode('utf8'))['items']
         self.assertEqual(len(evs), 1)
 
     def test_query_compose_source(self):
         resp = self.client.get(
-            '/odcs/1/composes/?source=f26')
+            '/api/1/composes/?source=f26')
         evs = json.loads(resp.data.decode('utf8'))['items']
         self.assertEqual(len(evs), 1)
 
@@ -354,7 +354,7 @@ class TestViews(ViewBaseTest):
                     '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
                 ]
 
-                resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
+                resp = self.client.delete("/api/1/composes/%s" % c3.id)
                 data = json.loads(resp.data.decode('utf8'))
 
             self.assertEqual(resp.status, '202 ACCEPTED')
@@ -386,7 +386,7 @@ class TestViews(ViewBaseTest):
                         '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
                     ]
 
-                    resp = self.client.delete("/odcs/1/composes/%s" % compose_id)
+                    resp = self.client.delete("/api/1/composes/%s" % compose_id)
                     data = json.loads(resp.data.decode('utf8'))
 
                 self.assertEqual(resp.status, '400 BAD REQUEST')
@@ -401,7 +401,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
             ]
 
-            resp = self.client.delete("/odcs/1/composes/999999")
+            resp = self.client.delete("/api/1/composes/999999")
             data = json.loads(resp.data.decode('utf8'))
 
         self.assertEqual(resp.status, '404 NOT FOUND')
@@ -415,7 +415,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
             ]
 
-            resp = self.client.delete("/odcs/1/composes/%s" % self.c1.id)
+            resp = self.client.delete("/api/1/composes/%s" % self.c1.id)
             data = json.loads(resp.data.decode('utf8'))
 
         self.assertEqual(resp.status, '403 FORBIDDEN')
@@ -429,7 +429,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            resp = self.client.post('/odcs/1/composes/', data=json.dumps(
+            resp = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(resp.data.decode('utf8'))
 
@@ -444,7 +444,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            resp = self.client.post('/odcs/1/composes/', data=json.dumps(
+            resp = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-rawhide'}}))
         db.session.expire_all()
 
@@ -466,7 +466,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
             ]
 
-            resp = self.client.delete("/odcs/1/composes/%s" % c3.id)
+            resp = self.client.delete("/api/1/composes/%s" % c3.id)
             data = json.loads(resp.data.decode('utf8'))
 
         self.assertEqual(resp.status, '202 ACCEPTED')
@@ -488,7 +488,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 12}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -510,7 +510,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -531,7 +531,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -545,7 +545,7 @@ class TestViews(ViewBaseTest):
         mock_auth_backend.return_value = 'noauth'
 
         with self.test_request_context():
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
             data = json.loads(rv.data.decode('utf8'))
 
@@ -617,7 +617,7 @@ class TestExtendExpiration(ViewBaseTest):
             flask.g.oidc_scopes = ['http://example.com/new-compose',
                                    'http://example.com/renew-compose']
 
-            rv = self.client.post('/odcs/1/composes/', data=post_data)
+            rv = self.client.post('/api/1/composes/', data=post_data)
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual('No compose with id 999 found', data['message'])
@@ -635,7 +635,7 @@ class TestExtendExpiration(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=post_data)
+            rv = self.client.post('/api/1/composes/', data=post_data)
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual('No compose with id {0} found'.format(self.c1.id),
@@ -661,7 +661,7 @@ class TestExtendExpiration(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
             with freeze_time(fake_utcnow):
-                rv = self.client.post('/odcs/1/composes/', data=post_data)
+                rv = self.client.post('/api/1/composes/', data=post_data)
                 data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(
