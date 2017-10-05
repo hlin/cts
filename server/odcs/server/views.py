@@ -195,6 +195,8 @@ class ODCSAPI(MethodView):
         sigkeys = ""
         if "sigkeys" in source_data:
             sigkeys = ' '.join(source_data["sigkeys"])
+        else:
+            sigkeys = ' '.join(conf.sigkeys)
 
         flags = 0
         if "flags" in data:

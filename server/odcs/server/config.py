@@ -218,6 +218,12 @@ class Config(object):
             'type': str,
             'default': 'https://pagure.io/odcs/',
             'desc': 'Base namespace of OIDC scopes.'},
+        'sigkeys': {
+            'type': list,
+            'default': [],
+            'desc': 'Default list of sigkeys. Any package in a compose must '
+                    'be signed by one of those keys. Can be overriden in a '
+                    'compose request.'},
     }
 
     def __init__(self, conf_section_obj):
