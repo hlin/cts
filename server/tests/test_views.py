@@ -214,7 +214,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
             ]
 
-            rv = self.client.post('/odcs/1/composes/', data=json.dumps(
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']}}))
             data = json.loads(rv.data.decode('utf8'))
 
