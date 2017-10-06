@@ -26,12 +26,17 @@ class PungiSourceType:
     KOJI_TAG = 1
     MODULE = 2
     REPO = 3
+    PULP = 4
 
 
 PUNGI_SOURCE_TYPE_NAMES = {
     "tag": PungiSourceType.KOJI_TAG,
     "module": PungiSourceType.MODULE,
     "repo": PungiSourceType.REPO,
+    # This is not real PungiSourceType, but ODCS handles the PULP
+    # as a extra source type by generating the .repo file pointing
+    # to composes done by PULP/PUB.
+    "pulp": PungiSourceType.PULP,
 }
 
 COMPOSE_STATES = {

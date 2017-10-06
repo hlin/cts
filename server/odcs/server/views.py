@@ -29,7 +29,7 @@ from flask import request, jsonify, g
 from odcs.server import app, db, log, conf
 from odcs.server.errors import NotFound, BadRequest
 from odcs.server.models import Compose
-from odcs.server.types import (
+from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES)
 from odcs.server.api_utils import pagination_metadata, filter_composes
 from odcs.server.auth import requires_role, login_required

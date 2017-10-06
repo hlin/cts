@@ -36,7 +36,7 @@ from odcs.server import conf
 from odcs.server import db
 from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
-from odcs.server.types import (
+from odcs.common.types import (
     COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS)
 
 from sqlalchemy import event, or_

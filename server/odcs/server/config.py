@@ -224,6 +224,18 @@ class Config(object):
             'desc': 'Default list of sigkeys. Any package in a compose must '
                     'be signed by one of those keys. Can be overriden in a '
                     'compose request.'},
+        'pulp_server_url': {
+            'type': str,
+            'default': '',
+            'desc': 'Server URL of Pulp.'},
+        'pulp_username': {
+            'type': str,
+            'default': '',
+            'desc': 'Username to login Pulp.'},
+        'pulp_password': {
+            'type': str,
+            'default': '',
+            'desc': 'Password to login Pulp.'},
     }
 
     def __init__(self, conf_section_obj):
