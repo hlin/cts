@@ -28,7 +28,8 @@ from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_FLAGS, COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.pdc import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
-from odcs.server.backend import resolve_compose, get_reusable_compose
+from odcs.server.backend import (resolve_compose, get_reusable_compose,
+                                 generate_pulp_compose)
 from utils import ModelsBaseTest
 
 from pdc import mock_pdc
@@ -174,3 +175,87 @@ class TestBackend(ModelsBaseTest):
             db.session.commit()
             reused_c = get_reusable_compose(c)
             self.assertEqual(reused_c, None)
+
+    @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.backend._write_repo_file")
+    def test_generate_pulp_compose(
+            self, _write_repo_file, pulp_rest_post):
+        pulp_rest_post.return_value = [
+            {
+                "notes": {
+                    "relative_url": "content/1/x86_64/os",
+                    "content_set": "foo-1",
+                },
+            },
+            {
+                "notes": {
+                    "relative_url": "content/2/x86_64/os",
+                    "content_set": "foo-2",
+                }
+            }
+        ]
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600)
+        generate_pulp_compose(c)
+
+        expected_query = {
+            "criteria": {
+                "fields": ["notes.relative_url", "notes.content_set"],
+                "filters": {
+                    "notes.arch": "x86_64",
+                    "notes.content_set": {"$in": ["foo-1", "foo-2"]},
+                    "notes.include_in_download_service": "True"
+                }
+            }
+        }
+        pulp_rest_post.assert_called_once_with('repositories/search/',
+                                               expected_query)
+
+        expected_repofile = """
+[foo-1]
+name=foo-1
+baseurl=/content/1/x86_64/os
+enabled=1
+gpgcheck=0
+
+[foo-2]
+name=foo-2
+baseurl=/content/2/x86_64/os
+enabled=1
+gpgcheck=0
+"""
+        _write_repo_file.assert_called_once_with(c, expected_repofile)
+
+    @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.backend._write_repo_file")
+    def test_generate_pulp_compose_content_set_not_found(
+            self, _write_repo_file, pulp_rest_post):
+        pulp_rest_post.return_value = [
+            {
+                "notes": {
+                    "relative_url": "content/1/x86_64/os",
+                    "content_set": "foo-1",
+                },
+            },
+        ]
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600)
+        self.assertRaises(ValueError, generate_pulp_compose, c)
+
+        expected_query = {
+            "criteria": {
+                "fields": ["notes.relative_url", "notes.content_set"],
+                "filters": {
+                    "notes.arch": "x86_64",
+                    "notes.content_set": {"$in": ["foo-1", "foo-2"]},
+                    "notes.include_in_download_service": "True"
+                }
+            }
+        }
+        pulp_rest_post.assert_called_once_with('repositories/search/',
+                                               expected_query)
+        _write_repo_file.assert_not_called()

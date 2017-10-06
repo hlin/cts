@@ -29,8 +29,8 @@ from mock import patch
 from odcs.server import db
 from odcs.server.models import Compose
 from odcs.server.pungi import PungiSourceType
-from odcs.server.types import COMPOSE_RESULTS
-from odcs.server.types import COMPOSE_STATES
+from odcs.common.types import COMPOSE_RESULTS
+from odcs.common.types import COMPOSE_STATES
 from utils import ModelsBaseTest
 
 try:

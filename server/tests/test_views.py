@@ -34,7 +34,7 @@ import odcs.server.auth
 
 from odcs.server import conf, db, app, login_manager
 from odcs.server.models import Compose, User
-from odcs.server.types import COMPOSE_STATES, COMPOSE_RESULTS
+from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
 from odcs.server.pungi import PungiSourceType
 from utils import ModelsBaseTest
 

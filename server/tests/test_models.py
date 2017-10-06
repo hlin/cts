@@ -26,7 +26,7 @@ from datetime import timedelta
 
 from odcs.server import db
 from odcs.server.models import Compose
-from odcs.server.types import COMPOSE_RESULTS, COMPOSE_STATES
+from odcs.common.types import COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.models import User
 from odcs.server.pungi import PungiSourceType
 
