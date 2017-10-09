@@ -21,6 +21,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import koji
 import os
 import threading
 import shutil
@@ -139,8 +140,6 @@ def create_koji_session():
     Creates and returns new koji_session based on the `conf.koji_profile`.
     """
 
-    # We import koji here, because it does not support python3
-    import koji
     koji_module = koji.get_profile_module(conf.koji_profile)
     session_opts = {}
     for key in ('krbservice', 'timeout', 'keepalive',
