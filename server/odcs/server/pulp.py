@@ -71,6 +71,10 @@ class Pulp(object):
         for repo in repos:
             url = "%s/%s" % (self.server_url.rstrip('/'),
                              repo['notes']['relative_url'])
+            # OSBS cannot verify https during the container image build, so
+            # fallback to http for now.
+            if url.startswith("https://"):
+                url = "http://" + url[len("https://"):]
             ret[repo["notes"]["content_set"]] = url
 
         return ret
