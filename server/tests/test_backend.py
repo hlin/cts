@@ -30,6 +30,7 @@ from odcs.server.pdc import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
 from odcs.server.backend import (resolve_compose, get_reusable_compose,
                                  generate_pulp_compose)
+import odcs.server.backend
 from utils import ModelsBaseTest
 
 from pdc import mock_pdc
@@ -198,7 +199,9 @@ class TestBackend(ModelsBaseTest):
         c = Compose.create(
             db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
             COMPOSE_RESULTS["repository"], 3600)
-        generate_pulp_compose(c)
+        with patch.object(odcs.server.backend.conf, 'pulp_server_url',
+                          "https://localhost/"):
+            generate_pulp_compose(c)
 
         expected_query = {
             "criteria": {
@@ -216,13 +219,13 @@ class TestBackend(ModelsBaseTest):
         expected_repofile = """
 [foo-1]
 name=foo-1
-baseurl=/content/1/x86_64/os
+baseurl=http://localhost/content/1/x86_64/os
 enabled=1
 gpgcheck=0
 
 [foo-2]
 name=foo-2
-baseurl=/content/2/x86_64/os
+baseurl=http://localhost/content/2/x86_64/os
 enabled=1
 gpgcheck=0
 """
