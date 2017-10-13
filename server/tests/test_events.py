@@ -26,6 +26,7 @@ import unittest
 
 from mock import patch
 
+from odcs.server import conf
 from odcs.server import db
 from odcs.server.models import Compose
 from odcs.server.pungi import PungiSourceType
@@ -70,6 +71,7 @@ class TestRHMsgSendMessageWhenComposeIsCreated(ModelsBaseTest):
                                       3600)
         db.session.commit()
 
+    @patch.object(conf, 'messaging_backend', new='rhmsg')
     @patch('rhmsg.activemq.producer.AMQProducer')
     @patch('proton.Message')
     def assert_messaging(self, compose, Message, AMQProducer):
@@ -125,6 +127,7 @@ class TestFedMsgSendMessageWhenComposeIsCreated(ModelsBaseTest):
                                       3600)
         db.session.commit()
 
+    @patch.object(conf, 'messaging_backend', new='fedmsg')
     @patch('fedmsg.publish')
     def assert_messaging(self, compose, publish):
         db.session.commit()
