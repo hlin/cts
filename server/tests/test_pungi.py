@@ -20,11 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+import shutil
+import tempfile
 import unittest
 
 from mock import patch
 
 from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType
+
+test_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestPungiConfig(unittest.TestCase):
@@ -52,6 +57,30 @@ class TestPungiConfig(unittest.TestCase):
         self.assertTrue(variants.find("<groups>") != -1)
         self.assertTrue(comps.find("file</packagereq>") != -1)
         self.assertTrue(cfg.find("sigkeys = [\"123\", \"456\"]"))
+
+    def test_get_pungi_conf(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
+                                    "testmodule-master")
+            template = pungi_cfg.get_pungi_config()
+            self.assertTrue(len(template))
+            self.assertTrue("release_name = 'MBS-512'" in template)
+            self.assertTrue("release_short = 'MBS-512'" in template)
+            self.assertTrue("release_version = '1'" in template)
+
+    @patch("odcs.server.pungi.log")
+    def test_get_pungi_conf_exception(self, log):
+        pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
+                                "testmodule-master")
+        mock_path = "/tmp/non_existant_pungi_conf"
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg.get_pungi_config()
+            log.exception.assert_called_once()
 
 
 class TestPungi(unittest.TestCase):

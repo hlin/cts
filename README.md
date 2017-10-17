@@ -34,6 +34,8 @@ $ ./create_sqlite_db
 $ ./start_odcs_from_here
 ```
 
+Add the `repo` source type to the server configuration in `./server/odcs/server/config.py`. (This will cause some tests to fail, so it needs to be reverted back after you are done with your changes!)
+
 And in another terminal, submit a request to frontend:
 
 ```

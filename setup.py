@@ -48,5 +48,5 @@ setup(name='odcs',
                               'odcs-backend = odcs.server.manage:runbackend [server]',
                               'odcs-manager = odcs.server.manage:manager_wrapper [server]'],
       },
-      data_files=[('/etc/odcs/', ['server/conf/config.py'])],
+      data_files=[('/etc/odcs/', ['server/conf/config.py', 'server/conf/pungi.conf'])],
       )

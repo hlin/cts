@@ -137,6 +137,10 @@ class Config(object):
             'type': str,
             'default': "pungi-koji",
             'desc': 'Name or full-path to pungi-koji binary.'},
+        'pungi_conf_path': {
+            'type': str,
+            'default': "/etc/odcs/pungi.conf",
+            'desc': 'Full path to the pungi.conf jinja2 template.'},
         'target_dir': {
             'type': str,
             'default': "./",
