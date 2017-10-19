@@ -24,6 +24,8 @@ import os
 import time
 
 from mock import patch, MagicMock
+
+import odcs.server
 from odcs.server import db, app
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
@@ -43,6 +45,16 @@ class TestComposerThread(ModelsBaseTest):
         self.client = app.test_client()
         super(TestComposerThread, self).setUp()
         self.composer = ComposerThread()
+
+        patched_pungi_conf_path = os.path.join(thisdir, '../conf/pungi.conf')
+        self.patch_pungi_conf_path = patch.object(odcs.server.conf,
+                                                  'pungi_conf_path',
+                                                  new=patched_pungi_conf_path)
+        self.patch_pungi_conf_path.start()
+
+    def tearDown(self):
+        super(TestComposerThread, self).tearDown()
+        self.patch_pungi_conf_path.stop()
 
     def _wait_for_compose_state(self, id, state):
         c = None

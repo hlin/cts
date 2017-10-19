@@ -27,6 +27,7 @@ import unittest
 
 from mock import patch
 
+import odcs.server
 from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType
 
 test_dir = os.path.abspath(os.path.dirname(__file__))
@@ -35,7 +36,16 @@ test_dir = os.path.abspath(os.path.dirname(__file__))
 class TestPungiConfig(unittest.TestCase):
 
     def setUp(self):
-        pass
+        super(TestPungiConfig, self).setUp()
+        patched_pungi_conf_path = os.path.join(test_dir, '../conf/pungi.conf')
+        self.patch_pungi_conf_path = patch.object(odcs.server.conf,
+                                                  'pungi_conf_path',
+                                                  new=patched_pungi_conf_path)
+        self.patch_pungi_conf_path.start()
+
+    def tearDown(self):
+        super(TestPungiConfig, self).tearDown()
+        self.patch_pungi_conf_path.stop()
 
     def test_pungi_config_module(self):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
@@ -86,7 +96,16 @@ class TestPungiConfig(unittest.TestCase):
 class TestPungi(unittest.TestCase):
 
     def setUp(self):
-        pass
+        super(TestPungi, self).setUp()
+        patched_pungi_conf_path = os.path.join(test_dir, '../conf/pungi.conf')
+        self.patch_pungi_conf_path = patch.object(odcs.server.conf,
+                                                  'pungi_conf_path',
+                                                  new=patched_pungi_conf_path)
+        self.patch_pungi_conf_path.start()
+
+    def tearDown(self):
+        super(TestPungi, self).tearDown()
+        self.patch_pungi_conf_path.stop()
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):
