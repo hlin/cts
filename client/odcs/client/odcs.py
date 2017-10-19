@@ -23,6 +23,7 @@
 
 import json
 import requests
+import time
 
 from six.moves import urllib_parse
 from requests_kerberos import HTTPKerberosAuth
@@ -281,3 +282,43 @@ class ODCS(object):
         """
         r = self._get('composes/{0}'.format(compose_id))
         return r.json()
+
+    def wait_for_compose(self, compose_id, timeout=300):
+        """
+        Polls the ODCS server repeatedly to find out whether the compose
+        moved from "wait" or "generating" state to some final state. Blocks
+        for `timeout` seconds. If the compose does not move to the final state
+        in given time limit, raises RuntimeError.
+
+        NOTE: It is advised to use this method only in situations where the
+        caller is not able to listen on fedmsg bus or UMB bus for the
+        odcs.state.change messages which can inform the caller about the
+        compose state change without the polling.
+
+        :param int compose_id: compose ID.
+        :param int timeout: Number of seconds to wait/block.
+        :rtype: dict
+        :return: a mapping representing a compose
+        """
+        elapsed = 0
+        sleep_time = 1
+        start_time = time.time()
+        while True:
+            compose = self.get_compose(compose_id)
+            if compose['state_name'] not in ['wait', 'generating']:
+                return compose
+
+            elapsed = time.time() - start_time
+            if elapsed >= timeout:
+                raise RuntimeError(
+                    "Retrieving ODCS compose %s timed out after %s seconds" %
+                    (compose_id, timeout))
+
+            time.sleep(sleep_time)
+
+            # Increase the sleep time for next try. But do not try sleeping
+            # longer than the `timeout`.
+            elapsed = time.time() - start_time
+            sleep_time = round(sleep_time * 1.5)
+            if elapsed + sleep_time > timeout:
+                sleep_time = timeout - elapsed

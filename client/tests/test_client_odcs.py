@@ -24,6 +24,7 @@
 import json
 import unittest
 
+import mock
 from mock import patch, Mock
 
 from odcs.client.odcs import AuthMech
@@ -388,3 +389,57 @@ class TestFindComposes(unittest.TestCase):
         requests.get.assert_called_once_with(
             self.odcs._make_endpoint('composes/'),
             params={'owner': 'unknown', 'source_type': 'tag', 'page': 2})
+
+
+@patch('time.sleep')
+@patch('odcs.client.odcs.ODCS.get_compose')
+class TestWaitForCompose(unittest.TestCase):
+    """Test ODCS.wait_for_compose"""
+
+    _TIME_TMP_VAR = 0
+
+    def setUp(self):
+        self.server_url = 'http://localhost/'
+        self.odcs = ODCS(self.server_url)
+
+    def test_wait_for_compose(self, get_compose, sleep):
+        for state in ["done", "removed", "failed"]:
+            get_compose.reset_mock()
+            sleep.reset_mock()
+            get_compose.side_effect = [{"state_name": "wait"},
+                                       {"state_name": "generating"},
+                                       {"state_name": state}]
+            self.odcs.wait_for_compose(1)
+
+            self.assertEqual(sleep.mock_calls,
+                             [mock.call(1), mock.call(2)])
+            self.assertEqual(get_compose.mock_calls,
+                             [mock.call(1)] * 3)
+
+    @patch('time.time')
+    def test_wait_for_compose_timeout(self, time_travel, get_compose, sleep):
+        get_compose.side_effect = [{"state_name": "wait"}] * 2
+        time_travel.side_effect = [1, 301]
+        self.assertRaises(RuntimeError, self.odcs.wait_for_compose, 1)
+
+    @patch('time.time')
+    def test_wait_for_compose_elapsed_close_to_timeout(
+            self, _time, get_compose, sleep):
+        TestWaitForCompose._TIME_TMP_VAR = 0
+
+        # Replace time.sleep() method which does not sleep, but updates the
+        # _TIME_TMP_VAR with number of seconds it would sleep.
+        def mocked_sleep(seconds):
+            TestWaitForCompose._TIME_TMP_VAR += seconds
+        sleep.side_effect = mocked_sleep
+
+        # Replace time.time() method to return _TIME_TMP_VAR.
+        def mocked_time():
+            return TestWaitForCompose._TIME_TMP_VAR
+        _time.side_effect = mocked_time
+
+        get_compose.side_effect = [{"state_name": "wait"}] * 10
+        self.assertRaises(RuntimeError, self.odcs.wait_for_compose, 1, 10)
+
+        self.assertEqual(sleep.mock_calls,
+                         [mock.call(1), mock.call(2), mock.call(3), mock.call(4)])
