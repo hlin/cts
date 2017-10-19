@@ -139,7 +139,8 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.state, COMPOSE_STATES["failed"])
 
     @mock_pdc
-    def test_submit_build_reuse_repo(self):
+    @patch("odcs.server.backend.validate_pungi_compose")
+    def test_submit_build_reuse_repo(self, mock_validate_pungi_compose):
         self._add_repo_composes()
         c = db.session.query(Compose).filter(Compose.id == 2).one()
 
@@ -149,6 +150,7 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.state, COMPOSE_STATES["done"])
         self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        mock_validate_pungi_compose.assert_called_once()
 
     @mock_pdc
     def test_submit_build_reuse_module(self):

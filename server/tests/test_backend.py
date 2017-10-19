@@ -22,6 +22,7 @@
 
 import os
 from mock import patch, MagicMock
+from productmd.rpms import Rpms
 
 from odcs.server import db
 from odcs.server.models import Compose
@@ -29,7 +30,8 @@ from odcs.common.types import COMPOSE_FLAGS, COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.pdc import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
 from odcs.server.backend import (resolve_compose, get_reusable_compose,
-                                 generate_pulp_compose)
+                                 generate_pulp_compose, validate_pungi_compose)
+from odcs.server.utils import makedirs
 import odcs.server.backend
 from utils import ModelsBaseTest
 
@@ -262,3 +264,43 @@ gpgcheck=0
         pulp_rest_post.assert_called_once_with('repositories/search/',
                                                expected_query)
         _write_repo_file.assert_not_called()
+
+    def test_validate_generated_pungi_compose_missing_packages(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2')
+        db.session.commit()
+        compose_dir = os.path.join(c.toplevel_dir, 'compose')
+        metadata_dir = os.path.join(compose_dir, 'metadata')
+        rpms_metadata = os.path.join(metadata_dir, 'rpms.json')
+        makedirs(metadata_dir)
+
+        rm = Rpms()
+        rm.header.version = "1.0"
+        rm.compose.id = "Me-26-20161212.0"
+        rm.compose.type = "production"
+        rm.compose.date = "20161212"
+        rm.compose.respin = 0
+
+        rm.add(
+            "Temporary",
+            "x86_64",
+            "pkg1-0:2.18-11.fc26.x86_64.rpm",
+            path="Temporary/x86_64/os/Packages/p/pkg1-2.18-11.fc26.x86_64.rpm",
+            sigkey="246110c1",
+            category="binary",
+            srpm_nevra="pkg1-0:2.18-11.fc26.src.rpm",
+        )
+        rm.add(
+            "Temporary",
+            "x86_64",
+            "pkg1-0:2.18-11.fc20.src.rpm",
+            path="Temporary/source/SRPMS/p/pkg1-2.18-11.fc26.x86_64.rpm",
+            sigkey="246110c1",
+            category="source",
+        )
+        rm.dump(rpms_metadata)
+        with self.assertRaises(RuntimeError) as ctx:
+            validate_pungi_compose(c)
+        self.assertIn('The following requested packages are not present in the generated compose: pkg2.',
+                      str(ctx.exception))
