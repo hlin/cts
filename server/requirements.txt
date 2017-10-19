@@ -21,3 +21,4 @@ requests
 jinja2
 pyldap
 defusedxml
+productmd
