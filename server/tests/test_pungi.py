@@ -26,9 +26,11 @@ import tempfile
 import unittest
 
 from mock import patch
+from kobo.conf import PyConfigParser
 
 import odcs.server
-from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType
+from odcs.server.pungi import (Pungi, PungiConfig, PungiSourceType,
+                               COMPOSE_RESULTS)
 
 test_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -46,6 +48,11 @@ class TestPungiConfig(unittest.TestCase):
     def tearDown(self):
         super(TestPungiConfig, self).tearDown()
         self.patch_pungi_conf_path.stop()
+
+    def _load_pungi_cfg(self, cfg):
+        conf = PyConfigParser()
+        conf.load_from_string(cfg)
+        return conf
 
     def test_pungi_config_module(self):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
@@ -78,10 +85,11 @@ class TestPungiConfig(unittest.TestCase):
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
                                     "testmodule-master")
             template = pungi_cfg.get_pungi_config()
-            self.assertTrue(len(template))
-            self.assertTrue("release_name = 'MBS-512'" in template)
-            self.assertTrue("release_short = 'MBS-512'" in template)
-            self.assertTrue("release_version = '1'" in template)
+            cfg = self._load_pungi_cfg(template)
+            self.assertEqual(cfg["release_name"], "MBS-512")
+            self.assertEqual(cfg["release_short"], "MBS-512")
+            self.assertEqual(cfg["release_version"], "1")
+            self.assertTrue("createiso" in cfg["skip_phases"])
 
     @patch("odcs.server.pungi.log")
     def test_get_pungi_conf_exception(self, log):
@@ -91,6 +99,20 @@ class TestPungiConfig(unittest.TestCase):
         with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
             pungi_cfg.get_pungi_config()
             log.exception.assert_called_once()
+
+    def test_get_pungi_conf_iso(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
+                                    "testmodule-master",
+                                    results=COMPOSE_RESULTS["iso"])
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertTrue("createiso" not in cfg["skip_phases"])
 
 
 class TestPungi(unittest.TestCase):

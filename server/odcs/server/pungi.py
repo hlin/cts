@@ -29,12 +29,12 @@ import jinja2
 import odcs.server.utils
 from odcs.server import conf, log
 from odcs.server import comps
-from odcs.common.types import PungiSourceType
+from odcs.common.types import PungiSourceType, COMPOSE_RESULTS
 
 
 class PungiConfig(object):
     def __init__(self, release_name, release_version, source_type, source,
-                 packages=None, arches=None, sigkeys=None):
+                 packages=None, arches=None, sigkeys=None, results=0):
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
@@ -50,6 +50,13 @@ class PungiConfig(object):
         else:
             self.arches = conf.arches
         self.packages = packages or []
+
+        # Store results as list of strings, so it can be used by jinja2
+        # templates.
+        self.results = []
+        for k, v in COMPOSE_RESULTS.items():
+            if results & v:
+                self.results.append(k)
 
         if source_type == PungiSourceType.KOJI_TAG:
             self.koji_tag = source
