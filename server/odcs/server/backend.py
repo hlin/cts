@@ -415,7 +415,8 @@ def generate_pungi_compose(compose):
         # Generate PungiConfig and run Pungi
         pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
                                 compose.source, packages=packages,
-                                sigkeys=compose.sigkeys)
+                                sigkeys=compose.sigkeys,
+                                results=compose.results)
         if compose.flags & COMPOSE_FLAGS["no_deps"]:
             pungi_cfg.gather_method = "nodeps"
 
