@@ -102,15 +102,15 @@ class BackendThread(object):
         self.thread.start()
 
 
-class ExpireThread(BackendThread):
+class RemoveExpiredComposesThread(BackendThread):
     """
     Thread used to remove old expired composes.
     """
     def __init__(self):
         """
-        Creates new ExpireThread instance.
+        Creates new RemoveExpiredComposesThread instance.
         """
-        super(ExpireThread, self).__init__(10)
+        super(RemoveExpiredComposesThread, self).__init__(10)
 
     def _remove_compose_dir(self, toplevel_dir):
         """
@@ -533,24 +533,24 @@ def run_backend():
     Runs the backend.
     """
     while True:
-        expire_thread = ExpireThread()
+        remove_expired_composes_thread = RemoveExpiredComposesThread()
         composer_thread = ComposerThread()
         try:
-            expire_thread.start()
+            remove_expired_composes_thread.start()
             composer_thread.start()
-            expire_thread.join()
+            remove_expired_composes_thread.join()
             composer_thread.join()
         except KeyboardInterrupt:
-            expire_thread.stop()
+            remove_expired_composes_thread.stop()
             composer_thread.stop()
-            expire_thread.join()
+            remove_expired_composes_thread.join()
             composer_thread.join()
             return 0
         except:
             log.exception("Exception in backend")
-            expire_thread.stop()
+            remove_expired_composes_thread.stop()
             composer_thread.stop()
-            expire_thread.join()
+            remove_expired_composes_thread.join()
             composer_thread.join()
 
     return 0

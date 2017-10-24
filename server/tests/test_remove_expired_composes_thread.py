@@ -23,18 +23,18 @@
 from odcs.server import db
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
-from odcs.server.backend import ExpireThread
+from odcs.server.backend import RemoveExpiredComposesThread
 from odcs.server.pungi import PungiSourceType
 from datetime import datetime, timedelta
 
 from utils import ModelsBaseTest
 
 
-class TestExpireThread(ModelsBaseTest):
+class TestRemoveExpiredComposesThread(ModelsBaseTest):
     maxDiff = None
 
     def setUp(self):
-        super(TestExpireThread, self).setUp()
+        super(TestRemoveExpiredComposesThread, self).setUp()
 
         compose = Compose.create(
             db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
@@ -42,51 +42,51 @@ class TestExpireThread(ModelsBaseTest):
         db.session.add(compose)
         db.session.commit()
 
-        self.expire = ExpireThread()
+        self.thread = RemoveExpiredComposesThread()
 
-    def test_no_expire(self):
+    def test_does_not_remove_a_compose_which_state_is_not_done(self):
         """
-        Test that we do not expire composes on non-done state.
+        Test that we do not remove a composes on non-done state.
         """
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         c.time_to_expire = datetime.utcnow() - timedelta(seconds=-120)
 
         for name, state in COMPOSE_STATES.items():
             if name == "done":
-                # Compose with state DONE would expire.
+                # Compose with state DONE would be removed.
                 continue
             c.state = state
             db.session.add(c)
             db.session.commit()
-            self.expire.do_work()
+            self.thread.do_work()
             db.session.expunge_all()
             c = db.session.query(Compose).filter(Compose.id == 1).one()
             self.assertEqual(c.state, state)
 
-    def test_expire_done(self):
+    def test_a_compose_which_state_is_done_is_removed(self):
         """
-        Test that we do expire compose in done state.
+        Test that we do remove a compose in done state.
         """
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         c.time_to_expire = datetime.utcnow() - timedelta(seconds=120)
         c.state = COMPOSE_STATES["done"]
         db.session.add(c)
         db.session.commit()
-        self.expire.do_work()
+        self.thread.do_work()
         db.session.expunge_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["removed"])
 
-    def test_no_expire_done_time_to_expire_in_future(self):
+    def test_does_not_remove_a_compose_which_is_not_expired(self):
         """
-        Test that we do not expire compose if time_to_expire has not been
+        Test that we do not remove a compose if its time_to_expire has not been
         reached yet.
         """
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         c.state = COMPOSE_STATES["done"]
         db.session.add(c)
         db.session.commit()
-        self.expire.do_work()
+        self.thread.do_work()
         db.session.expunge_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["done"])
