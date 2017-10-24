@@ -21,6 +21,8 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
 import os
+import shutil
+
 from mock import patch, MagicMock
 from productmd.rpms import Rpms
 
@@ -265,14 +267,21 @@ gpgcheck=0
                                                expected_query)
         _write_repo_file.assert_not_called()
 
-    def test_validate_generated_pungi_compose_missing_packages(self):
-        c = Compose.create(
+
+class TestValidatePungiCompose(ModelsBaseTest):
+    """Test validate_pungi_compose"""
+
+    def setUp(self):
+        super(TestValidatePungiCompose, self).setUp()
+
+        self.c = Compose.create(
             db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2')
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3')
         db.session.commit()
-        compose_dir = os.path.join(c.toplevel_dir, 'compose')
+
+        compose_dir = os.path.join(self.c.toplevel_dir, 'compose')
         metadata_dir = os.path.join(compose_dir, 'metadata')
-        rpms_metadata = os.path.join(metadata_dir, 'rpms.json')
+        self.rpms_metadata = os.path.join(metadata_dir, 'rpms.json')
         makedirs(metadata_dir)
 
         rm = Rpms()
@@ -282,6 +291,7 @@ gpgcheck=0
         rm.compose.date = "20161212"
         rm.compose.respin = 0
 
+        # pkg1
         rm.add(
             "Temporary",
             "x86_64",
@@ -294,13 +304,41 @@ gpgcheck=0
         rm.add(
             "Temporary",
             "x86_64",
-            "pkg1-0:2.18-11.fc20.src.rpm",
+            "pkg1-0:2.18-11.fc26.src.rpm",
             path="Temporary/source/SRPMS/p/pkg1-2.18-11.fc26.x86_64.rpm",
             sigkey="246110c1",
             category="source",
         )
-        rm.dump(rpms_metadata)
-        with self.assertRaises(RuntimeError) as ctx:
-            validate_pungi_compose(c)
-        self.assertIn('The following requested packages are not present in the generated compose: pkg2.',
-                      str(ctx.exception))
+        # pkg2
+        rm.add(
+            "Temporary",
+            "x86_64",
+            "pkg2-0:2.18-11.fc26.x86_64.rpm",
+            path="Temporary/x86_64/os/Packages/p/pkg2-0.18-11.fc26.x86_64.rpm",
+            sigkey="246110c1",
+            category="binary",
+            srpm_nevra="pkg2-0:0.18-11.fc26.src.rpm",
+        )
+        rm.add(
+            "Temporary",
+            "x86_64",
+            "pkg2-0:0.18-11.fc26.src.rpm",
+            path="Temporary/source/SRPMS/p/pkg2-0.18-11.fc26.x86_64.rpm",
+            sigkey="246110c1",
+            category="source",
+        )
+        rm.dump(self.rpms_metadata)
+
+    def tearDown(self):
+        shutil.rmtree(self.c.toplevel_dir)
+        super(TestValidatePungiCompose, self).tearDown()
+
+    def test_missing_packages(self):
+        with self.assertRaisesRegexp(RuntimeError, 'not present.+pkg3'):
+            validate_pungi_compose(self.c)
+
+    def test_all_packages_are_included(self):
+        self.c.packages = 'pkg1 pkg2'
+        db.session.commit()
+
+        validate_pungi_compose(self.c)
