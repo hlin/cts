@@ -25,6 +25,7 @@ import functools
 import os
 import time
 import subprocess
+from distutils.spawn import find_executable
 
 from odcs.server import conf, log
 
@@ -83,3 +84,21 @@ def execute_cmd(args, stdout=None, stderr=None, cwd=None):
     if proc.returncode != 0:
         err_msg = "Command '%s' returned non-zero value %d%s" % (args, proc.returncode, out_log_msg)
         raise RuntimeError(err_msg)
+
+
+def hardlink(dirs, verbose=False):
+    """Run hardlink to consolidates duplicate files in dirs"""
+    hardlink_exe = find_executable('hardlink')
+    if not hardlink_exe:
+        raise RuntimeError("hardlink is not available on system")
+
+    args = [hardlink_exe]
+    if verbose:
+        args.append('-vv')
+
+    if isinstance(dirs, list):
+        args.extend(dirs)
+    else:
+        args.append(dirs)
+
+    execute_cmd(args)
