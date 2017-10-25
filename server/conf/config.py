@@ -1,4 +1,5 @@
-from os import path, mkdir
+import errno
+from os import path, makedirs
 
 
 # FIXME: workaround for this moment till confdir, dbdir (installdir etc.) are
@@ -122,9 +123,10 @@ class DevConfiguration(BaseConfiguration):
     NET_RETRY_INTERVAL = 1
     TARGET_DIR = path.join(dbdir, "test_composes")
     try:
-        mkdir(TARGET_DIR)
-    except:
-        pass
+        makedirs(TARGET_DIR, mode=0o775)
+    except OSError as ex:
+        if ex.errno != errno.EEXIST:
+            raise RuntimeError("Can't create compose target dir %s: %s" % (TARGET_DIR, ex.strerror))
 
     AUTH_BACKEND = 'noauth'
     AUTH_OPENIDC_USERINFO_URI = 'https://iddev.fedorainfracloud.org/openidc/UserInfo'
@@ -141,6 +143,12 @@ class TestConfiguration(BaseConfiguration):
     # Global network-related values, in seconds
     NET_TIMEOUT = 3
     NET_RETRY_INTERVAL = 1
+    TARGET_DIR = path.join(dbdir, "test_composes")
+    try:
+        makedirs(TARGET_DIR, mode=0o775)
+    except OSError as ex:
+        if ex.errno != errno.EEXIST:
+            raise RuntimeError("Can't create compose target dir %s: %s" % (TARGET_DIR, ex.strerror))
 
     AUTH_BACKEND = 'noauth'
     AUTH_LDAP_SERVER = 'ldap://ldap.example.com'

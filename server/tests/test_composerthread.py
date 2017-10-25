@@ -105,7 +105,8 @@ class TestComposerThread(ModelsBaseTest):
         self.composer.do_work()
         c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
 
     @mock_pdc
@@ -120,7 +121,8 @@ class TestComposerThread(ModelsBaseTest):
         self.composer.do_work()
         c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.source, "testmodule-master-20170515074419")
 
@@ -148,7 +150,8 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, 1)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         mock_validate_pungi_compose.assert_called_once()
 
@@ -165,7 +168,8 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, 1)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
 
     @mock_pdc
@@ -183,7 +187,8 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, None)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir, "./latest-odcs-2-1/compose/Temporary")
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-2-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary")
 
     @patch("odcs.server.backend.create_koji_session")
@@ -227,7 +232,8 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, 1)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir, "./latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
 
     @patch("odcs.server.utils.execute_cmd")
@@ -251,5 +257,6 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, None)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir, "./latest-odcs-2-1/compose/Temporary")
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-2-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary")

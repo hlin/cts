@@ -143,7 +143,7 @@ class Config(object):
             'desc': 'Full path to the pungi.conf jinja2 template.'},
         'target_dir': {
             'type': str,
-            'default': "./",
+            'default': "/tmp",
             'desc': 'Path to target dir to which store composes'},
         'target_dir_url': {
             'type': str,
@@ -323,3 +323,10 @@ class Config(object):
     def _setifok_log_level(self, s):
         level = str(s).lower()
         self._log_level = logger.str_to_log_level(level)
+
+    def _setifok_target_dir(self, s):
+        if not os.path.isabs(s):
+            raise ValueError("Compose target dir is not an absolute path: %s" % s)
+        if not os.path.exists(s):
+            raise ValueError("Compose target dir doesn't exist: %s" % s)
+        self._target_dir = s
