@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 
 import flask
 
+from werkzeug.exceptions import BadRequest
 from freezegun import freeze_time
 from mock import patch, PropertyMock
 
@@ -103,6 +104,36 @@ class ViewBaseTest(ModelsBaseTest):
 
     def setup_test_data(self):
         """Set up data for running tests"""
+
+
+class TestHandlingErrors(ViewBaseTest):
+    """Test registered error handlers"""
+
+    @patch('odcs.server.views.ODCSAPI.delete')
+    def test_bad_request_error(self, delete):
+        delete.side_effect = BadRequest('bad request to delete')
+
+        resp = self.client.delete('/api/1/composes/100')
+        data = json.loads(resp.data.decode('utf-8'))
+
+        self.assertEqual('Bad Request', data['error'])
+        self.assertEqual(400, data['status'])
+        self.assertIn('bad request to delete', data['message'])
+
+    def test_return_internal_server_error_if_error_is_not_caught(self):
+        possible_errors = [
+            RuntimeError('runtime error'),
+            IndexError('out of scope'),
+            OSError('os error'),
+        ]
+        for e in possible_errors:
+            with patch('odcs.server.views.filter_composes', side_effect=e):
+                resp = self.client.get('/api/1/composes/')
+                data = json.loads(resp.data.decode('utf-8'))
+
+                self.assertEqual('Internal Server Error', data['error'])
+                self.assertEqual(500, data['status'])
+                self.assertEqual(str(e), data['message'])
 
 
 class TestViews(ViewBaseTest):

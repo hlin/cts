@@ -25,9 +25,10 @@ import datetime
 
 from flask.views import MethodView
 from flask import request, jsonify, g
+from werkzeug.exceptions import BadRequest
 
 from odcs.server import app, db, log, conf
-from odcs.server.errors import NotFound, BadRequest
+from odcs.server.errors import NotFound
 from odcs.server.models import Compose
 from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES)
