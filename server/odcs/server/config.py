@@ -248,17 +248,19 @@ class Config(object):
         with runtime values.
         """
 
-        # set defaults
-        for name, values in self._defaults.items():
-            self.set_item(name, values['default'])
-
-        # override defaults
+        # read items from conf and set
         for key in dir(conf_section_obj):
             # skip keys starting with underscore
             if key.startswith('_'):
                 continue
             # set item (lower key)
             self.set_item(key.lower(), getattr(conf_section_obj, key))
+
+        # set item from defaults if the item is not set
+        for name, values in self._defaults.items():
+            if hasattr(self, name):
+                continue
+            self.set_item(name, values['default'])
 
         # Used by Flask-Login to disable the @login_required decorator
         self.login_disabled = self.auth_backend == 'noauth'
