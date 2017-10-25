@@ -53,7 +53,7 @@ def commit_on_success(func):
     def _decorator(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except:
+        except Exception:
             db.session.rollback()
             raise
         finally:

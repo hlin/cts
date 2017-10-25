@@ -72,7 +72,7 @@ class BackendThread(object):
         while not self.exit:
             try:
                 self.do_work()
-            except:
+            except Exception:
                 log.exception("Exception in backend thread")
             self.exit_cond.acquire()
             self.exit_cond.wait(float(self.timeout))
@@ -487,7 +487,7 @@ def generate_compose(compose_id):
             else:
                 generate_pungi_compose(compose)
                 validate_pungi_compose(compose)
-        except:
+        except Exception:
             # Something went wrong, log the exception and update the compose
             # state in database.
             if compose:
@@ -546,7 +546,7 @@ def run_backend():
             remove_expired_composes_thread.join()
             composer_thread.join()
             return 0
-        except:
+        except Exception:
             log.exception("Exception in backend")
             remove_expired_composes_thread.stop()
             composer_thread.stop()

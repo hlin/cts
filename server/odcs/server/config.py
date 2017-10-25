@@ -75,7 +75,7 @@ def init_config(app):
         try:
             config_module = imp.load_source('odcs_runtime_config',
                                             config_file)
-        except:
+        except Exception:
             raise SystemError("Configuration file {} was not found."
                               .format(config_file))
 
@@ -294,7 +294,7 @@ class Config(object):
                     # Do no try to convert None...
                     if value is not None:
                         value = convert(value)
-                except:
+                except Exception:
                     raise TypeError("Configuration value conversion failed for name: %s" % key)
             # unknown type/unsupported conversion
             elif convert is not None:

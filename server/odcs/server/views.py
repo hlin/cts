@@ -108,7 +108,7 @@ class ODCSAPI(MethodView):
         if "seconds-to-live" in data:
             try:
                 seconds_to_live_in_request = int(data['seconds-to-live'])
-            except ValueError as e:
+            except ValueError:
                 err = 'Invalid seconds-to-live specified in request: %s' % data
                 log.error(err)
                 raise ValueError(err)
