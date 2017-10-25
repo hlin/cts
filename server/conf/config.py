@@ -128,6 +128,7 @@ class DevConfiguration(BaseConfiguration):
         if ex.errno != errno.EEXIST:
             raise RuntimeError("Can't create compose target dir %s: %s" % (TARGET_DIR, ex.strerror))
 
+    PUNGI_CONF_PATH = path.join(confdir, 'pungi.conf')
     AUTH_BACKEND = 'noauth'
     AUTH_OPENIDC_USERINFO_URI = 'https://iddev.fedorainfracloud.org/openidc/UserInfo'
 
@@ -140,6 +141,7 @@ class TestConfiguration(BaseConfiguration):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///{0}'.format(
         path.join(dbdir, 'test_odcs.db'))
 
+    PUNGI_CONF_PATH = path.join(confdir, 'pungi.conf')
     # Global network-related values, in seconds
     NET_TIMEOUT = 3
     NET_RETRY_INTERVAL = 1
