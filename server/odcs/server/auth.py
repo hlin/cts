@@ -153,8 +153,9 @@ def require_scopes(*scopes):
     def wrapper(f):
         @wraps(f)
         def decorator(*args, **kwargs):
-            for scope in scopes:
-                require_oidc_scope(scope)
+            if conf.auth_backend != 'noauth':
+                for scope in scopes:
+                    require_oidc_scope(scope)
             return f(*args, **kwargs)
         return decorator
     return wrapper

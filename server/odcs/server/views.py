@@ -34,7 +34,7 @@ from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES)
 from odcs.server.api_utils import pagination_metadata, filter_composes
 from odcs.server.auth import requires_role, login_required
-from odcs.server.auth import require_oidc_scope
+from odcs.server.auth import require_scopes
 
 
 api_v1 = {
@@ -91,12 +91,10 @@ class ODCSAPI(MethodView):
             else:
                 raise NotFound('No such compose found.')
 
+    @require_scopes('renew-compose')
     @login_required
     @requires_role('allowed_clients')
     def patch(self, id):
-        if conf.auth_backend != 'noauth':
-            require_oidc_scope('renew-compose')
-
         if request.data:
             data = data = request.get_json(force=True)
         else:
@@ -158,6 +156,7 @@ class ODCSAPI(MethodView):
             db.session.commit()
             return jsonify(old_compose.json()), 200
 
+    @require_scopes('new-compose')
     @login_required
     @requires_role('allowed_clients')
     def post(self):
@@ -171,9 +170,6 @@ class ODCSAPI(MethodView):
         data = request.get_json(force=True)
         if not data:
             raise ValueError('No JSON POST data submitted')
-
-        if conf.auth_backend != "noauth":
-            require_oidc_scope('new-compose')
 
         seconds_to_live = conf.seconds_to_live
         if "seconds-to-live" in data:
@@ -246,11 +242,10 @@ class ODCSAPI(MethodView):
 
         return jsonify(compose.json()), 200
 
+    @require_scopes('delete-compose')
     @login_required
     @requires_role('admins')
     def delete(self, id):
-        require_oidc_scope('delete-compose')
-
         compose = Compose.query.filter_by(id=id).first()
         if compose:
             # can remove compose that is in state of 'done' or 'failed'
