@@ -57,6 +57,12 @@ api_v1 = {
             'methods': ['POST'],
         }
     },
+    'compose_regenerate': {
+        'url': '/api/1/composes/<int:id>',
+        'options': {
+            'methods': ['PATCH'],
+        }
+    },
     'composes_delete': {
         'url': '/api/1/composes/<int:id>',
         'options': {
@@ -87,23 +93,26 @@ class ODCSAPI(MethodView):
 
     @login_required
     @requires_role('allowed_clients')
-    def post(self):
-        if conf.auth_backend == "noauth":
-            owner = "unknown"
-            log.warn("Cannot determine the owner of compose, because "
-                     "'noauth' auth_backend is used.")
+    def patch(self, id):
+        if conf.auth_backend != 'noauth':
+            require_oidc_scope('renew-compose')
+
+        if request.data:
+            data = data = request.get_json(force=True)
         else:
-            owner = g.user.username
+            data = {}
 
-        data = request.get_json(force=True)
-        if not data:
-            raise ValueError('No JSON POST data submitted')
+        old_compose = Compose.query.filter(
+            Compose.id == id,
+            Compose.state.in_(
+                [COMPOSE_STATES["removed"],
+                    COMPOSE_STATES["done"],
+                    COMPOSE_STATES["failed"]])).first()
 
-        if conf.auth_backend != "noauth":
-            if 'id' in data:
-                require_oidc_scope('renew-compose')
-            else:
-                require_oidc_scope('new-compose')
+        if not old_compose:
+            err = "No compose with id %s found" % id
+            log.error(err)
+            raise NotFound(err)
 
         seconds_to_live = conf.seconds_to_live
         if "seconds-to-live" in data:
@@ -114,33 +123,27 @@ class ODCSAPI(MethodView):
                 log.error(err)
                 raise ValueError(err)
 
-            seconds_to_live = min(seconds_to_live_in_request, conf.max_seconds_to_live)
+            seconds_to_live = min(seconds_to_live_in_request,
+                                  conf.max_seconds_to_live)
 
-        # If "id" is in data, it means client wants to regenerate an expired
-        # compose.
-        if "id" in data:
-            old_compose = Compose.query.filter(
-                Compose.id == data["id"],
-                Compose.state.in_(
-                    [COMPOSE_STATES["removed"],
-                     COMPOSE_STATES["done"],
-                     COMPOSE_STATES["failed"]])).first()
-
-            if not old_compose:
-                err = "No compose with id %s found" % data["id"]
-                log.error(err)
-                raise NotFound(err)
-
-            state = old_compose.state
-            if state in (COMPOSE_STATES['removed'], COMPOSE_STATES['failed']):
-                log.info("%r: Going to regenerate the compose", old_compose)
-                compose = Compose.create_copy(db.session, old_compose, owner,
-                                              seconds_to_live)
-                db.session.add(compose)
-                db.session.commit()
-                return jsonify(compose.json()), 200
-
-            # Otherwise, just extend expiration to make it usable for longer time.
+        has_to_create_a_copy = old_compose.state in (
+            COMPOSE_STATES['removed'], COMPOSE_STATES['failed'])
+        if has_to_create_a_copy:
+            log.info("%r: Going to regenerate the compose", old_compose)
+            if conf.auth_backend == "noauth":
+                owner = "unknown"
+                log.warn("Cannot determine the owner of compose, because "
+                         "'noauth' auth_backend is used.")
+            else:
+                owner = g.user.username
+            compose = Compose.create_copy(db.session, old_compose, owner,
+                                          seconds_to_live)
+            db.session.add(compose)
+            db.session.commit()
+            return jsonify(compose.json()), 200
+        else:
+            # Otherwise, just extend expiration to make it usable for longer
+            # time.
             extend_from = datetime.datetime.utcnow()
             old_compose.extend_expiration(extend_from, seconds_to_live)
             log.info('Extended time_to_expire for compose %r to %s',
@@ -154,6 +157,34 @@ class ODCSAPI(MethodView):
                 c.extend_expiration(extend_from, seconds_to_live)
             db.session.commit()
             return jsonify(old_compose.json()), 200
+
+    @login_required
+    @requires_role('allowed_clients')
+    def post(self):
+        if conf.auth_backend == "noauth":
+            owner = "unknown"
+            log.warn("Cannot determine the owner of compose, because "
+                     "'noauth' auth_backend is used.")
+        else:
+            owner = g.user.username
+
+        data = request.get_json(force=True)
+        if not data:
+            raise ValueError('No JSON POST data submitted')
+
+        if conf.auth_backend != "noauth":
+            require_oidc_scope('new-compose')
+
+        seconds_to_live = conf.seconds_to_live
+        if "seconds-to-live" in data:
+            try:
+                seconds_to_live_in_request = int(data['seconds-to-live'])
+            except ValueError:
+                err = 'Invalid seconds-to-live specified in request: %s' % data
+                log.error(err)
+                raise ValueError(err)
+
+            seconds_to_live = min(seconds_to_live_in_request, conf.max_seconds_to_live)
 
         source_data = data.get('source', None)
         if not isinstance(source_data, dict):

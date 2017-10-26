@@ -272,15 +272,15 @@ class TestRenewCompose(unittest.TestCase):
             'time_submitted': '2017-07-21T03:33:43Z',
             'time_to_expire': '2017-07-22T03:33:43Z'
         }
-        requests.post.return_value.status_code = 200
-        requests.post.return_value.json.return_value = fake_renew_compose
+        requests.patch.return_value.status_code = 200
+        requests.patch.return_value.json.return_value = fake_renew_compose
 
         r = self.odcs.renew_compose(6, seconds_to_live=60)
 
         self.assertEqual(fake_renew_compose, r)
-        requests.post.assert_called_once_with(
-            self.odcs._make_endpoint('composes/'),
-            data=json.dumps({'id': 6, 'seconds-to-live': 60}),
+        requests.patch.assert_called_once_with(
+            self.odcs._make_endpoint('composes/6'),
+            data=json.dumps({'seconds-to-live': 60}),
             headers={'Content-Type': 'application/json'})
 
 

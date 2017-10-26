@@ -149,7 +149,7 @@ class ODCS(object):
         request_data = {}
         headers = {}
         if data:
-            if method == 'post':
+            if method in ('post', 'patch'):
                 request_data['data'] = json.dumps(data)
                 headers['Content-Type'] = 'application/json'
             if method == 'get':
@@ -187,6 +187,10 @@ class ODCS(object):
     def _delete(self, resource_path, data=None):
         """Make a DELETE HTTP request to server"""
         return self._make_request('delete', resource_path, data)
+
+    def _patch(self, resource_path, data=None):
+        """Make a PATCH HTTP request to server"""
+        return self._make_request('patch', resource_path, data)
 
     def new_compose(self, source, source_type,
                     seconds_to_live=None, packages=[], flags=[],
@@ -239,11 +243,12 @@ class ODCS(object):
         :return: the new regenerated Compose
         :rtype: dict
         """
-        request_data = {'id': compose_id}
         if seconds_to_live is not None:
-            request_data['seconds-to-live'] = seconds_to_live
+            request_data = {'seconds-to-live': seconds_to_live}
+        else:
+            request_data = None
 
-        r = self._post('composes/', request_data)
+        r = self._patch('composes/{0}'.format(compose_id), request_data)
         return r.json()
 
     def find_composes(self, **search_criteria):

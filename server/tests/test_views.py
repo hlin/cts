@@ -265,7 +265,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 1}))
+            rv = self.client.patch('/api/1/composes/1')
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['id'], 3)
@@ -286,7 +286,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 1}))
+            rv = self.client.patch('/api/1/composes/1')
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['id'], 3)
@@ -303,7 +303,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 1}))
+            rv = self.client.patch('/api/1/composes/1')
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['message'], 'No compose with id 1 found')
@@ -314,7 +314,7 @@ class TestViews(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/api/1/composes/', data=json.dumps({'id': 100}))
+            rv = self.client.patch('/api/1/composes/100')
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(data['message'], 'No compose with id 100 found')
@@ -659,14 +659,13 @@ class TestExtendExpiration(ViewBaseTest):
     @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
     def test_fail_if_extend_non_existing_compose(self):
         post_data = json.dumps({
-            'id': 999,
             'seconds-to-live': 600
         })
         with self.test_request_context():
             flask.g.oidc_scopes = ['http://example.com/new-compose',
                                    'http://example.com/renew-compose']
 
-            rv = self.client.post('/api/1/composes/', data=post_data)
+            rv = self.client.patch('/api/1/composes/999', data=post_data)
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual('No compose with id 999 found', data['message'])
@@ -676,7 +675,6 @@ class TestExtendExpiration(ViewBaseTest):
         db.session.commit()
 
         post_data = json.dumps({
-            'id': self.c1.id,
             'seconds-to-live': 600
         })
         with self.test_request_context():
@@ -684,7 +682,8 @@ class TestExtendExpiration(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
 
-            rv = self.client.post('/api/1/composes/', data=post_data)
+            rv = self.client.patch('/api/1/composes/{0}'.format(self.c1.id),
+                                   data=post_data)
             data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual('No compose with id {0} found'.format(self.c1.id),
@@ -701,7 +700,6 @@ class TestExtendExpiration(ViewBaseTest):
         expected_time_to_expire = fake_utcnow + timedelta(
             seconds=expected_seconds_to_live)
         post_data = json.dumps({
-            'id': self.c2.id,
             'seconds-to-live': expected_seconds_to_live
         })
 
@@ -710,7 +708,8 @@ class TestExtendExpiration(ViewBaseTest):
                 '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
             ]
             with freeze_time(fake_utcnow):
-                rv = self.client.post('/api/1/composes/', data=post_data)
+                url = '/api/1/composes/{0}'.format(self.c2.id)
+                rv = self.client.patch(url, data=post_data)
                 data = json.loads(rv.data.decode('utf8'))
 
         self.assertEqual(
