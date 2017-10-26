@@ -73,6 +73,27 @@ api_v1 = {
 
 
 class ODCSAPI(MethodView):
+    def _get_compose_owner(self):
+        if conf.auth_backend == "noauth":
+            log.warn("Cannot determine the owner of compose, because "
+                     "'noauth' auth_backend is used.")
+            return "unknown"
+        else:
+            return g.user.username
+
+    def _get_seconds_to_live(self, request_data):
+        if "seconds-to-live" in request_data:
+            try:
+                return min(int(request_data['seconds-to-live']),
+                           conf.max_seconds_to_live)
+            except ValueError:
+                err = 'Invalid seconds-to-live specified in request: %s' % \
+                    request_data
+                log.error(err)
+                raise ValueError(err)
+        else:
+            return conf.seconds_to_live
+
     def get(self, id):
         if id is None:
             p_query = filter_composes(request)
@@ -112,29 +133,15 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise NotFound(err)
 
-        seconds_to_live = conf.seconds_to_live
-        if "seconds-to-live" in data:
-            try:
-                seconds_to_live_in_request = int(data['seconds-to-live'])
-            except ValueError:
-                err = 'Invalid seconds-to-live specified in request: %s' % data
-                log.error(err)
-                raise ValueError(err)
-
-            seconds_to_live = min(seconds_to_live_in_request,
-                                  conf.max_seconds_to_live)
+        seconds_to_live = self._get_seconds_to_live(data)
 
         has_to_create_a_copy = old_compose.state in (
             COMPOSE_STATES['removed'], COMPOSE_STATES['failed'])
         if has_to_create_a_copy:
             log.info("%r: Going to regenerate the compose", old_compose)
-            if conf.auth_backend == "noauth":
-                owner = "unknown"
-                log.warn("Cannot determine the owner of compose, because "
-                         "'noauth' auth_backend is used.")
-            else:
-                owner = g.user.username
-            compose = Compose.create_copy(db.session, old_compose, owner,
+            compose = Compose.create_copy(db.session,
+                                          old_compose,
+                                          self._get_compose_owner(),
                                           seconds_to_live)
             db.session.add(compose)
             db.session.commit()
@@ -160,27 +167,11 @@ class ODCSAPI(MethodView):
     @login_required
     @requires_role('allowed_clients')
     def post(self):
-        if conf.auth_backend == "noauth":
-            owner = "unknown"
-            log.warn("Cannot determine the owner of compose, because "
-                     "'noauth' auth_backend is used.")
-        else:
-            owner = g.user.username
-
         data = request.get_json(force=True)
         if not data:
             raise ValueError('No JSON POST data submitted')
 
-        seconds_to_live = conf.seconds_to_live
-        if "seconds-to-live" in data:
-            try:
-                seconds_to_live_in_request = int(data['seconds-to-live'])
-            except ValueError:
-                err = 'Invalid seconds-to-live specified in request: %s' % data
-                log.error(err)
-                raise ValueError(err)
-
-            seconds_to_live = min(seconds_to_live_in_request, conf.max_seconds_to_live)
+        seconds_to_live = self._get_seconds_to_live(data)
 
         source_data = data.get('source', None)
         if not isinstance(source_data, dict):
@@ -234,7 +225,7 @@ class ODCSAPI(MethodView):
                 flags |= COMPOSE_FLAGS[name]
 
         compose = Compose.create(
-            db.session, owner, source_type, source,
+            db.session, self._get_compose_owner(), source_type, source,
             COMPOSE_RESULTS["repository"], seconds_to_live,
             packages, flags, sigkeys)
         db.session.add(compose)
