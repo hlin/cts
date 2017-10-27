@@ -121,6 +121,8 @@ class ODCSAPI(MethodView):
         else:
             data = {}
 
+        seconds_to_live = self._get_seconds_to_live(data)
+
         old_compose = Compose.query.filter(
             Compose.id == id,
             Compose.state.in_(
@@ -132,8 +134,6 @@ class ODCSAPI(MethodView):
             err = "No compose with id %s found" % id
             log.error(err)
             raise NotFound(err)
-
-        seconds_to_live = self._get_seconds_to_live(data)
 
         has_to_create_a_copy = old_compose.state in (
             COMPOSE_STATES['removed'], COMPOSE_STATES['failed'])

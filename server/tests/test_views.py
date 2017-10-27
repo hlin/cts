@@ -656,6 +656,32 @@ class TestExtendExpiration(ViewBaseTest):
             self.c1_id = self.c1.id
             self.c3_id = self.c3.id
 
+    @patch.object(conf, 'auth_backend', new='noauth')
+    def test_bad_request_if_seconds_to_live_is_invalid(self):
+        post_data = json.dumps({
+            'seconds-to-live': '600s'
+        })
+        with self.test_request_context():
+            rv = self.client.patch('/api/1/composes/{0}'.format(self.c1.id),
+                                   data=post_data)
+            data = json.loads(rv.data.decode('utf8'))
+
+            self.assertEqual(400, data['status'])
+            self.assertEqual('Bad Request', data['error'])
+            self.assertIn('Invalid seconds-to-live specified in request',
+                          data['message'])
+
+    @patch.object(conf, 'auth_backend', new='noauth')
+    def test_bad_request_if_request_data_is_not_json(self):
+        with self.test_request_context():
+            rv = self.client.patch('/api/1/composes/{0}'.format(self.c1.id),
+                                   data='abc')
+            data = json.loads(rv.data.decode('utf8'))
+
+            self.assertEqual(400, data['status'])
+            self.assertEqual('Bad Request', data['error'])
+            self.assertIn('Failed to decode JSON object', data['message'])
+
     @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
     def test_fail_if_extend_non_existing_compose(self):
         post_data = json.dumps({
