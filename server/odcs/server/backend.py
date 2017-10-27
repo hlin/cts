@@ -34,6 +34,7 @@ from odcs.server.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
 from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType
 from odcs.server.pulp import Pulp
 from concurrent.futures import ThreadPoolExecutor
+import glob
 import odcs.server.utils
 import odcs.server.pdc
 import defusedxml.ElementTree
@@ -117,10 +118,37 @@ class RemoveExpiredComposesThread(BackendThread):
         Removes the compose toplevel_dir symlink together with the real
         path it points to.
         """
+
+        # Be nice and don't fail when directory does not exist.
+        if not os.path.exists(toplevel_dir):
+            log.warn("Cannot remove directory %s, it does not exist",
+                     toplevel_dir)
+            return
+
+        # If toplevel_dir is a symlink, remove the symlink and
+        # its target. If toplevel_dir is normal directory, just
+        # remove it using rmtree.
         if os.path.realpath(toplevel_dir) != toplevel_dir:
             targetpath = os.path.realpath(toplevel_dir)
             os.unlink(toplevel_dir)
-            shutil.rmtree(targetpath)
+            if os.path.exists(targetpath):
+                shutil.rmtree(targetpath)
+        else:
+            shutil.rmtree(toplevel_dir)
+
+    def _get_compose_id_from_path(self, path):
+        """
+        Returns the ID of compose from directory path in conf.target_dir.
+        """
+        parts = os.path.basename(path).split("-")
+        while parts and parts[0] != "odcs":
+            del parts[0]
+
+        if not parts or len(parts) < 2 or not parts[1].isdigit():
+            log.error("Directory %s is not valid compose directory", path)
+            return None
+
+        return int(parts[1])
 
     def do_work(self):
         """
@@ -134,8 +162,43 @@ class RemoveExpiredComposesThread(BackendThread):
             compose.state = COMPOSE_STATES["removed"]
             compose.time_removed = datetime.utcnow()
             db.session.commit()
-            if not compose.reused_id and os.path.exists(compose.toplevel_dir):
+            if not compose.reused_id:
                 self._remove_compose_dir(compose.toplevel_dir)
+
+        # In case of ODCS error, there might be left-over directories
+        # belonging to already expired composes. Try to find them in the
+        # target_dir.
+        # At first, get all the directories in target_dir which are created
+        # by ODCS.
+        odcs_paths = []
+        for dirname in ["latest-odcs-*", "odcs-*"]:
+            path = os.path.join(conf.target_dir, dirname)
+            odcs_paths += glob.glob(path)
+
+        # Then try removing them if they are left there by some error.
+        for path in odcs_paths:
+            # Check that we are really going to remove a directory.
+            if not os.path.isdir(path):
+                continue
+
+            compose_id = self._get_compose_id_from_path(path)
+            if not compose_id:
+                # Error logged in _get_compose_id_from_dirname already.
+                continue
+
+            composes = Compose.query.filter(Compose.id == compose_id).all()
+            if not composes:
+                log.info("Removing data of compose %d - it is not in "
+                         "database: %s", compose_id, path)
+                self._remove_compose_dir(path)
+                continue
+
+            compose = composes[0]
+            if compose.state == COMPOSE_STATES["removed"]:
+                log.info("%r: Removing data of compose - it has already "
+                         "expired some time ago: %s", compose_id, path)
+                self._remove_compose_dir(path)
+                continue
 
 
 def create_koji_session():
