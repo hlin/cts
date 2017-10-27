@@ -499,6 +499,15 @@ def generate_compose(compose_id):
             db.session.add(compose)
             db.session.commit()
 
+    # consolidate duplicate files in compose target dir
+    if compose and compose.reused_id is None and compose.source_type != PungiSourceType.PULP:
+        try:
+            log.info("Running hardlink to consolidate duplicate files in compose target dir")
+            odcs.server.utils.hardlink(conf.target_dir)
+        except Exception as ex:
+            # not fail, just show warning message
+            log.warn("Error while running hardlink on system: %s" % ex.message, exc_info=True)
+
 
 class ComposerThread(BackendThread):
     """
