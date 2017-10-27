@@ -132,8 +132,8 @@ class PungiConfig(object):
             return template.render(config=self)
         except Exception as e:
             log.exception(
-                "Failed to open pungi conf {!r}: {}".format(conf.pungi_conf_path,
-                                                            str(e)))
+                "Failed to render pungi conf template {!r}: {}".format(conf.pungi_conf_path,
+                                                                       str(e)))
 
 
 class Pungi(object):

@@ -28,7 +28,6 @@ import unittest
 from mock import patch
 from kobo.conf import PyConfigParser
 
-import odcs.server
 from odcs.server.pungi import (Pungi, PungiConfig, PungiSourceType,
                                COMPOSE_RESULTS)
 
@@ -39,15 +38,9 @@ class TestPungiConfig(unittest.TestCase):
 
     def setUp(self):
         super(TestPungiConfig, self).setUp()
-        patched_pungi_conf_path = os.path.join(test_dir, '../conf/pungi.conf')
-        self.patch_pungi_conf_path = patch.object(odcs.server.conf,
-                                                  'pungi_conf_path',
-                                                  new=patched_pungi_conf_path)
-        self.patch_pungi_conf_path.start()
 
     def tearDown(self):
         super(TestPungiConfig, self).tearDown()
-        self.patch_pungi_conf_path.stop()
 
     def _load_pungi_cfg(self, cfg):
         conf = PyConfigParser()
@@ -95,10 +88,14 @@ class TestPungiConfig(unittest.TestCase):
     def test_get_pungi_conf_exception(self, log):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
                                 "testmodule-master")
-        mock_path = "/tmp/non_existant_pungi_conf"
+        _, mock_path = tempfile.mkstemp(suffix='-pungi.conf')
+        with open(mock_path, 'w') as f:
+            # write an invalid jinja2 template file
+            f.write('{{\n')
         with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
             pungi_cfg.get_pungi_config()
             log.exception.assert_called_once()
+        os.remove(mock_path)
 
     def test_get_pungi_conf_iso(self):
         _, mock_path = tempfile.mkstemp()
@@ -119,15 +116,9 @@ class TestPungi(unittest.TestCase):
 
     def setUp(self):
         super(TestPungi, self).setUp()
-        patched_pungi_conf_path = os.path.join(test_dir, '../conf/pungi.conf')
-        self.patch_pungi_conf_path = patch.object(odcs.server.conf,
-                                                  'pungi_conf_path',
-                                                  new=patched_pungi_conf_path)
-        self.patch_pungi_conf_path.start()
 
     def tearDown(self):
         super(TestPungi, self).tearDown()
-        self.patch_pungi_conf_path.stop()
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):

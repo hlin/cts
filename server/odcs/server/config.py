@@ -248,17 +248,19 @@ class Config(object):
         with runtime values.
         """
 
-        # set defaults
-        for name, values in self._defaults.items():
-            self.set_item(name, values['default'])
-
-        # override defaults
+        # read items from conf and set
         for key in dir(conf_section_obj):
             # skip keys starting with underscore
             if key.startswith('_'):
                 continue
             # set item (lower key)
             self.set_item(key.lower(), getattr(conf_section_obj, key))
+
+        # set item from defaults if the item is not set
+        for name, values in self._defaults.items():
+            if hasattr(self, name):
+                continue
+            self.set_item(name, values['default'])
 
         # Used by Flask-Login to disable the @login_required decorator
         self.login_disabled = self.auth_backend == 'noauth'
@@ -327,6 +329,11 @@ class Config(object):
     def _setifok_target_dir(self, s):
         if not os.path.isabs(s):
             raise ValueError("Compose target dir is not an absolute path: %s" % s)
-        if not os.path.exists(s):
-            raise ValueError("Compose target dir doesn't exist: %s" % s)
+        if not (os.path.exists(s) and os.path.isdir(s)):
+            raise ValueError("Compose target dir doesn't exist or not a directory: %s" % s)
         self._target_dir = s
+
+    def _setifok_pungi_conf_path(self, s):
+        if not os.path.isfile(s):
+            raise ValueError("Pungi config template doesn't exist: %s" % s)
+        self._pungi_conf_path = s
