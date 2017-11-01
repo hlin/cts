@@ -35,9 +35,9 @@ from odcs.server.backend import (resolve_compose, get_reusable_compose,
                                  generate_pulp_compose, validate_pungi_compose)
 from odcs.server.utils import makedirs
 import odcs.server.backend
-from utils import ModelsBaseTest
+from .utils import ModelsBaseTest
 
-from pdc import mock_pdc
+from .pdc import mock_pdc
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 

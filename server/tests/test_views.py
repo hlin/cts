@@ -37,7 +37,7 @@ from odcs.server import conf, db, app, login_manager
 from odcs.server.models import Compose, User
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
 from odcs.server.pungi import PungiSourceType
-from utils import ModelsBaseTest
+from .utils import ModelsBaseTest
 
 
 @login_manager.user_loader

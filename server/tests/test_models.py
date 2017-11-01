@@ -30,7 +30,7 @@ from odcs.common.types import COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.models import User
 from odcs.server.pungi import PungiSourceType
 
-from utils import ModelsBaseTest
+from .utils import ModelsBaseTest
 
 
 class TestModels(ModelsBaseTest):

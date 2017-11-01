@@ -38,7 +38,7 @@ from odcs.server.errors import Unauthorized
 from odcs.server.errors import Forbidden
 from odcs.server import app, conf, db
 from odcs.server.models import User
-from utils import ModelsBaseTest
+from .utils import ModelsBaseTest
 
 
 class TestLoadKrbUserFromRequest(ModelsBaseTest):

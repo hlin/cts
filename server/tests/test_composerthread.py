@@ -32,8 +32,8 @@ from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.backend import ComposerThread, resolve_compose
 from odcs.server.pungi import PungiSourceType
 
-from utils import ModelsBaseTest
-from pdc import mock_pdc
+from .utils import ModelsBaseTest
+from .pdc import mock_pdc
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 
