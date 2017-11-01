@@ -112,8 +112,8 @@ class ODCSAPI(MethodView):
             else:
                 raise NotFound('No such compose found.')
 
-    @require_scopes('renew-compose')
     @login_required
+    @require_scopes('renew-compose')
     @requires_role('allowed_clients')
     def patch(self, id):
         if request.data:
@@ -163,8 +163,8 @@ class ODCSAPI(MethodView):
             db.session.commit()
             return jsonify(old_compose.json()), 200
 
-    @require_scopes('new-compose')
     @login_required
+    @require_scopes('new-compose')
     @requires_role('allowed_clients')
     def post(self):
         data = request.get_json(force=True)
@@ -233,8 +233,8 @@ class ODCSAPI(MethodView):
 
         return jsonify(compose.json()), 200
 
-    @require_scopes('delete-compose')
     @login_required
+    @require_scopes('delete-compose')
     @requires_role('admins')
     def delete(self, id):
         compose = Compose.query.filter_by(id=id).first()

@@ -106,6 +106,32 @@ class ViewBaseTest(ModelsBaseTest):
         """Set up data for running tests"""
 
 
+class TestOpenIDCLogin(ViewBaseTest):
+    """Test that OpenIDC login"""
+
+    def setUp(self):
+        super(TestOpenIDCLogin, self).setUp()
+        self.patch_auth_backend = patch.object(
+            odcs.server.auth.conf, 'auth_backend', new='openidc')
+        self.patch_auth_backend.start()
+
+    def tearDown(self):
+        super(TestOpenIDCLogin, self).tearDown()
+        self.patch_auth_backend.stop()
+
+    def test_openidc_post_unauthorized(self):
+        rv = self.client.post('/api/1/composes/', data="")
+        self.assertEqual(rv.status, '401 UNAUTHORIZED')
+
+    def test_openidc_patch_unauthorized(self):
+        rv = self.client.patch('/api/1/composes/1')
+        self.assertEqual(rv.status, '401 UNAUTHORIZED')
+
+    def test_openidc_delete_unauthorized(self):
+        rv = self.client.delete('/api/1/composes/1')
+        self.assertEqual(rv.status, '401 UNAUTHORIZED')
+
+
 class TestHandlingErrors(ViewBaseTest):
     """Test registered error handlers"""
 
