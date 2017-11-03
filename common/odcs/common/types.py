@@ -65,6 +65,8 @@ COMPOSE_FLAGS = {
     # Compose without pulling-in the dependencies of packages or modules
     # defined for a compose.
     "no_deps": 1,
+    # Compose without pulling-in packages from the parent Koji tags.
+    "no_inheritance": 2,
 }
 
 INVERSE_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}

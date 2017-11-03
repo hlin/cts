@@ -45,6 +45,7 @@ class PungiConfig(object):
         self.source_type = source_type
         self.source = source
         self.koji_profile = conf.koji_profile
+        self.pkgset_koji_inherit = True
         if arches:
             self.arches = arches
         else:

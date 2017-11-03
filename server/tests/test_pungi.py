@@ -111,6 +111,26 @@ class TestPungiConfig(unittest.TestCase):
             cfg = self._load_pungi_cfg(template)
             self.assertTrue("createiso" not in cfg["skip_phases"])
 
+    def test_get_pungi_conf_koji_inherit(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
+                                    "f26")
+
+            pungi_cfg.pkgset_koji_inherit = False
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertFalse(cfg["pkgset_koji_inherit"])
+
+            pungi_cfg.pkgset_koji_inherit = True
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertTrue(cfg["pkgset_koji_inherit"])
+
 
 class TestPungi(unittest.TestCase):
 

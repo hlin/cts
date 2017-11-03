@@ -32,7 +32,8 @@ from odcs.common.types import COMPOSE_FLAGS, COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.pdc import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
 from odcs.server.backend import (resolve_compose, get_reusable_compose,
-                                 generate_pulp_compose, validate_pungi_compose)
+                                 generate_pulp_compose, validate_pungi_compose,
+                                 generate_pungi_compose)
 from odcs.server.utils import makedirs
 import odcs.server.backend
 from .utils import ModelsBaseTest
@@ -266,6 +267,78 @@ gpgcheck=0
         pulp_rest_post.assert_called_once_with('repositories/search/',
                                                expected_query)
         _write_repo_file.assert_not_called()
+
+
+class TestGeneratePungiCompose(ModelsBaseTest):
+
+    def setUp(self):
+        super(TestGeneratePungiCompose, self).setUp()
+
+        self.patch_resolve_compose = patch("odcs.server.backend.resolve_compose")
+        self.resolve_compose = self.patch_resolve_compose.start()
+
+        self.patch_get_reusable_compose = patch("odcs.server.backend.get_reusable_compose")
+        self.get_reusable_compose = self.patch_get_reusable_compose.start()
+        self.get_reusable_compose.return_value = False
+
+        self.patch_write_repo_file = patch("odcs.server.backend._write_repo_file")
+        self.write_repo_file = self.patch_write_repo_file.start()
+
+        # Mocked method to store Pungi.pungi_cfg to self.pungi_cfg, so we can
+        # run asserts against it.
+        self.pungi_config = None
+
+        def fake_pungi_run(pungi_cls):
+            self.pungi_config = pungi_cls.pungi_cfg
+
+        self.patch_pungi_run = patch("odcs.server.pungi.Pungi.run", autospec=True)
+        self.pungi_run = self.patch_pungi_run.start()
+        self.pungi_run.side_effect = fake_pungi_run
+
+    def tearDown(self):
+        super(TestGeneratePungiCompose, self).tearDown()
+        self.patch_resolve_compose.stop()
+        self.patch_get_reusable_compose.stop()
+        self.patch_write_repo_file.stop()
+        self.patch_pungi_run.stop()
+        self.pungi_config = None
+
+    def test_generate_pungi_compose(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3')
+        c.id = 1
+
+        generate_pungi_compose(c)
+
+        self.resolve_compose.assert_called_once_with(c)
+        self.get_reusable_compose.assert_called_once_with(c)
+        self.write_repo_file.assert_called_once_with(c)
+
+        self.assertEqual(self.pungi_config.gather_method, "deps")
+        self.assertEqual(self.pungi_config.pkgset_koji_inherit, True)
+
+    def test_generate_pungi_compose_nodeps(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3',
+            flags=COMPOSE_FLAGS["no_deps"])
+        c.id = 1
+
+        generate_pungi_compose(c)
+        self.assertEqual(self.pungi_config.gather_method, "nodeps")
+        self.assertEqual(self.pungi_config.pkgset_koji_inherit, True)
+
+    def test_generate_pungi_compose_noinheritance(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3',
+            flags=COMPOSE_FLAGS["no_inheritance"])
+        c.id = 1
+
+        generate_pungi_compose(c)
+        self.assertEqual(self.pungi_config.gather_method, "deps")
+        self.assertEqual(self.pungi_config.pkgset_koji_inherit, False)
 
 
 class TestValidatePungiCompose(ModelsBaseTest):
