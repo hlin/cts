@@ -188,8 +188,22 @@ compose = odcs.renew_compose(compose["id"])
 
 ### Unit-testing
 
+Install packages required by pip to compile some python packages:
+
 ```
-$ tox -e py27,py35,flake8
+$ sudo yum install -y gcc swig redhat-rpm-config python-devel openssl-devel openldap-devel
+```
+
+Koji is required but not available on pypi.python.org, we enabled system sitepackages for tox, so koji can be found while running tests.
+
+```
+$ sudo yum install -y python2-koji python3-koji
+```
+
+Run the tests:
+
+```
+$ make check
 ```
 
 ### Testing local composes from plain RPM repositories
