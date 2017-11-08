@@ -243,7 +243,7 @@ class TestViews(ViewBaseTest):
         self.assertEqual(data['flags'], ['no_deps'])
 
         db.session.expire_all()
-        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
         self.assertEqual(c.flags, COMPOSE_FLAGS["no_deps"])
 
@@ -261,7 +261,7 @@ class TestViews(ViewBaseTest):
         self.assertEqual(data['flags'], ['no_inheritance'])
 
         db.session.expire_all()
-        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
         self.assertEqual(c.flags, COMPOSE_FLAGS["no_inheritance"])
 
