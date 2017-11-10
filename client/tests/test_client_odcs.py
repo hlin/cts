@@ -234,7 +234,8 @@ class TestNewCompose(unittest.TestCase):
         new_compose = self.odcs.new_compose('cf-1.0-rhel-5',
                                             'tag',
                                             packages=['libdnet'],
-                                            sigkeys=['123', '456'])
+                                            sigkeys=['123', '456'],
+                                            results=["boot.iso"])
 
         self.assertEqual(fake_new_compose, new_compose)
         requests.post.assert_called_once_with(
@@ -243,7 +244,8 @@ class TestNewCompose(unittest.TestCase):
                 'source': {'source': 'cf-1.0-rhel-5',
                            'type': 'tag',
                            'packages': ['libdnet'],
-                           'sigkeys': ['123', '456']}
+                           'sigkeys': ['123', '456']},
+                'results': ['boot.iso'],
             }),
             headers={'Content-Type': 'application/json'}
         )

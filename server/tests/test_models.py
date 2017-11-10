@@ -58,6 +58,7 @@ class TestModels(ModelsBaseTest):
                          'time_removed': None,
                          'time_to_expire': c.json()["time_to_expire"],
                          'flags': [],
+                         'results': ['repository'],
                          'sigkeys': ''}
         self.assertEqual(c.json(), expected_json)
 

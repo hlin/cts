@@ -138,8 +138,8 @@ class TestConfiguration(BaseConfiguration):
     LOG_LEVEL = 'debug'
     DEBUG = True
 
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///{0}'.format(
-        path.join(dbdir, 'test_odcs.db'))
+    # Use in-memory sqlite db to make tests fast.
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
     PUNGI_CONF_PATH = path.join(confdir, 'pungi.conf')
     # Global network-related values, in seconds
