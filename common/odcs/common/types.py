@@ -58,6 +58,7 @@ COMPOSE_RESULTS = {
     "repository": 1,
     "iso": 2,
     "ostree": 4,
+    "boot.iso": 8,
 }
 
 COMPOSE_FLAGS = {
