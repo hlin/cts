@@ -192,11 +192,11 @@ def check_delete_compose(compose_id):
     print("")
 
 if profile == "redhat":
-    compose_id = check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], ["no_deps"])
-    check_delete_compose(compose_id)
-    check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5", ["gofer"], ["no_deps"])
+#    compose_id = check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], ["no_deps"])
+#    check_delete_compose(compose_id)
+#    check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5", ["gofer"], ["no_deps"])
 
-    check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
+#    check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
     check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
 else:
     compose_id = check_new_compose("module", "testmodule-master", [], ["no_deps"])
