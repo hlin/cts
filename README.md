@@ -30,7 +30,7 @@ odcs[client]
 
 ### ODCS authentication system
 
-ODCS server can be configured to authenticate using OpenIDC or Kerberos. Eventually it can be set in NoAuth mode to support anonymous access. Depending on the ODCS server configuration, you have to set your authentication method when creating ODCS class instance.
+ODCS server can be configured to authenticate using OpenIDC, Kerberos or SSL. Eventually it can be set in NoAuth mode to support anonymous access. Depending on the ODCS server configuration, you have to set your authentication method when creating ODCS class instance.
 
 #### Using OpenIDC for authentication
 
@@ -89,6 +89,19 @@ environ["KRB5_CLIENT_KTNAME"] = "/full/path/to/ketab"
 
 odcs = ODCS("https://odcs.fedoraproject.org",
             auth_mech=AuthMech.Kerberos)
+```
+
+#### Using SSL for authentication
+
+To use SSL, you have to have SSL client certificate and key files. You then have to choose SSL AuthMech and pass the paths to SSL client certificate and key like this:
+
+```
+from odcs.client.odcs import ODCS, AuthMech
+
+odcs = ODCS("https://odcs.fedoraproject.org",
+            auth_mech=AuthMech.SSL,
+            ssl_cert="/path/to/ssl-crt.pem",
+            ssl_key="/path/to/ssl-key.pem")
 ```
 
 ### Requesting new compose

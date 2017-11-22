@@ -121,6 +121,24 @@ class TestMakeRequest(unittest.TestCase):
             })
 
     @patch('odcs.client.odcs.requests')
+    def test_with_ssl_auth(self, requests):
+        requests.post.return_value.status_code = 200
+
+        odcs = ODCS(self.server_url,
+                    auth_mech=AuthMech.SSL,
+                    ssl_cert="./ssl.crt", ssl_key="./ssl.key")
+        r = odcs._make_request('post', self.resource_path, data={'id': 1})
+
+        self.assertEqual(requests.post.return_value, r)
+        requests.post.assert_called_once_with(
+            odcs._make_endpoint(self.resource_path),
+            data=json.dumps({'id': 1}),
+            cert=("./ssl.crt", "./ssl.key"),
+            headers={
+                'Content-Type': 'application/json'
+            })
+
+    @patch('odcs.client.odcs.requests')
     def test_do_not_verify_ssl(self, requests):
         requests.post.return_value.status_code = 200
 
