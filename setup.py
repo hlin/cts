@@ -1,5 +1,41 @@
 from setuptools import setup
 import os
+import sys
+
+
+def running_under_virtualenv():
+    if hasattr(sys, 'real_prefix'):
+        return True
+    elif sys.prefix != getattr(sys, "base_prefix", sys.prefix):
+        return True
+    if os.getenv('VIRTUAL_ENV', False):
+        return True
+    if '--user' in sys.argv:
+        return True
+    return False
+
+
+VIRTUAL_ENV = running_under_virtualenv()
+
+
+def get_dir(system_path=None, virtual_path=None):
+    """
+    Retrieve VIRTUAL_ENV friendly path
+    :param system_path: Relative system path
+    :param virtual_path: Overrides system_path for virtual_env only
+    :return: VIRTUAL_ENV friendly path
+    """
+    if virtual_path is None:
+        virtual_path = system_path
+    if VIRTUAL_ENV:
+        if virtual_path is None:
+            virtual_path = []
+        return os.path.join(*virtual_path)
+    else:
+        if system_path is None:
+            system_path = []
+        return os.path.join(*(['/'] + system_path))
+
 
 extras_require = {}
 for package in ["common", "client", "server"]:
@@ -48,5 +84,7 @@ setup(name='odcs',
                               'odcs-backend = odcs.server.manage:runbackend [server]',
                               'odcs-manager = odcs.server.manage:manager_wrapper [server]'],
       },
-      data_files=[('/etc/odcs/', ['server/conf/config.py', 'server/conf/pungi.conf'])],
+      data_files=[
+          (get_dir(['etc', 'odcs']), ['server/conf/config.py', 'server/conf/pungi.conf'])
+      ],
       )
