@@ -482,6 +482,8 @@ def generate_pungi_compose(compose):
                                 results=compose.results)
         if compose.flags & COMPOSE_FLAGS["no_deps"]:
             pungi_cfg.gather_method = "nodeps"
+        if compose.flags & COMPOSE_FLAGS["no_inheritance"]:
+            pungi_cfg.pkgset_koji_inherit = False
 
         koji_event = None
         if compose.source_type == PungiSourceType.KOJI_TAG:

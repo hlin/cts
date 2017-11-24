@@ -35,9 +35,9 @@ import odcs.server.auth
 
 from odcs.server import conf, db, app, login_manager
 from odcs.server.models import Compose, User
-from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
+from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.pungi import PungiSourceType
-from utils import ModelsBaseTest
+from .utils import ModelsBaseTest
 
 
 @login_manager.user_loader
@@ -222,6 +222,7 @@ class TestViews(ViewBaseTest):
                          'time_removed': None,
                          'time_to_expire': data["time_to_expire"],
                          'flags': [],
+                         'results': ['repository'],
                          'sigkeys': ''}
         self.assertEqual(data, expected_json)
 
@@ -243,8 +244,47 @@ class TestViews(ViewBaseTest):
         self.assertEqual(data['flags'], ['no_deps'])
 
         db.session.expire_all()
-        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(c.flags, COMPOSE_FLAGS["no_deps"])
+
+    def test_submit_build_noinheritance(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
+                 'flags': ['no_inheritance']}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['flags'], ['no_inheritance'])
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(c.flags, COMPOSE_FLAGS["no_inheritance"])
+
+    def test_submit_build_boot_iso(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
+                 'results': ['boot.iso']}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data['results'], ['repository', 'boot.iso'])
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(
+            c.results,
+            COMPOSE_RESULTS["boot.iso"] | COMPOSE_RESULTS["repository"])
 
     def test_submit_build_sigkeys(self):
         with self.test_request_context(user='dev'):
@@ -633,6 +673,7 @@ class TestViews(ViewBaseTest):
                          'time_removed': None,
                          'time_to_expire': data["time_to_expire"],
                          'flags': [],
+                         'results': ['repository'],
                          'sigkeys': ''}
         self.assertEqual(data, expected_json)
 

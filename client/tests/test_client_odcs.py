@@ -121,6 +121,24 @@ class TestMakeRequest(unittest.TestCase):
             })
 
     @patch('odcs.client.odcs.requests')
+    def test_with_ssl_auth(self, requests):
+        requests.post.return_value.status_code = 200
+
+        odcs = ODCS(self.server_url,
+                    auth_mech=AuthMech.SSL,
+                    ssl_cert="./ssl.crt", ssl_key="./ssl.key")
+        r = odcs._make_request('post', self.resource_path, data={'id': 1})
+
+        self.assertEqual(requests.post.return_value, r)
+        requests.post.assert_called_once_with(
+            odcs._make_endpoint(self.resource_path),
+            data=json.dumps({'id': 1}),
+            cert=("./ssl.crt", "./ssl.key"),
+            headers={
+                'Content-Type': 'application/json'
+            })
+
+    @patch('odcs.client.odcs.requests')
     def test_do_not_verify_ssl(self, requests):
         requests.post.return_value.status_code = 200
 
@@ -234,7 +252,8 @@ class TestNewCompose(unittest.TestCase):
         new_compose = self.odcs.new_compose('cf-1.0-rhel-5',
                                             'tag',
                                             packages=['libdnet'],
-                                            sigkeys=['123', '456'])
+                                            sigkeys=['123', '456'],
+                                            results=["boot.iso"])
 
         self.assertEqual(fake_new_compose, new_compose)
         requests.post.assert_called_once_with(
@@ -243,7 +262,8 @@ class TestNewCompose(unittest.TestCase):
                 'source': {'source': 'cf-1.0-rhel-5',
                            'type': 'tag',
                            'packages': ['libdnet'],
-                           'sigkeys': ['123', '456']}
+                           'sigkeys': ['123', '456']},
+                'results': ['boot.iso'],
             }),
             headers={'Content-Type': 'application/json'}
         )

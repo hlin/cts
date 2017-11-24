@@ -37,7 +37,8 @@ from odcs.server import db
 from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
 from odcs.common.types import (
-    COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS)
+    COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS,
+    COMPOSE_RESULTS)
 
 from sqlalchemy import event, or_
 from flask_sqlalchemy import SignallingSession
@@ -228,6 +229,14 @@ class Compose(ODCSBase):
                 continue
             if self.flags & value:
                 flags.append(name)
+
+        results = []
+        for name, value in COMPOSE_RESULTS.items():
+            if value == 0:
+                continue
+            if self.results & value:
+                results.append(name)
+
         return {
             'id': self.id,
             'owner': self.owner,
@@ -242,6 +251,7 @@ class Compose(ODCSBase):
             'result_repo': self.result_repo_url,
             'result_repofile': self.result_repofile_url,
             'flags': flags,
+            'results': results,
             'sigkeys': self.sigkeys if self.sigkeys else ""
         }
 

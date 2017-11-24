@@ -32,7 +32,7 @@ from odcs.server.models import Compose
 from odcs.server.pungi import PungiSourceType
 from odcs.common.types import COMPOSE_RESULTS
 from odcs.common.types import COMPOSE_STATES
-from utils import ModelsBaseTest
+from .utils import ModelsBaseTest
 
 try:
     import rhmsg

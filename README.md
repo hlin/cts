@@ -30,7 +30,7 @@ odcs[client]
 
 ### ODCS authentication system
 
-ODCS server can be configured to authenticate using OpenIDC or Kerberos. Eventually it can be set in NoAuth mode to support anonymous access. Depending on the ODCS server configuration, you have to set your authentication method when creating ODCS class instance.
+ODCS server can be configured to authenticate using OpenIDC, Kerberos or SSL. Eventually it can be set in NoAuth mode to support anonymous access. Depending on the ODCS server configuration, you have to set your authentication method when creating ODCS class instance.
 
 #### Using OpenIDC for authentication
 
@@ -91,6 +91,19 @@ odcs = ODCS("https://odcs.fedoraproject.org",
             auth_mech=AuthMech.Kerberos)
 ```
 
+#### Using SSL for authentication
+
+To use SSL, you have to have SSL client certificate and key files. You then have to choose SSL AuthMech and pass the paths to SSL client certificate and key like this:
+
+```
+from odcs.client.odcs import ODCS, AuthMech
+
+odcs = ODCS("https://odcs.fedoraproject.org",
+            auth_mech=AuthMech.SSL,
+            ssl_cert="/path/to/ssl-crt.pem",
+            ssl_key="/path/to/ssl-key.pem")
+```
+
 ### Requesting new compose
 
 The general way how to request new ODCS compose is following:
@@ -114,6 +127,9 @@ There are also additional optional attributes you can pass to `new_compose(...)`
 - `flags` - List of flags to further modify the compose output:
   - `no_deps` - For `tag` `source_type`, do not resolve dependencies between packages and include only packages listed in the `packages` in the compose. For `module` `source_type`, do not resolve dependencies between modules and include only the requested module in the compose.
 - `sigkeys` - List of signature keys IDs. Only packages signed by one of these keys will be included in a compose. If there is no signed version of a package, compose will fail. It is also possible to pass an empty-string in a list meaning unsigned packages are allowed. For example if you want to prefer packages signed by key with ID `123` and also allow unsigned packages to appear in a compose, you can do it by setting sigkeys to `["123", ""]`.
+- `results` - List of additional results which will be generated as part of a compose. Valid keys are:
+  - `iso` - Generates non-installable ISO files with RPMs from a compose.
+  - `boot.iso` - Generates `images/boot.iso` file which is needed to build base container images from resulting compose.
 
 The `new_compose` method returns `dict` object describing the compose, for example:
 
@@ -188,8 +204,22 @@ compose = odcs.renew_compose(compose["id"])
 
 ### Unit-testing
 
+Install packages required by pip to compile some python packages:
+
 ```
-$ tox -e py27,py35,flake8
+$ sudo yum install -y gcc swig redhat-rpm-config python-devel openssl-devel openldap-devel
+```
+
+Koji is required but not available on pypi.python.org, we enabled system sitepackages for tox, so koji can be found while running tests.
+
+```
+$ sudo yum install -y python2-koji python3-koji
+```
+
+Run the tests:
+
+```
+$ make check
 ```
 
 ### Testing local composes from plain RPM repositories

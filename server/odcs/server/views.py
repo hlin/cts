@@ -224,9 +224,16 @@ class ODCSAPI(MethodView):
                     raise ValueError("Unknown flag %s", name)
                 flags |= COMPOSE_FLAGS[name]
 
+        results = COMPOSE_RESULTS["repository"]
+        if "results" in data:
+            for name in data["results"]:
+                if name not in COMPOSE_RESULTS:
+                    raise ValueError("Unknown result %s", name)
+                results |= COMPOSE_RESULTS[name]
+
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
-            COMPOSE_RESULTS["repository"], seconds_to_live,
+            results, seconds_to_live,
             packages, flags, sigkeys)
         db.session.add(compose)
         db.session.commit()

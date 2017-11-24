@@ -33,10 +33,11 @@ class AuthMech(object):
     OpenIDC = 1
     Kerberos = 2
     Anonymous = 3
+    SSL = 4
 
     @classmethod
     def has(cls, mech):
-        return mech in (cls.OpenIDC, cls.Kerberos, cls.Anonymous)
+        return mech in (cls.OpenIDC, cls.Kerberos, cls.Anonymous, cls.SSL)
 
 
 def validate_int(value, min=1, type_error=None, value_error=None):
@@ -72,7 +73,8 @@ class ODCS(object):
     """Client API to interact with ODCS APIs"""
 
     def __init__(self, server_url, api_version='1', verify_ssl=True,
-                 auth_mech=None, openidc_token=None):
+                 auth_mech=None, openidc_token=None, ssl_cert=None,
+                 ssl_key=None):
         """Initialize ODCS client
 
         :param str server_url: server URL of ODCS.
@@ -82,12 +84,18 @@ class ODCS(object):
             by passing False.
         :param AuthMech auth_mech: specify what authentication mechanism is
             used to interact with ODCS server. Choose one mechanism from
-            AuthMech, both OpenIDC and Kerberos GSSAPI are supported. Anonymous
-            can be passed to force client not send any authentication
-            information. If this parameter is omitted, same as Anonymous.
+            AuthMech. Anonymous can be passed to force client not send
+            any authentication information. If this parameter is omitted,
+            same as Anonymous.
         :param str openidc_token: token got from OpenIDC so that client can be
             authenticated by ODCS server. This is only required if
             ``AuthMech.OpenIDC`` is passed to parameter ``auth_mech``.
+        :param str ssl_cert: Path to SSL client certificate to use. This is
+            only required if ``AuthMech.SSL`` is passed to parameter
+            ``auth_mech``.
+        :param str ssl_key: Path to SSL client key to use. This is
+            only required if ``AuthMech.SSL`` is passed to parameter
+            ``auth_mech``.
         """
         self._server_url = server_url
         self._api_version = api_version
@@ -96,6 +104,12 @@ class ODCS(object):
             raise ValueError('OpenIDC token must be specified when OpenIDC'
                              ' authentication is enabled.')
         self._openidc_token = openidc_token
+
+        if auth_mech == AuthMech.SSL and (not ssl_cert or not ssl_key):
+            raise ValueError('SSL cert and keymust be specified when SSL'
+                             ' authentication is enabled.')
+        self._ssl_cert = ssl_cert
+        self._ssl_key = ssl_key
 
         if auth_mech is None:
             self._auth_mech = AuthMech.Anonymous
@@ -160,6 +174,9 @@ class ODCS(object):
             headers['Authorization'] = 'Bearer {0}'.format(self._openidc_token)
         elif self.auth_mech == AuthMech.Kerberos:
             request_data['auth'] = HTTPKerberosAuth()
+        elif self.auth_mech == AuthMech.SSL:
+            request_data['cert'] = (self._ssl_cert, self._ssl_key)
+
         # Anonymous is the last possible value and no auth should be set
 
         if headers:
@@ -194,7 +211,7 @@ class ODCS(object):
 
     def new_compose(self, source, source_type,
                     seconds_to_live=None, packages=[], flags=[],
-                    sigkeys=None):
+                    sigkeys=None, results=None):
         """Request a new compose
 
         :param str source: from where to grab and make new compose, different
@@ -216,6 +233,10 @@ class ODCS(object):
             listed in ``source`` without their dependencies.
         :param list sigkeys: List of signature keys by which the packages
             in compose must be signed.
+        :param list results: List of additional results which will be generated
+            by ODCS as part of this compose. Can be "iso" for iso files with
+            packages or "boot.iso" for images/boot.iso needed to generate
+            container base images or installable DVDs.
         :return: the newly created Compose
         :rtype: dict
         """
@@ -230,6 +251,8 @@ class ODCS(object):
             request_data['seconds-to-live'] = seconds_to_live
         if flags:
             request_data['flags'] = flags
+        if results:
+            request_data['results'] = results
 
         r = self._post('composes/', request_data)
         return r.json()

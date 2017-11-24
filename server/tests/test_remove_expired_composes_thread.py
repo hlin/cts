@@ -27,7 +27,7 @@ from odcs.server.backend import RemoveExpiredComposesThread
 from odcs.server.pungi import PungiSourceType
 from datetime import datetime, timedelta
 
-from utils import ModelsBaseTest
+from .utils import ModelsBaseTest
 
 import os
 import mock

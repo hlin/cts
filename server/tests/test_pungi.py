@@ -83,6 +83,7 @@ class TestPungiConfig(unittest.TestCase):
             self.assertEqual(cfg["release_short"], "MBS-512")
             self.assertEqual(cfg["release_version"], "1")
             self.assertTrue("createiso" in cfg["skip_phases"])
+            self.assertTrue("buildinstall" in cfg["skip_phases"])
 
     @patch("odcs.server.pungi.log")
     def test_get_pungi_conf_exception(self, log):
@@ -110,6 +111,40 @@ class TestPungiConfig(unittest.TestCase):
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
             self.assertTrue("createiso" not in cfg["skip_phases"])
+
+    def test_get_pungi_conf_boot_iso(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
+                                    "testmodule-master",
+                                    results=COMPOSE_RESULTS["boot.iso"])
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertTrue("buildinstall" not in cfg["skip_phases"])
+
+    def test_get_pungi_conf_koji_inherit(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
+                                    "f26")
+
+            pungi_cfg.pkgset_koji_inherit = False
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertFalse(cfg["pkgset_koji_inherit"])
+
+            pungi_cfg.pkgset_koji_inherit = True
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertTrue(cfg["pkgset_koji_inherit"])
 
 
 class TestPungi(unittest.TestCase):
