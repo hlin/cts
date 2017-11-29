@@ -27,6 +27,7 @@ class PungiSourceType:
     MODULE = 2
     REPO = 3
     PULP = 4
+    ODCS_COMPOSE = 5
 
 
 PUNGI_SOURCE_TYPE_NAMES = {
@@ -34,9 +35,13 @@ PUNGI_SOURCE_TYPE_NAMES = {
     "module": PungiSourceType.MODULE,
     "repo": PungiSourceType.REPO,
     # This is not real PungiSourceType, but ODCS handles the PULP
-    # as a extra source type by generating the .repo file pointing
+    # as an extra source type by generating the .repo file pointing
     # to composes done by PULP/PUB.
     "pulp": PungiSourceType.PULP,
+    # This is not real PungiSourceType, but ODCS handles the odcs_compose
+    # as an extra source type by generating the .repo merging the repositories
+    # from two other ODCS composes defined by ids.
+    "odcs_compose": PungiSourceType.ODCS_COMPOSE,
 }
 
 COMPOSE_STATES = {

@@ -253,7 +253,8 @@ class TestNewCompose(unittest.TestCase):
                                             'tag',
                                             packages=['libdnet'],
                                             sigkeys=['123', '456'],
-                                            results=["boot.iso"])
+                                            results=["boot.iso"],
+                                            result_repo_name="foo")
 
         self.assertEqual(fake_new_compose, new_compose)
         requests.post.assert_called_once_with(
@@ -264,6 +265,7 @@ class TestNewCompose(unittest.TestCase):
                            'packages': ['libdnet'],
                            'sigkeys': ['123', '456']},
                 'results': ['boot.iso'],
+                'result_repo_name': 'foo',
             }),
             headers={'Content-Type': 'application/json'}
         )

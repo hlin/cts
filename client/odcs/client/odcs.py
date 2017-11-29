@@ -211,7 +211,7 @@ class ODCS(object):
 
     def new_compose(self, source, source_type,
                     seconds_to_live=None, packages=[], flags=[],
-                    sigkeys=None, results=None):
+                    sigkeys=None, results=None, result_repo_name=None):
         """Request a new compose
 
         :param str source: from where to grab and make new compose, different
@@ -237,6 +237,8 @@ class ODCS(object):
             by ODCS as part of this compose. Can be "iso" for iso files with
             packages or "boot.iso" for images/boot.iso needed to generate
             container base images or installable DVDs.
+        :param str result_repo_name: Name of the repository in generated .repo
+            file.
         :return: the newly created Compose
         :rtype: dict
         """
@@ -253,6 +255,8 @@ class ODCS(object):
             request_data['flags'] = flags
         if results:
             request_data['results'] = results
+        if result_repo_name:
+            request_data['result_repo_name'] = result_repo_name
 
         r = self._post('composes/', request_data)
         return r.json()

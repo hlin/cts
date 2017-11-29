@@ -23,7 +23,7 @@
 import os
 import shutil
 
-from mock import patch, MagicMock
+from mock import patch, MagicMock, mock_open
 from productmd.rpms import Rpms
 
 from odcs.server import db
@@ -33,7 +33,8 @@ from odcs.server.pdc import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
 from odcs.server.backend import (resolve_compose, get_reusable_compose,
                                  generate_pulp_compose, validate_pungi_compose,
-                                 generate_pungi_compose)
+                                 generate_pungi_compose, _write_repo_file,
+                                 _read_repo_file, generate_odcs_compose_compose)
 from odcs.server.utils import makedirs
 import odcs.server.backend
 from .utils import ModelsBaseTest
@@ -182,6 +183,111 @@ class TestBackend(ModelsBaseTest):
             reused_c = get_reusable_compose(c)
             self.assertEqual(reused_c, None)
 
+    def test_write_repo_file(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        m = mock_open()
+        with patch('odcs.server.backend.open', m, create=True):
+            _write_repo_file(c)
+
+        expected_repo_file = """[odcs-1]
+name=ODCS repository for odcs-1
+baseurl=http://localhost/odcs/latest-odcs-1-1/compose/Temporary/$basearch/os
+skip_if_unavailable=False
+gpgcheck=0
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+
+"""
+
+        handle = m()
+        handle.write.assert_called_once_with(expected_repo_file)
+
+    def test_write_repo_file_repos_defined(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+        repos = {
+            'foo-2': 'http://localhost/content/2/x86_64/os',
+            'foo-1': 'http://localhost/content/1/x86_64/os'
+        }
+
+        m = mock_open()
+        with patch('odcs.server.backend.open', m, create=True):
+            _write_repo_file(c, repos)
+
+        expected_repo_file = """[foo-2]
+name=ODCS repository for foo-2
+baseurl=http://localhost/content/2/x86_64/os
+skip_if_unavailable=False
+gpgcheck=0
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+
+[foo-1]
+name=ODCS repository for foo-1
+baseurl=http://localhost/content/1/x86_64/os
+skip_if_unavailable=False
+gpgcheck=0
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+
+"""
+
+        handle = m()
+        handle.write.assert_called_once_with(expected_repo_file)
+
+    def test_read_repo_file(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+        repo_file = """[foo-2]
+name=ODCS repository for foo-2
+baseurl=http://localhost/content/2/x86_64/os
+skip_if_unavailable=False
+gpgcheck=0
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+
+[foo-1]
+name=ODCS repository for foo-1
+baseurl=http://localhost/content/1/x86_64/os
+skip_if_unavailable=False
+gpgcheck=0
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+
+"""
+
+        makedirs(os.path.dirname(c.result_repofile_path))
+        try:
+            with open(c.result_repofile_path, "w") as f:
+                f.write(repo_file)
+
+            repos = _read_repo_file(c)
+        finally:
+            shutil.rmtree(c.toplevel_dir)
+
+        expected_repos = {
+            'foo-2': 'http://localhost/content/2/x86_64/os',
+            'foo-1': 'http://localhost/content/1/x86_64/os'
+        }
+
+        self.assertEqual(repos, expected_repos)
+
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose(
@@ -221,20 +327,12 @@ class TestBackend(ModelsBaseTest):
         pulp_rest_post.assert_called_once_with('repositories/search/',
                                                expected_query)
 
-        expected_repofile = """
-[foo-1]
-name=foo-1
-baseurl=http://localhost/content/1/x86_64/os
-enabled=1
-gpgcheck=0
+        expected_repos = {
+            'foo-2': 'http://localhost/content/2/x86_64/os',
+            'foo-1': 'http://localhost/content/1/x86_64/os'
+        }
 
-[foo-2]
-name=foo-2
-baseurl=http://localhost/content/2/x86_64/os
-enabled=1
-gpgcheck=0
-"""
-        _write_repo_file.assert_called_once_with(c, expected_repofile)
+        _write_repo_file.assert_called_once_with(c, expected_repos)
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
@@ -339,6 +437,222 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         generate_pungi_compose(c)
         self.assertEqual(self.pungi_config.gather_method, "deps")
         self.assertEqual(self.pungi_config.pkgset_koji_inherit, False)
+
+
+class TestGenerateODCSComposeCompose(ModelsBaseTest):
+
+    def setUp(self):
+        super(TestGenerateODCSComposeCompose, self).setUp()
+
+        self.patch_write_repo_file = patch("odcs.server.backend._write_repo_file")
+        self.write_repo_file = self.patch_write_repo_file.start()
+
+        self.patch_read_repo_file = patch("odcs.server.backend._read_repo_file")
+        self.read_repo_file = self.patch_read_repo_file.start()
+        self.read_repo_file.side_effect = [
+            {
+                'foo-2': 'http://localhost/content/2/x86_64/os',
+                'foo-1': 'http://localhost/content/1/x86_64/os'
+            },
+            {
+                'foo-2': 'http://localhost/content/4/x86_64/os',
+                'foo-3': 'http://localhost/content/3/x86_64/os'
+            },
+        ]
+
+        self.patch_mergerepo = patch("odcs.server.utils.mergerepo")
+        self.mergerepo = self.patch_mergerepo.start()
+
+        self.tag_compose1 = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3')
+        db.session.add(self.tag_compose1)
+
+        self.tag_compose2 = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f27",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3')
+        db.session.add(self.tag_compose2)
+
+        self.pulp_compose1 = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(self.pulp_compose1)
+
+        self.pulp_compose2 = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-3 foo-4",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(self.pulp_compose2)
+
+        self.repo_compose1 = Compose.create(
+            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
+            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+        db.session.add(self.repo_compose1)
+
+        self.repo_compose2 = Compose.create(
+            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo2"),
+            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+        db.session.add(self.repo_compose2)
+        db.session.commit()
+
+    def tearDown(self):
+        super(TestGenerateODCSComposeCompose, self).tearDown()
+        self.patch_mergerepo.stop()
+        self.patch_write_repo_file.stop()
+        self.patch_read_repo_file.stop()
+
+    def test_generate_odcs_compose_single_compose(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "1",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        self.assertRaises(ValueError, generate_odcs_compose_compose, c)
+
+    def test_generate_odcs_compose_wrong_input(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "1   a",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        self.assertRaises(ValueError, generate_odcs_compose_compose, c)
+
+    def test_generate_odcs_compose_tag_and_tag(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "%d %d" % (self.tag_compose1.id, self.tag_compose2.id),
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        generate_odcs_compose_compose(c)
+        self.mergerepo.assert_called_once_with(
+            ['http://localhost/odcs/latest-odcs-1-1/compose/Temporary/x86_64/os',
+             'http://localhost/odcs/latest-odcs-2-1/compose/Temporary/x86_64/os'],
+            c.result_repo_dir("x86_64"), True)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+
+        repos = {
+            'odcs-7': 'http://localhost/odcs/latest-odcs-7-1/compose/Temporary/$basearch/os'
+        }
+        self.write_repo_file.assert_called_once_with(c, repos)
+
+    def test_generate_odcs_compose_tag_and_pulp_wrong_name(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "%d %d" % (self.tag_compose1.id, self.pulp_compose1.id),
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        self.assertRaises(ValueError, generate_odcs_compose_compose, c)
+
+    def test_generate_odcs_compose_tag_and_pulp(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "%d %d" % (self.tag_compose1.id, self.pulp_compose1.id),
+            COMPOSE_RESULTS["repository"], 3600, result_repo_name="foo-2")
+        db.session.add(c)
+        db.session.commit()
+
+        generate_odcs_compose_compose(c)
+        self.mergerepo.assert_called_once_with(
+            ['http://localhost/odcs/latest-odcs-1-1/compose/Temporary/x86_64/os',
+             'http://localhost/content/2/x86_64/os'],
+            c.result_repo_dir("x86_64"), True)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+
+        repos = {
+            'foo-1': 'http://localhost/content/1/x86_64/os',
+            'foo-2': 'http://localhost/odcs/latest-odcs-7-1/compose/Temporary/$basearch/os',
+        }
+        self.write_repo_file.assert_called_once_with(c, repos)
+
+    def test_generate_odcs_compose_tag_and_repo(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "%d %d" % (self.tag_compose1.id, self.repo_compose1.id),
+            COMPOSE_RESULTS["repository"], 3600, result_repo_name="foo-2")
+        db.session.add(c)
+        db.session.commit()
+
+        generate_odcs_compose_compose(c)
+        self.mergerepo.assert_called_once_with(
+            ['http://localhost/odcs/latest-odcs-1-1/compose/Temporary/x86_64/os',
+             'file://' + self.repo_compose1.result_repo_dir("x86_64")],
+            c.result_repo_dir("x86_64"), True)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+
+        repos = {
+            'foo-2': 'http://localhost/odcs/latest-odcs-7-1/compose/Temporary/$basearch/os'
+        }
+        self.write_repo_file.assert_called_once_with(c, repos)
+
+    def test_generate_odcs_compose_pulp_and_pulp(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "%d %d" % (self.pulp_compose1.id, self.pulp_compose2.id),
+            COMPOSE_RESULTS["repository"], 3600, result_repo_name="foo-2")
+        db.session.add(c)
+        db.session.commit()
+
+        generate_odcs_compose_compose(c)
+        self.mergerepo.assert_called_once_with(
+            ['http://localhost/content/2/x86_64/os',
+             'http://localhost/content/4/x86_64/os'],
+            c.result_repo_dir("x86_64"), True)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+
+        repos = {
+            'foo-2': 'http://localhost/odcs/latest-odcs-7-1/compose/Temporary/$basearch/os',
+            'foo-3': 'http://localhost/content/3/x86_64/os',
+            'foo-1': 'http://localhost/content/1/x86_64/os'
+        }
+        self.write_repo_file.assert_called_once_with(c, repos)
+
+    def test_generate_odcs_compose_pulp_and_repo(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "%d %d" % (self.pulp_compose1.id, self.repo_compose1.id),
+            COMPOSE_RESULTS["repository"], 3600, result_repo_name="foo-2")
+        db.session.add(c)
+        db.session.commit()
+
+        generate_odcs_compose_compose(c)
+        self.mergerepo.assert_called_once_with(
+            ['http://localhost/content/2/x86_64/os',
+             'file://' + self.repo_compose1.result_repo_dir("x86_64")],
+            c.result_repo_dir("x86_64"), True)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+
+        repos = {
+            'foo-2': 'http://localhost/odcs/latest-odcs-7-1/compose/Temporary/$basearch/os',
+            'foo-1': 'http://localhost/content/1/x86_64/os'
+        }
+        self.write_repo_file.assert_called_once_with(c, repos)
+
+    def test_generate_odcs_compose_repo_repo(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.ODCS_COMPOSE,
+            "%d %d" % (self.repo_compose1.id, self.repo_compose2.id),
+            COMPOSE_RESULTS["repository"], 3600, result_repo_name="foo-2")
+        db.session.add(c)
+        db.session.commit()
+
+        generate_odcs_compose_compose(c)
+        self.mergerepo.assert_called_once_with(
+            ['file://' + self.repo_compose1.result_repo_dir("x86_64"),
+             'file://' + self.repo_compose2.result_repo_dir("x86_64")],
+            c.result_repo_dir("x86_64"), True)
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+
+        repos = {
+            'foo-2': 'http://localhost/odcs/latest-odcs-7-1/compose/Temporary/$basearch/os',
+        }
+        self.write_repo_file.assert_called_once_with(c, repos)
 
 
 class TestValidatePungiCompose(ModelsBaseTest):

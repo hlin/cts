@@ -111,6 +111,8 @@ class Compose(ODCSBase):
     state = db.Column(db.Integer, nullable=False, index=True)
     # COMPOSE_RESULTS
     results = db.Column(db.Integer, nullable=False)
+    # Name of the resulting repository in .repo file.
+    result_repo_name = db.Column(db.String)
     # White-space separated list of packages
     packages = db.Column(db.String)
     # COMPOSE_FLAGS
@@ -123,7 +125,8 @@ class Compose(ODCSBase):
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
-               seconds_to_live, packages=None, flags=0, sigkeys=None):
+               seconds_to_live, packages=None, flags=0, sigkeys=None,
+               result_repo_name=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -136,6 +139,7 @@ class Compose(ODCSBase):
             time_to_expire=now + timedelta(seconds=seconds_to_live),
             packages=packages,
             flags=flags,
+            result_repo_name=result_repo_name if result_repo_name else ""
         )
         session.add(compose)
         return compose
@@ -174,6 +178,13 @@ class Compose(ODCSBase):
             return "odcs-%d" % self.id
 
     @property
+    def repo_name(self):
+        if self.result_repo_name:
+            return self.result_repo_name
+        else:
+            return self.name
+
+    @property
     def latest_dir(self):
         return "latest-%s-1" % self.name
 
@@ -181,21 +192,24 @@ class Compose(ODCSBase):
     def toplevel_dir(self):
         return os.path.join(conf.target_dir, self.latest_dir)
 
-    @property
-    def result_repo_dir(self):
+    def result_repo_dir(self, arch=None):
         """
         Returns path to compose directory with per-arch repositories with
         results.
         """
-        return os.path.join(self.toplevel_dir, "compose", "Temporary")
+        path = os.path.join(self.toplevel_dir, "compose", "Temporary")
+        if arch:
+            path = os.path.join(path, arch, "os")
+        return path
 
-    @property
-    def result_repo_url(self):
+    def result_repo_url(self, arch=None):
         """
         Returns public URL to compose directory with per-arch repositories.
         """
-        return conf.target_dir_url + "/" \
-            + os.path.join(self.latest_dir, "compose", "Temporary")
+        path = os.path.join(self.latest_dir, "compose", "Temporary")
+        if arch:
+            path = os.path.join(path, arch, "os")
+        return conf.target_dir_url + "/" + path
 
     @property
     def result_repofile_path(self):
@@ -248,7 +262,7 @@ class Compose(ODCSBase):
             'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
             'time_done': self._utc_datetime_to_iso(self.time_done),
             'time_removed': self._utc_datetime_to_iso(self.time_removed),
-            'result_repo': self.result_repo_url,
+            'result_repo': self.result_repo_url(),
             'result_repofile': self.result_repofile_url,
             'flags': flags,
             'results': results,
