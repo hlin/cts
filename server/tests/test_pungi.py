@@ -25,11 +25,13 @@ import shutil
 import tempfile
 import unittest
 
-from mock import patch
+from mock import patch, MagicMock
 from kobo.conf import PyConfigParser
 
 from odcs.server.pungi import (Pungi, PungiConfig, PungiSourceType,
                                COMPOSE_RESULTS)
+import odcs.server.pungi
+from .utils import ConfigPatcher
 
 test_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -163,3 +165,51 @@ class TestPungi(unittest.TestCase):
         pungi.run()
 
         execute_cmd.assert_called_once()
+
+
+class TestPungiRunroot(unittest.TestCase):
+
+    def _patch_config(self, key, val):
+        patch_object
+
+    def setUp(self):
+        super(TestPungiRunroot, self).setUp()
+
+        self.config_patcher = ConfigPatcher(odcs.server.auth.conf)
+        self.config_patcher.patch('pungi_runroot_enabled', True)
+        self.config_patcher.patch('pungi_runroot_channel', 'channel')
+        self.config_patcher.patch('pungi_runroot_packages', ['pungi'])
+        self.config_patcher.patch('pungi_runroot_mounts', ['/mnt/odcs-secrets'])
+        self.config_patcher.patch('pungi_runroot_weight', 3.5)
+        self.config_patcher.patch('pungi_runroot_tag', 'f26-build')
+        self.config_patcher.patch('pungi_runroot_arch', 'x86_64')
+        self.config_patcher.patch('pungi_runroot_target_dir', '/mnt/koji/compose/odcs')
+        self.config_patcher.patch('pungi_runroot_target_dir_url', 'http://kojipkgs.fedoraproject.org/compose/odcs')
+        self.config_patcher.start()
+
+        self.patch_make_koji_session = patch("odcs.server.pungi.Pungi.make_koji_session")
+        self.make_koji_session = self.patch_make_koji_session.start()
+        self.koji_session = MagicMock()
+        self.koji_session.runroot.return_value = 123
+        self.make_koji_session.return_value = self.koji_session
+
+    def tearDown(self):
+        super(TestPungiRunroot, self).tearDown()
+        self.config_patcher.stop()
+        self.patch_make_koji_session.stop()
+
+    def test_pungi_run_runroot(self):
+        pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
+                                "testmodule-master")
+        pungi = Pungi(pungi_cfg)
+        pungi.run()
+
+        self.koji_session.runroot.assert_called_once_with(
+            'f26-build', 'x86_64',
+            'wget http://localhost/odcs/runroot_configs/MBS-512/pungi.conf && '
+            'wget http://localhost/odcs/runroot_configs/MBS-512/variants.xml && '
+            'wget http://localhost/odcs/runroot_configs/MBS-512/comps.xml && '
+            'pungi-koji --config=./pungi.conf --target-dir=/mnt/koji/compose/odcs --nightly',
+            channel='channel', mounts=['/mnt/odcs-secrets'], packages=['pungi'], weight=3.5)
+
+        self.koji_session.taskFinished.assert_called_once_with(123)

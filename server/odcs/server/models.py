@@ -38,7 +38,7 @@ from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
 from odcs.common.types import (
     COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS,
-    COMPOSE_RESULTS)
+    COMPOSE_RESULTS, PungiSourceType)
 
 from sqlalchemy import event, or_
 from flask_sqlalchemy import SignallingSession
@@ -209,7 +209,13 @@ class Compose(ODCSBase):
         path = os.path.join(self.latest_dir, "compose", "Temporary")
         if arch:
             path = os.path.join(path, arch, "os")
-        return conf.target_dir_url + "/" + path
+        if (conf.pungi_runroot_enabled and
+                self.source_type in [PungiSourceType.KOJI_TAG,
+                                     PungiSourceType.MODULE]):
+            return conf.pungi_runroot_target_dir_url + "/" + path
+                    
+        else:
+            return conf.target_dir_url + "/" + path
 
     @property
     def result_repofile_path(self):
@@ -224,6 +230,12 @@ class Compose(ODCSBase):
         """
         Returns public URL to repofile.
         """
+        if (conf.pungi_runroot_enabled and
+                self.source_type in [PungiSourceType.KOJI_TAG,
+                                     PungiSourceType.MODULE]):
+            return conf.pungi_runroot_target_dir_url + "/" \
+                + os.path.join(self.latest_dir, "compose", "Temporary",
+                            self.name + ".repo")
         return conf.target_dir_url + "/" \
             + os.path.join(self.latest_dir, "compose", "Temporary",
                            self.name + ".repo")

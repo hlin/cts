@@ -29,6 +29,26 @@ from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
 
 from flask.ext.sqlalchemy import SignallingSession
+from mock import patch
+
+
+class ConfigPatcher(object):
+
+    def __init__(self, config_obj):
+        self.objects = []
+        self.config_obj = config_obj
+
+    def patch(self, key, value):
+        obj = patch.object(self.config_obj, key, new=value)
+        self.objects.append(obj)
+
+    def start(self):
+        for obj in self.objects:
+            obj.start()
+
+    def stop(self):
+        for obj in self.objects:
+            obj.stop()
 
 
 class ModelsBaseTest(unittest.TestCase):

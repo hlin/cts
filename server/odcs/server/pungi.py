@@ -25,11 +25,15 @@ import os
 import shutil
 import tempfile
 import jinja2
+import koji
+import munch
+import time
 
 import odcs.server.utils
 from odcs.server import conf, log
 from odcs.server import comps
 from odcs.common.types import PungiSourceType, COMPOSE_RESULTS
+from odcs.server.utils import makedirs
 
 
 class PungiConfig(object):
@@ -147,32 +151,71 @@ class Pungi(object):
             log.info("Writing %s configuration to %s.", os.path.basename(fn), fn)
             f.write(cfg)
 
-    def run(self):
+    def _write_cfgs(self, topdir):
+        main_cfg = self.pungi_cfg.get_pungi_config()
+        variants_cfg = self.pungi_cfg.get_variants_config()
+        comps_cfg = self.pungi_cfg.get_comps_config()
+        log.debug("Main Pungi config:")
+        log.debug("%s", main_cfg)
+        log.debug("Variants.xml:")
+        log.debug("%s", variants_cfg)
+        log.debug("Comps.xml:")
+        log.debug("%s", comps_cfg)
+
+        self._write_cfg(os.path.join(topdir, "pungi.conf"), main_cfg)
+        self._write_cfg(os.path.join(topdir, "variants.xml"), variants_cfg)
+        self._write_cfg(os.path.join(topdir, "comps.xml"), comps_cfg)
+
+    def make_koji_session(self):
+        koji_config = munch.Munch(koji.read_config(
+            profile_name=conf.koji_profile,
+            user_config=conf.koji_config,
+        ))
+
+        address = koji_config.server
+        authtype = koji_config.authtype
+        log.info("Connecting to koji %r with %r." % (address, authtype))
+        koji_session = koji.ClientSession(address, opts=koji_config)
+        if authtype == "kerberos":
+            ccache = getattr(conf, "krb_ccache", None)
+            keytab = getattr(conf, "krb_keytab", None)
+            principal = getattr(conf, "krb_principal", None)
+            log.debug("  ccache: %r, keytab: %r, principal: %r" % (
+                ccache, keytab, principal))
+            if keytab and principal:
+                koji_session.krb_login(
+                    principal=principal,
+                    keytab=keytab,
+                    ccache=ccache,
+                )
+            else:
+                koji_session.krb_login(ccache=ccache)
+        elif authtype == "ssl":
+            koji_session.ssl_login(
+                os.path.expanduser(koji_config.cert),
+                None,
+                os.path.expanduser(koji_config.serverca),
+            )
+        else:
+            raise ValueError("Unrecognized koji authtype %r" % authtype)
+
+        return koji_session
+
+    def get_pungi_cmd(self, conf_topdir, targetdir):
+        pungi_cmd = [
+            conf.pungi_koji, "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
+            "--target-dir=%s" % targetdir, "--nightly"]
+
+        if self.koji_event:
+            pungi_cmd += ["--koji-event", str(self.koji_event)]
+        return pungi_cmd
+
+    def run_locally(self):
         td = None
         try:
             td = tempfile.mkdtemp()
-
-            main_cfg = self.pungi_cfg.get_pungi_config()
-            variants_cfg = self.pungi_cfg.get_variants_config()
-            comps_cfg = self.pungi_cfg.get_comps_config()
-            log.debug("Main Pungi config:")
-            log.debug("%s", main_cfg)
-            log.debug("Variants.xml:")
-            log.debug("%s", variants_cfg)
-            log.debug("Comps.xml:")
-            log.debug("%s", comps_cfg)
-
-            self._write_cfg(os.path.join(td, "pungi.conf"), main_cfg)
-            self._write_cfg(os.path.join(td, "variants.xml"), variants_cfg)
-            self._write_cfg(os.path.join(td, "comps.xml"), comps_cfg)
-
-            pungi_cmd = [
-                conf.pungi_koji, "--config=%s" % os.path.join(td, "pungi.conf"),
-                "--target-dir=%s" % conf.target_dir, "--nightly"]
-
-            if self.koji_event:
-                pungi_cmd += ["--koji-event", str(self.koji_event)]
-
+            self._write_cfgs(td)
+            pungi_cmd = self.get_pungi_cmd(td, conf.target_dir)
             odcs.server.utils.execute_cmd(pungi_cmd, cwd=td)
         finally:
             try:
@@ -182,3 +225,42 @@ class Pungi(object):
                 log.warning(
                     "Failed to remove temporary directory {!r}: {}".format(
                         td, str(e)))
+
+    def run_in_runroot(self):
+        conf_topdir = os.path.join(conf.target_dir, "runroot_configs",
+                                   self.pungi_cfg.release_name)
+        makedirs(conf_topdir)
+        self._write_cfgs(conf_topdir)
+
+        # TODO: Copy keytab from secret repo and generate koji profile.
+        cmd = []
+        cmd += ["wget", conf.target_dir_url + "/" + os.path.join("runroot_configs", self.pungi_cfg.release_name, "pungi.conf"), "&&"]
+        cmd += ["wget", conf.target_dir_url + "/" + os.path.join("runroot_configs", self.pungi_cfg.release_name, "variants.xml"), "&&"]
+        cmd += ["wget", conf.target_dir_url + "/" + os.path.join("runroot_configs", self.pungi_cfg.release_name, "comps.xml"), "&&"]
+        cmd += self.get_pungi_cmd("./", conf.pungi_runroot_target_dir)
+
+        koji_session = self.make_koji_session()
+
+        kwargs = {
+            'channel': conf.pungi_runroot_channel,
+            'packages': conf.pungi_runroot_packages,
+            'mounts': conf.pungi_runroot_mounts,
+            'weight': conf.pungi_runroot_weight
+        }
+
+        task_id = koji_session.runroot(
+            conf.pungi_runroot_tag, conf.pungi_runroot_arch,
+            " ".join(cmd), **kwargs)
+
+        while True:
+            # wait for the task to finish
+            if koji_session.taskFinished(task_id):
+                break
+            log.info("Waiting for Koji runroot task %r to finish...", task_id)
+            time.sleep(60)
+
+    def run(self):
+        if conf.pungi_runroot_enabled:
+            self.run_in_runroot()
+        else:
+            self.run_locally()

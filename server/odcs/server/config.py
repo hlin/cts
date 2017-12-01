@@ -137,6 +137,43 @@ class Config(object):
             'type': str,
             'default': "pungi-koji",
             'desc': 'Name or full-path to pungi-koji binary.'},
+        'pungi_runroot_enabled': {
+            'type': bool,
+            'default': False,
+            'desc': 'When True, pungi will run in Koji runroot',
+            },
+        'pungi_runroot_channel': {
+            'type': str,
+            'default': "",
+            'desc': 'Name of Koji channel to run pungi runroot task with.'},
+        'pungi_runroot_packages': {
+            'type': list,
+            'default': "",
+            'desc': 'List of packages to install to pungi Koji runroot task.'},
+        'pungi_runroot_mounts': {
+            'type': list,
+            'default': "",
+            'desc': 'List of mounts to mount in pungi Koji runroot task.'},
+        'pungi_runroot_weight': {
+            'type': float,
+            'default': 3,
+            'desc': 'Weight of pungi Koji runroot task.'},
+        'pungi_runroot_tag': {
+            'type': str,
+            'default': "",
+            'desc': 'Name of tag to run pungi Koji runroot task for.'},
+        'pungi_runroot_arch': {
+            'type': str,
+            'default': "x86_64",
+            'desc': 'Architecture to run pungi Koji runroot task for.'},
+        'pungi_runroot_target_dir': {
+            'type': str,
+            'default': "",
+            'desc': 'Path to target dir to which store composes done by pungi in runroot'},
+        'pungi_runroot_target_dir_url': {
+            'type': str,
+            'default': "",
+            'desc': 'Public facing URL to target_dir.'},
         'pungi_conf_path': {
             'type': str,
             'default': "/etc/odcs/pungi.conf",
@@ -240,6 +277,14 @@ class Config(object):
             'type': str,
             'default': '',
             'desc': 'Password to login Pulp.'},
+        'koji_config': {
+            'type': str,
+            'default': None,
+            'desc': 'Koji config file.'},
+        'koji_profile': {
+            'type': str,
+            'default': None,
+            'desc': 'Koji config profile.'},
     }
 
     def __init__(self, conf_section_obj):
@@ -291,7 +336,7 @@ class Config(object):
         if key in self._defaults:
             # type conversion for configuration item
             convert = self._defaults[key]['type']
-            if convert in [bool, int, list, str, set, dict]:
+            if convert in [bool, int, list, str, set, dict, float]:
                 try:
                     # Do no try to convert None...
                     if value is not None:
