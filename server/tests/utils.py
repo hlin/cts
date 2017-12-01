@@ -39,7 +39,11 @@ class ConfigPatcher(object):
         self.config_obj = config_obj
 
     def patch(self, key, value):
-        obj = patch.object(self.config_obj, key, new=value)
+        try:
+            obj = patch.object(self.config_obj, key, new=value)
+        except Exception:
+            self.stop()
+            raise
         self.objects.append(obj)
 
     def start(self):

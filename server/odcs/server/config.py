@@ -140,29 +140,29 @@ class Config(object):
         'pungi_runroot_enabled': {
             'type': bool,
             'default': False,
-            'desc': 'When True, pungi will run in Koji runroot',
+            'desc': 'When True, ODCS will run Pungi in Koji runroot',
             },
-        'pungi_runroot_channel': {
+        'pungi_parent_runroot_channel': {
             'type': str,
             'default': "",
             'desc': 'Name of Koji channel to run pungi runroot task with.'},
-        'pungi_runroot_packages': {
+        'pungi_parent_runroot_packages': {
             'type': list,
             'default': "",
             'desc': 'List of packages to install to pungi Koji runroot task.'},
-        'pungi_runroot_mounts': {
+        'pungi_parent_runroot_mounts': {
             'type': list,
             'default': "",
             'desc': 'List of mounts to mount in pungi Koji runroot task.'},
-        'pungi_runroot_weight': {
+        'pungi_parent_runroot_weight': {
             'type': float,
             'default': 3,
             'desc': 'Weight of pungi Koji runroot task.'},
-        'pungi_runroot_tag': {
+        'pungi_parent_runroot_tag': {
             'type': str,
             'default': "",
             'desc': 'Name of tag to run pungi Koji runroot task for.'},
-        'pungi_runroot_arch': {
+        'pungi_parent_runroot_arch': {
             'type': str,
             'default': "x86_64",
             'desc': 'Architecture to run pungi Koji runroot task for.'},

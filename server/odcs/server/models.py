@@ -212,6 +212,7 @@ class Compose(ODCSBase):
         if (conf.pungi_runroot_enabled and
                 self.source_type in [PungiSourceType.KOJI_TAG,
                                      PungiSourceType.MODULE]):
+            print "XXXX"
             return conf.pungi_runroot_target_dir_url + "/" + path
                     
         else:
@@ -230,13 +231,16 @@ class Compose(ODCSBase):
         """
         Returns public URL to repofile.
         """
+        target_dir_url = conf
         if (conf.pungi_runroot_enabled and
                 self.source_type in [PungiSourceType.KOJI_TAG,
                                      PungiSourceType.MODULE]):
-            return conf.pungi_runroot_target_dir_url + "/" \
-                + os.path.join(self.latest_dir, "compose", "Temporary",
-                            self.name + ".repo")
-        return conf.target_dir_url + "/" \
+            target_dir_url = conf.pungi_runroot_target_dir_url
+            print "XXXX", conf.pungi_runroot_enabled
+        else:
+            target_dir_url = conf.target_dir_url
+
+        return target_dir_url + "/" \
             + os.path.join(self.latest_dir, "compose", "Temporary",
                            self.name + ".repo")
 

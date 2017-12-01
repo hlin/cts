@@ -28,6 +28,8 @@ import jinja2
 import koji
 import munch
 import time
+import random
+import string
 
 import odcs.server.utils
 from odcs.server import conf, log
@@ -146,12 +148,22 @@ class Pungi(object):
         self.pungi_cfg = pungi_cfg
         self.koji_event = koji_event
 
-    def _write_cfg(self, fn, cfg):
-        with open(fn, "w") as f:
-            log.info("Writing %s configuration to %s.", os.path.basename(fn), fn)
+    def _write_cfg(self, path, cfg):
+        """
+        Writes configuration string `cfg` to file defined by `path`.
+        :param str path: Full path to file to write to.
+        :param str cfg: Configuration to write.
+        """
+        with open(path, "w") as f:
+            log.info("Writing %s configuration to %s.", os.path.basename(path), path)
             f.write(cfg)
 
     def _write_cfgs(self, topdir):
+        """
+        Writes "pungi.conf", "variants.xml" and "comps.xml" defined in
+        `self.pungi_cfg` to `topdir` directory.
+        :param str topdir: Directory to write the files to.
+        """
         main_cfg = self.pungi_cfg.get_pungi_config()
         variants_cfg = self.pungi_cfg.get_variants_config()
         comps_cfg = self.pungi_cfg.get_comps_config()
@@ -167,6 +179,12 @@ class Pungi(object):
         self._write_cfg(os.path.join(topdir, "comps.xml"), comps_cfg)
 
     def make_koji_session(self):
+        """
+        Creates new KojiSession according to odcs.server.conf, logins to
+        Koji using this session and returns it.
+        :rtype: koji.KojiSession
+        :return: KojiSession
+        """
         koji_config = munch.Munch(koji.read_config(
             profile_name=conf.koji_profile,
             user_config=conf.koji_config,
@@ -202,6 +220,16 @@ class Pungi(object):
         return koji_session
 
     def get_pungi_cmd(self, conf_topdir, targetdir):
+        """
+        Returns list with pungi command line arguments needed to generate
+        the compose.
+        :param str conf_topdir: Directory in which to look for Pungi
+            configuration files.
+        :param str targetdir: Target directory in which the compose should be
+            generated.
+        :rtype: list
+        :return: List of pungi command line arguments.
+        """
         pungi_cmd = [
             conf.pungi_koji, "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
             "--target-dir=%s" % targetdir, "--nightly"]
@@ -211,6 +239,9 @@ class Pungi(object):
         return pungi_cmd
 
     def run_locally(self):
+        """
+        Runs local Pungi compose.
+        """
         td = None
         try:
             td = tempfile.mkdtemp()
@@ -226,30 +257,64 @@ class Pungi(object):
                     "Failed to remove temporary directory {!r}: {}".format(
                         td, str(e)))
 
+    def _unique_path(prefix):
+        """
+        Create a unique path fragment by appending a path component
+        to prefix.  The path component will consist of a string of letter and numbers
+        that is unlikely to be a duplicate, but is not guaranteed to be unique.
+        """
+        # Use time() in the dirname to provide a little more information when
+        # browsing the filesystem.
+        # For some reason repr(time.time()) includes 4 or 5
+        # more digits of precision than str(time.time())
+        # Unnamed Engineer: Guido v. R., I am disappoint
+        return '%s/%r.%s' % (prefix, time.time(),
+                                ''.join([random.choice(string.ascii_letters)
+                                        for i in range(8)]))
+
+    def upload_files_to_koji(self, koji_session, localdir):
+        """
+        Uploads files from `localdir` directory to Koji server using
+        `koji_session`. The unique server-side directory containing
+        the uploaded files is returned.
+        :param koji.KojiSession koji_session: Koji session.
+        "param str localdir: Path to directory with files to upload.
+        """
+        serverdir = self._unique_path("odcs")
+
+        for name in os.listdir(localdir):
+            path = os.path.join(localdir, name)
+            koji_session.uploadWrapper(path, serverdir, callback=None)
+
+        return serverdir
+
     def run_in_runroot(self):
+        """
+        Runs the compose in runroot, waits for a result and raises an
+        exception if the Koji runroot tasks failed.
+        """
         conf_topdir = os.path.join(conf.target_dir, "runroot_configs",
                                    self.pungi_cfg.release_name)
         makedirs(conf_topdir)
         self._write_cfgs(conf_topdir)
 
+        koji_session = self.make_koji_session()
+        serverdir = self.upload_files_to_koji(koji_session, conf_topdir)
+
         # TODO: Copy keytab from secret repo and generate koji profile.
         cmd = []
-        cmd += ["wget", conf.target_dir_url + "/" + os.path.join("runroot_configs", self.pungi_cfg.release_name, "pungi.conf"), "&&"]
-        cmd += ["wget", conf.target_dir_url + "/" + os.path.join("runroot_configs", self.pungi_cfg.release_name, "variants.xml"), "&&"]
-        cmd += ["wget", conf.target_dir_url + "/" + os.path.join("runroot_configs", self.pungi_cfg.release_name, "comps.xml"), "&&"]
+        cmd += ["cp", "/mnt/koji/work/%s/*" % serverdir, ".", "&&"]
         cmd += self.get_pungi_cmd("./", conf.pungi_runroot_target_dir)
 
-        koji_session = self.make_koji_session()
-
         kwargs = {
-            'channel': conf.pungi_runroot_channel,
-            'packages': conf.pungi_runroot_packages,
-            'mounts': conf.pungi_runroot_mounts,
-            'weight': conf.pungi_runroot_weight
+            'channel': conf.pungi_parent_runroot_channel,
+            'packages': conf.pungi_parent_runroot_packages,
+            'mounts': conf.pungi_parent_runroot_mounts,
+            'weight': conf.pungi_parent_runroot_weight
         }
 
         task_id = koji_session.runroot(
-            conf.pungi_runroot_tag, conf.pungi_runroot_arch,
+            conf.pungi_parent_runroot_tag, conf.pungi_parent_runroot_arch,
             " ".join(cmd), **kwargs)
 
         while True:
@@ -259,7 +324,18 @@ class Pungi(object):
             log.info("Waiting for Koji runroot task %r to finish...", task_id)
             time.sleep(60)
 
+        info = koji_session.getTaskInfo(task_id)
+        if info is None:
+            raise RuntimeError("Cannot get status of Koji task %r" % task_id)
+        state = koji.TASK_STATES[info['state']]
+        if state in ('FAILED', 'CANCELED'):
+            raise RuntimeError("Koji runroot task %r failed." % task_id)
+
     def run(self):
+        """
+        Runs the compose in Pungi. Blocks until the compose is done.
+        Raises an exception if compose generation fails.
+        """
         if conf.pungi_runroot_enabled:
             self.run_in_runroot()
         else:
