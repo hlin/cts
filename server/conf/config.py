@@ -46,7 +46,7 @@ class BaseConfiguration(object):
     # kerberos users or FAS for openidc users.
     #
     # You can also specify per-user or per-group source_types like this:
-    # ALLOWED_CLIENT = {
+    # ALLOWED_CLIENTS = {
     #   'users': [
     #     {'mike': ['tag', 'module']},  # Can do only tag/module composes
     #     {'ralph': ['tag']},           # Can do only tag compose

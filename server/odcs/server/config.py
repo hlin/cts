@@ -207,7 +207,7 @@ class Config(object):
             'desc': "Group base to query user's groups from LDAP server."},
         'allowed_clients': {
             'type': dict,
-            'default': {'*': {'groups': [], 'users': []}},
+            'default': {'groups': [], 'users': []},
             'desc': "Groups and users that are allowed to generate composes."},
         'admins': {
             'type': dict,

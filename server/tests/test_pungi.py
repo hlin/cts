@@ -26,7 +26,7 @@ import tempfile
 import unittest
 import koji
 
-from mock import patch, MagicMock, call
+from mock import patch, MagicMock
 from kobo.conf import PyConfigParser
 
 from odcs.server.pungi import (Pungi, PungiConfig, PungiSourceType,
@@ -215,12 +215,12 @@ class TestPungiRunroot(unittest.TestCase):
 
         conf_topdir = os.path.join(conf.target_dir, "runroot_configs",
                                    pungi_cfg.release_name)
-        self.assertEqual(
-            self.koji_session.uploadWrapper.mock_calls,
-            [call(os.path.join(conf_topdir, 'pungi.conf'), 'odcs/unique_path', callback=None),
-             call(os.path.join(conf_topdir, 'variants.xml'), 'odcs/unique_path', callback=None),
-             call(os.path.join(conf_topdir, 'comps.xml'), 'odcs/unique_path', callback=None)]
-        )
+        self.koji_session.uploadWrapper.assert_any_call(
+            os.path.join(conf_topdir, 'pungi.conf'), 'odcs/unique_path', callback=None)
+        self.koji_session.uploadWrapper.assert_any_call(
+            os.path.join(conf_topdir, 'variants.xml'), 'odcs/unique_path', callback=None)
+        self.koji_session.uploadWrapper.assert_any_call(
+            os.path.join(conf_topdir, 'comps.xml'), 'odcs/unique_path', callback=None)
 
         self.koji_session.runroot.assert_called_once_with(
             'f26-build', 'x86_64',
