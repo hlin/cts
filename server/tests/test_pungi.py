@@ -24,7 +24,6 @@ import os
 import shutil
 import tempfile
 import unittest
-import shutil
 import koji
 
 from mock import patch, MagicMock, call
@@ -172,9 +171,6 @@ class TestPungi(unittest.TestCase):
 
 class TestPungiRunroot(unittest.TestCase):
 
-    def _patch_config(self, key, val):
-        patch_object
-
     def setUp(self):
         super(TestPungiRunroot, self).setUp()
 
@@ -221,9 +217,9 @@ class TestPungiRunroot(unittest.TestCase):
                                    pungi_cfg.release_name)
         self.assertEqual(
             self.koji_session.uploadWrapper.mock_calls,
-                [call(os.path.join(conf_topdir, 'pungi.conf'), 'odcs/unique_path', callback=None),
-                 call(os.path.join(conf_topdir, 'variants.xml'), 'odcs/unique_path', callback=None),
-                 call(os.path.join(conf_topdir, 'comps.xml'), 'odcs/unique_path', callback=None)]
+            [call(os.path.join(conf_topdir, 'pungi.conf'), 'odcs/unique_path', callback=None),
+             call(os.path.join(conf_topdir, 'variants.xml'), 'odcs/unique_path', callback=None),
+             call(os.path.join(conf_topdir, 'comps.xml'), 'odcs/unique_path', callback=None)]
         )
 
         self.koji_session.runroot.assert_called_once_with(

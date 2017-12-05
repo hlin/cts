@@ -223,18 +223,18 @@ enabled_metadata=1
         with patch('odcs.server.backend.open', m, create=True):
             _write_repo_file(c, repos)
 
-        expected_repo_file = """[foo-2]
-name=ODCS repository for foo-2
-baseurl=http://localhost/content/2/x86_64/os
+        expected_repo_file = """[foo-1]
+name=ODCS repository for foo-1
+baseurl=http://localhost/content/1/x86_64/os
 skip_if_unavailable=False
 gpgcheck=0
 repo_gpgcheck=0
 enabled=1
 enabled_metadata=1
 
-[foo-1]
-name=ODCS repository for foo-1
-baseurl=http://localhost/content/1/x86_64/os
+[foo-2]
+name=ODCS repository for foo-2
+baseurl=http://localhost/content/2/x86_64/os
 skip_if_unavailable=False
 gpgcheck=0
 repo_gpgcheck=0

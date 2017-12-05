@@ -213,7 +213,6 @@ class Compose(ODCSBase):
                 self.source_type in [PungiSourceType.KOJI_TAG,
                                      PungiSourceType.MODULE]):
             return conf.pungi_runroot_target_dir_url + "/" + path
-                    
         else:
             return conf.target_dir_url + "/" + path
 

@@ -38,7 +38,7 @@ import glob
 import odcs.server.utils
 import odcs.server.pdc
 import defusedxml.ElementTree
-import ConfigParser
+from six.moves import configparser as ConfigParser
 
 
 class BackendThread(object):
@@ -402,7 +402,7 @@ def _write_repo_file(compose, repos=None):
         repos[compose.repo_name] = baseurl
 
     data = ""
-    for name, baseurl in repos.items():
+    for name, baseurl in sorted(repos.items()):
         data += """[%s]
 name=ODCS repository for %s
 baseurl=%s

@@ -269,8 +269,8 @@ class Pungi(object):
         # more digits of precision than str(time.time())
         # Unnamed Engineer: Guido v. R., I am disappoint
         return '%s/%r.%s' % (prefix, time.time(),
-                                ''.join([random.choice(string.ascii_letters)
-                                        for i in range(8)]))
+                             ''.join([random.choice(string.ascii_letters)
+                                      for i in range(8)]))
 
     def upload_files_to_koji(self, koji_session, localdir):
         """

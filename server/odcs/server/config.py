@@ -125,10 +125,6 @@ class Config(object):
             'type': bool,
             'default': False,
             'desc': 'PDC Development mode, basically noauth.'},
-        'koji_profile': {
-            'type': str,
-            'default': None,
-            'desc': 'Koji config profile.'},
         'arches': {
             'type': list,
             'default': ["x86_64"],
@@ -140,8 +136,7 @@ class Config(object):
         'pungi_runroot_enabled': {
             'type': bool,
             'default': False,
-            'desc': 'When True, ODCS will run Pungi in Koji runroot',
-            },
+            'desc': 'When True, ODCS will run Pungi in Koji runroot'},
         'pungi_parent_runroot_channel': {
             'type': str,
             'default': "",

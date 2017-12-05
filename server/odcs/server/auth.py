@@ -249,30 +249,25 @@ def raise_if_source_type_not_allowed(source_type):
     if conf.auth_backend == 'noauth':
         return
 
-    groups = []
     for group in conf.allowed_clients.get('groups', []):
         if type(group) == dict:
             if len(group) != 1:
                 raise ValueError("Expected single group in groups dict.")
-            group_name = group.keys()[0]
-            source_types = list(group.values()[0])
+            group_name, source_types = next(iter(group.items()))
         else:
             group_name = group
             source_types = conf.allowed_source_types
-            groups.append(group)
 
         if (group_name in flask.g.groups and
                 source_type in source_types):
             # Client is in group which has this source_type allowed.
             return
 
-    users = []
     for user in conf.allowed_clients.get('users', []):
         if type(user) == dict:
             if len(user) != 1:
                 raise ValueError("Expected single user in users dict.")
-            user_name = user.keys()[0]
-            source_types = list(user.values()[0])
+            user_name, source_types = next(iter(user.items()))
         else:
             user_name = user
             source_types = conf.allowed_source_types

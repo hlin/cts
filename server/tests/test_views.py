@@ -278,7 +278,7 @@ class TestViews(ViewBaseTest):
                  'results': ['boot.iso']}))
             data = json.loads(rv.data.decode('utf8'))
 
-        self.assertEqual(data['results'], ['repository', 'boot.iso'])
+        self.assertEqual(set(data['results']), set(['repository', 'boot.iso']))
 
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 3).one()
