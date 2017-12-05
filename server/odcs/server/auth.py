@@ -241,6 +241,51 @@ def init_auth(login_manager, backend):
         raise ValueError('Unknown backend name {0}.'.format(backend))
 
 
+def raise_if_source_type_not_allowed(source_type):
+    """
+    Raises `Forbidden` exception if currently logged in user is not allowed
+    to operate with a compose of `source_type` source type.
+    """
+    if conf.auth_backend == 'noauth':
+        return
+
+    groups = []
+    for group in conf.allowed_clients.get('groups', []):
+        if type(group) == dict:
+            if len(group) != 1:
+                raise ValueError("Expected single group in groups dict.")
+            group_name = group.keys()[0]
+            source_types = list(group.values()[0])
+        else:
+            group_name = group
+            source_types = conf.allowed_source_types
+            groups.append(group)
+
+        if (group_name in flask.g.groups and
+                source_type in source_types):
+            # Client is in group which has this source_type allowed.
+            return
+
+    users = []
+    for user in conf.allowed_clients.get('users', []):
+        if type(user) == dict:
+            if len(user) != 1:
+                raise ValueError("Expected single user in users dict.")
+            user_name = user.keys()[0]
+            source_types = list(user.values()[0])
+        else:
+            user_name = user
+            source_types = conf.allowed_source_types
+
+        if (user_name == flask.g.user.username and
+                source_type in source_types):
+            # Client has allowed to build compose with this source_type.
+            return
+
+    raise Forbidden("User %s not allowed to operate with compose of "
+                    "%s source_type" % (flask.g.user.username, source_type))
+
+
 def requires_role(role):
     """Check if user is in the configured role.
 
@@ -256,8 +301,20 @@ def requires_role(role):
             if conf.auth_backend == 'noauth':
                 return f(*args, **kwargs)
 
-            groups = getattr(conf, role).get('groups', [])
-            users = getattr(conf, role).get('users', [])
+            groups = []
+            for group in getattr(conf, role).get('groups', []):
+                if type(group) == dict:
+                    groups += group.keys()
+                else:
+                    groups.append(group)
+
+            users = []
+            for user in getattr(conf, role).get('users', []):
+                if type(user) == dict:
+                    users += user.keys()
+                else:
+                    users.append(user)
+
             in_groups = bool(set(flask.g.groups) & set(groups))
             in_users = flask.g.user.username in users
             if in_groups or in_users:

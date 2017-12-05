@@ -44,6 +44,9 @@ PUNGI_SOURCE_TYPE_NAMES = {
     "odcs_compose": PungiSourceType.ODCS_COMPOSE,
 }
 
+INVERSE_PUNGI_SOURCE_TYPE_NAMES = {
+    v: k for k, v in PUNGI_SOURCE_TYPE_NAMES.items()}
+
 COMPOSE_STATES = {
     # Compose is waiting to be generated
     "wait": 0,

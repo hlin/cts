@@ -50,7 +50,8 @@ class ViewBaseTest(ModelsBaseTest):
     def setUp(self):
         super(ViewBaseTest, self).setUp()
 
-        patched_allowed_clients = {'groups': ['composer'], 'users': ['dev']}
+        patched_allowed_clients = {'groups': ['composer', {'dev2': ['module']}],
+                                   'users': ['dev', {'dev2': ['module']}]}
         patched_admins = {'groups': ['admin'], 'users': ['root']}
         self.patch_allowed_clients = patch.object(odcs.server.auth.conf,
                                                   'allowed_clients',
@@ -412,7 +413,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'Source type "repo" is not allowed by ODCS configuration')
+            'User dev not allowed to operate with compose of repo source_type')
 
     def test_submit_build_unknown_source_type(self):
         with self.test_request_context(user='dev'):
@@ -426,6 +427,58 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'], 'Unknown source type "unknown"')
+
+    def test_submit_build_per_user_source_type_allowed(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': '/path'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["state_name"], "wait")
+
+    def test_submit_build_per_user_source_type_not_allowed(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': '/path'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(
+            data['message'],
+            'User dev2 not allowed to operate with compose of tag source_type')
+
+    def test_submit_build_per_group_source_type_allowed(self):
+        with self.test_request_context(user="unknown", groups=['dev2', "x"]):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': '/path'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["state_name"], "wait")
+
+    def test_submit_build_per_group_source_type_not_allowed(self):
+        with self.test_request_context(user="unknown", groups=['dev2', "x"]):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': '/path'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(
+            data['message'],
+            'User unknown not allowed to operate with compose of tag source_type')
 
     def test_query_compose(self):
         resp = self.client.get('/api/1/composes/1')

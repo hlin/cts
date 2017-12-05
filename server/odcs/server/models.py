@@ -212,7 +212,6 @@ class Compose(ODCSBase):
         if (conf.pungi_runroot_enabled and
                 self.source_type in [PungiSourceType.KOJI_TAG,
                                      PungiSourceType.MODULE]):
-            print "XXXX"
             return conf.pungi_runroot_target_dir_url + "/" + path
                     
         else:
@@ -236,7 +235,6 @@ class Compose(ODCSBase):
                 self.source_type in [PungiSourceType.KOJI_TAG,
                                      PungiSourceType.MODULE]):
             target_dir_url = conf.pungi_runroot_target_dir_url
-            print "XXXX", conf.pungi_runroot_enabled
         else:
             target_dir_url = conf.target_dir_url
 

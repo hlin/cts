@@ -31,10 +31,12 @@ from odcs.server import app, db, log, conf
 from odcs.server.errors import NotFound
 from odcs.server.models import Compose
 from odcs.common.types import (
-    COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES)
+    COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES,
+    INVERSE_PUNGI_SOURCE_TYPE_NAMES)
 from odcs.server.api_utils import pagination_metadata, filter_composes
 from odcs.server.auth import requires_role, login_required
 from odcs.server.auth import require_scopes
+from odcs.server.auth import raise_if_source_type_not_allowed
 
 
 api_v1 = {
@@ -135,6 +137,9 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise NotFound(err)
 
+        source_type = INVERSE_PUNGI_SOURCE_TYPE_NAMES[old_compose.source_type]
+        raise_if_source_type_not_allowed(source_type)
+
         has_to_create_a_copy = old_compose.state in (
             COMPOSE_STATES['removed'], COMPOSE_STATES['failed'])
         if has_to_create_a_copy:
@@ -192,11 +197,7 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise ValueError(err)
 
-        if source_type not in conf.allowed_source_types:
-            err = 'Source type "%s" is not allowed by ODCS configuration' % (
-                source_type)
-            log.error(err)
-            raise ValueError(err)
+        raise_if_source_type_not_allowed(source_type)
 
         source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
 

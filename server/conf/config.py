@@ -44,6 +44,15 @@ class BaseConfiguration(object):
     # you can add group names or usernames (it can be normal user or host
     # principal) into ALLOWED_CLIENTS. The group names are from ldap for
     # kerberos users or FAS for openidc users.
+    #
+    # You can also specify per-user or per-group source_types like this:
+    # ALLOWED_CLIENT = {
+    #   'users': [
+    #     {'mike': ['tag', 'module']},  # Can do only tag/module composes
+    #     {'ralph': ['tag']},           # Can do only tag compose
+    #     'joe',                        # Can do ALLOWED_SOURCE_TYPES composes
+    #   ]
+    # }
     ALLOWED_CLIENTS = {
         'groups': [],
         'users': [],
