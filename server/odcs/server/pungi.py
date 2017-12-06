@@ -65,6 +65,9 @@ class PungiConfig(object):
             if results & v:
                 self.results.append(k)
 
+        if "boot.iso" in self.results:
+            self.bootable = True
+
         if source_type == PungiSourceType.KOJI_TAG:
             self.koji_tag = source
             self.gather_source = "comps"
