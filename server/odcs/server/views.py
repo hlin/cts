@@ -253,15 +253,10 @@ class ODCSAPI(MethodView):
                     raise ValueError("Unknown result %s", name)
                 results |= COMPOSE_RESULTS[name]
 
-        if "result_repo_name" in data:
-            result_repo_name = data["result_repo_name"]
-        else:
-            result_repo_name = ""
-
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
             results, seconds_to_live,
-            packages, flags, sigkeys, result_repo_name)
+            packages, flags, sigkeys)
         db.session.add(compose)
         db.session.commit()
 

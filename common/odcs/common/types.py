@@ -27,8 +27,7 @@ class PungiSourceType:
     MODULE = 2
     REPO = 3
     PULP = 4
-    ODCS_COMPOSE = 5
-    RAW_CONFIG = 6
+    RAW_CONFIG = 5
 
 
 PUNGI_SOURCE_TYPE_NAMES = {
@@ -36,13 +35,9 @@ PUNGI_SOURCE_TYPE_NAMES = {
     "module": PungiSourceType.MODULE,
     "repo": PungiSourceType.REPO,
     # This is not real PungiSourceType, but ODCS handles the PULP
-    # as an extra source type by generating the .repo file pointing
+    # as a extra source type by generating the .repo file pointing
     # to composes done by PULP/PUB.
     "pulp": PungiSourceType.PULP,
-    # This is not real PungiSourceType, but ODCS handles the odcs_compose
-    # as an extra source type by generating the .repo merging the repositories
-    # from two other ODCS composes defined by ids.
-    "odcs_compose": PungiSourceType.ODCS_COMPOSE,
     # This allows to submit raw pungi config from predefined URLs in ODCS
     # server-side configuration.
     "raw_config": PungiSourceType.RAW_CONFIG,

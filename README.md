@@ -119,7 +119,6 @@ Both `sources` and `source_type` are strings. Depending on `source_type` value, 
 | tag           | Name of Koji tag to take RPMs from. |
 | module        | White-space separated NAME-STREAM or NAME-STREAM-VERSION of modules to include in compose. |
 | pulp          | White-space separated list of context-sets. Repositories defined by these contests sets will be included in a compose. |
-| odcs_compose  | White-space separated list of other ODCS compose IDs. All the repositories will be merged using `mergerepo` tool and new .repo file will be available as a result of a compose. If merging `pulp` source_type compose, the `result_repo_name` must be set to name of one content set, so it is clear which repository will be merged. |
 | raw_config    | String in `name#commit` hash format. The `name` must match one of the raw config locations defined in ODCS server config as `raw_config_urls`. The `commit` is commit hash defining the version of raw config to use. This config is then used as input config for Pungi. |
 
 There are also additional optional attributes you can pass to `new_compose(...)` method:
@@ -127,12 +126,11 @@ There are also additional optional attributes you can pass to `new_compose(...)`
 - `seconds_to_live` - Number of seconds after which the generated compose should expire and will be removed.
 - `packages` - List of packages which should be included in a compose. This is used only when `source_type` is set to `tag` to further limit the compose repository.
 - `flags` - List of flags to further modify the compose output:
-   - `no_deps` - For `tag` `source_type`, do not resolve dependencies between packages and include only packages listed in the `packages` in the compose. For `module` `source_type`, do not resolve dependencies between modules and include only the requested module in the compose.
+  - `no_deps` - For `tag` `source_type`, do not resolve dependencies between packages and include only packages listed in the `packages` in the compose. For `module` `source_type`, do not resolve dependencies between modules and include only the requested module in the compose.
 - `sigkeys` - List of signature keys IDs. Only packages signed by one of these keys will be included in a compose. If there is no signed version of a package, compose will fail. It is also possible to pass an empty-string in a list meaning unsigned packages are allowed. For example if you want to prefer packages signed by key with ID `123` and also allow unsigned packages to appear in a compose, you can do it by setting sigkeys to `["123", ""]`.
 - `results` - List of additional results which will be generated as part of a compose. Valid keys are:
-   - `iso` - Generates non-installable ISO files with RPMs from a compose.
-   - `boot.iso` - Generates `images/boot.iso` file which is needed to build base container images from resulting compose.
-- `result_repo_name` - Name of the repository in generated .repo file. If not defined, "odcs-$COMPOSE_ID" is used as repository name.
+  - `iso` - Generates non-installable ISO files with RPMs from a compose.
+  - `boot.iso` - Generates `images/boot.iso` file which is needed to build base container images from resulting compose.
 
 The `new_compose` method returns `dict` object describing the compose, for example:
 

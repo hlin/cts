@@ -114,29 +114,3 @@ def hardlink(dirs, verbose=False):
         args.append(dirs)
 
     execute_cmd(args)
-
-
-def mergerepo(urls, output_dir, verbose=False):
-    """
-    Runs "mergerepo_c --all" with `url` and outputs to `output_dir`.
-    """
-    mergerepo_exe = find_executable('mergerepo_c')
-    if not mergerepo_exe:
-        raise RuntimeError("mergerepo_c is not available on system")
-
-    args = [mergerepo_exe, '--all', '-o', output_dir]
-    if verbose:
-        args.append('-v')
-
-    for url in urls:
-        args.append('-r')
-        args.append(url)
-
-    makedirs(output_dir)
-
-    stderr_log_path = os.path.join(output_dir, "mergerepo-stderr.log")
-    stdout_log_path = os.path.join(output_dir, "mergerepo-stdout.log")
-
-    with open(stderr_log_path, "w") as stderr_fd:
-        with open(stdout_log_path, "w") as stdout_fd:
-            execute_cmd(args, stderr=stderr_fd, stdout=stdout_fd)

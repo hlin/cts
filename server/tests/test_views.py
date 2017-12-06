@@ -288,21 +288,6 @@ class TestViews(ViewBaseTest):
             c.results,
             COMPOSE_RESULTS["boot.iso"] | COMPOSE_RESULTS["repository"])
 
-    def test_submit_build_result_repo_name(self):
-        with self.test_request_context(user='dev'):
-            flask.g.oidc_scopes = [
-                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
-            ]
-
-            self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
-                 'result_repo_name': 'foo'}))
-
-        db.session.expire_all()
-        c = db.session.query(Compose).filter(Compose.id == 3).one()
-        self.assertEqual(c.state, COMPOSE_STATES["wait"])
-        self.assertEqual(c.repo_name, "foo")
-
     def test_submit_build_sigkeys(self):
         with self.test_request_context(user='dev'):
             flask.g.oidc_scopes = [
