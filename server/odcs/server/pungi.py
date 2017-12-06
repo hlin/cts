@@ -35,7 +35,7 @@ import odcs.server.utils
 from odcs.server import conf, log
 from odcs.server import comps
 from odcs.common.types import PungiSourceType, COMPOSE_RESULTS
-from odcs.server.utils import makedirs
+from odcs.server.utils import makedirs, download_file
 
 
 class PungiConfig(object):
@@ -164,19 +164,23 @@ class Pungi(object):
         `self.pungi_cfg` to `topdir` directory.
         :param str topdir: Directory to write the files to.
         """
-        main_cfg = self.pungi_cfg.get_pungi_config()
-        variants_cfg = self.pungi_cfg.get_variants_config()
-        comps_cfg = self.pungi_cfg.get_comps_config()
-        log.debug("Main Pungi config:")
-        log.debug("%s", main_cfg)
-        log.debug("Variants.xml:")
-        log.debug("%s", variants_cfg)
-        log.debug("Comps.xml:")
-        log.debug("%s", comps_cfg)
+        if type(self.pungi_cfg) == PungiConfig:
+            main_cfg = self.pungi_cfg.get_pungi_config()
+            variants_cfg = self.pungi_cfg.get_variants_config()
+            comps_cfg = self.pungi_cfg.get_comps_config()
+            log.debug("Main Pungi config:")
+            log.debug("%s", main_cfg)
+            log.debug("Variants.xml:")
+            log.debug("%s", variants_cfg)
+            log.debug("Comps.xml:")
+            log.debug("%s", comps_cfg)
 
-        self._write_cfg(os.path.join(topdir, "pungi.conf"), main_cfg)
-        self._write_cfg(os.path.join(topdir, "variants.xml"), variants_cfg)
-        self._write_cfg(os.path.join(topdir, "comps.xml"), comps_cfg)
+            self._write_cfg(os.path.join(topdir, "pungi.conf"), main_cfg)
+            self._write_cfg(os.path.join(topdir, "variants.xml"), variants_cfg)
+            self._write_cfg(os.path.join(topdir, "comps.xml"), comps_cfg)
+        else:
+            output_path = os.path.join(topdir, "pungi.conf")
+            download_file(self.pungi_cfg, output_path)
 
     def make_koji_session(self):
         """
@@ -293,8 +297,8 @@ class Pungi(object):
         Runs the compose in runroot, waits for a result and raises an
         exception if the Koji runroot tasks failed.
         """
-        conf_topdir = os.path.join(conf.target_dir, "runroot_configs",
-                                   self.pungi_cfg.release_name)
+        conf_topdir = os.path.join(conf.target_dir,
+                                   self._unique_path("runroot_configs"))
         makedirs(conf_topdir)
         self._write_cfgs(conf_topdir)
 

@@ -25,9 +25,21 @@ import functools
 import os
 import time
 import subprocess
+import requests
 from distutils.spawn import find_executable
 
 from odcs.server import conf, log
+
+
+def download_file(url, output_path):
+    """
+    Downloads file from URL `url` to `output_path`.
+    """
+    r = requests.get(url)
+    r.raise_for_status()
+
+    with open(output_path, 'wb') as f:
+        f.write(r.content)
 
 
 def retry(timeout=conf.net_timeout, interval=conf.net_retry_interval, wait_on=Exception, logger=None):

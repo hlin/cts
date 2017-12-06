@@ -298,6 +298,11 @@ def get_reusable_compose(compose):
     of generating new one.
     """
 
+    # RAW_CONFIG composes cannot reuse other composes, we cannot track input
+    # for them.
+    if compose.source_type == PungiSourceType.RAW_CONFIG:
+        return None
+
     # Get all the active composes of the same source_type
     composes = db.session.query(Compose).filter(
         Compose.state == COMPOSE_STATES["done"],
@@ -574,15 +579,20 @@ def generate_pungi_compose(compose):
         log.info("%r: Reusing compose %r", compose, compose_to_reuse)
         reuse_compose(compose, compose_to_reuse)
     else:
-        # Generate PungiConfig and run Pungi
-        pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
-                                compose.source, packages=packages,
-                                sigkeys=compose.sigkeys,
-                                results=compose.results)
-        if compose.flags & COMPOSE_FLAGS["no_deps"]:
-            pungi_cfg.gather_method = "nodeps"
-        if compose.flags & COMPOSE_FLAGS["no_inheritance"]:
-            pungi_cfg.pkgset_koji_inherit = False
+        if compose.source_type == PungiSourceType.RAW_CONFIG:
+            source_name, source_hash = compose.source.split("#")
+            url_template = conf.raw_config_urls[source_name]
+            pungi_cfg = str(url_template % (source_hash))
+        else:
+            # Generate PungiConfig and run Pungi
+            pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
+                                    compose.source, packages=packages,
+                                    sigkeys=compose.sigkeys,
+                                    results=compose.results)
+            if compose.flags & COMPOSE_FLAGS["no_deps"]:
+                pungi_cfg.gather_method = "nodeps"
+            if compose.flags & COMPOSE_FLAGS["no_inheritance"]:
+                pungi_cfg.pkgset_koji_inherit = False
 
         koji_event = None
         if compose.source_type == PungiSourceType.KOJI_TAG:

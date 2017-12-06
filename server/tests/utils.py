@@ -32,6 +32,11 @@ from flask.ext.sqlalchemy import SignallingSession
 from mock import patch
 
 
+class AnyStringWith(str):
+    def __eq__(self, other):
+        return self in other
+
+
 class ConfigPatcher(object):
 
     def __init__(self, config_obj):

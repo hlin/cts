@@ -280,6 +280,13 @@ class Config(object):
             'type': str,
             'default': None,
             'desc': 'Koji config profile.'},
+        'raw_config_urls': {
+            'type': dict,
+            'default': {},
+            'desc': 'URLs to get the raw Pungi config from for "raw_config" '
+                    'source_type. Key is the name of the raw_config "source", '
+                    'value is the URL in which the %s string is replaced with, '
+                    '"commit_hash" value.'},
     }
 
     def __init__(self, conf_section_obj):

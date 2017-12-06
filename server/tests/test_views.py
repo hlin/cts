@@ -51,7 +51,8 @@ class ViewBaseTest(ModelsBaseTest):
         super(ViewBaseTest, self).setUp()
 
         patched_allowed_clients = {'groups': ['composer', {'dev2': ['module']}],
-                                   'users': ['dev', {'dev2': ['module']}]}
+                                   'users': ['dev', {'dev2': [
+                                       'module', 'raw_config']}]}
         patched_admins = {'groups': ['admin'], 'users': ['root']}
         self.patch_allowed_clients = patch.object(odcs.server.auth.conf,
                                                   'allowed_clients',
@@ -883,3 +884,134 @@ class TestExtendExpiration(ViewBaseTest):
         self.assertEqual(expected_time_to_expire, c1.time_to_expire)
         c3 = db.session.query(Compose).filter(Compose.id == self.c3_id).first()
         self.assertEqual(expected_time_to_expire, c3.time_to_expire)
+
+
+class TestViewsRawConfig(ViewBaseTest):
+    maxDiff = None
+
+    def setUp(self):
+        super(TestViewsRawConfig, self).setUp()
+        self.oidc_base_namespace = patch.object(conf, 'oidc_base_namespace',
+                                                new='http://example.com/')
+        self.oidc_base_namespace.start()
+
+    def tearDown(self):
+        super(TestViewsRawConfig, self).tearDown()
+        self.oidc_base_namespace.stop()
+
+    def test_submit_build_raw_config_too_many_sources(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config',
+                            'source': 'pungi_cfg#hash pungi2cfg_hash'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["status"], 400)
+        self.assertEqual(
+            data["message"],
+            'Only single source is allowed for "raw_config" source_type')
+
+    def test_submit_build_raw_config_no_hash(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config',
+                            'source': 'pungi_cfg'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["status"], 400)
+        self.assertEqual(
+            data["message"],
+            'Source must be in "source_name#commit_hash" format for '
+            '"raw_config" source_type.')
+
+    def test_submit_build_raw_config_empty_hash(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config',
+                            'source': 'pungi_cfg#'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["status"], 400)
+        self.assertEqual(
+            data["message"],
+            'Source must be in "source_name#commit_hash" format for '
+            '"raw_config" source_type.')
+
+    def test_submit_build_raw_config_empty_name(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config',
+                            'source': '#hash'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["status"], 400)
+        self.assertEqual(
+            data["message"],
+            'Source must be in "source_name#commit_hash" format for '
+            '"raw_config" source_type.')
+
+    def test_submit_build_raw_config_empty_name_hash(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config',
+                            'source': '#'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["status"], 400)
+        self.assertEqual(
+            data["message"],
+            'Source must be in "source_name#commit_hash" format for '
+            '"raw_config" source_type.')
+
+    def test_submit_build_raw_config_unknown_name(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config',
+                            'source': 'pungi_cfg#hash'}}))
+            data = json.loads(rv.data.decode('utf8'))
+
+        self.assertEqual(data["status"], 400)
+        self.assertEqual(
+            data["message"],
+            'Source "pungi_cfg" does not exist in server configuration.')
+
+    @patch.object(odcs.server.config.Config, 'raw_config_urls',
+                  new={"pungi_cfg": "http://localhost/pungi.conf#%s"})
+    def test_submit_build_raw_config(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config',
+                            'source': 'pungi_cfg#hash'}}))
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(c.source_type, PungiSourceType.RAW_CONFIG)
+        self.assertEqual(c.source, 'pungi_cfg#hash')

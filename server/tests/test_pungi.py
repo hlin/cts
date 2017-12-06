@@ -33,7 +33,7 @@ from odcs.server.pungi import (Pungi, PungiConfig, PungiSourceType,
                                COMPOSE_RESULTS)
 import odcs.server.pungi
 from odcs.server import conf
-from .utils import ConfigPatcher
+from .utils import ConfigPatcher, AnyStringWith
 
 test_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -156,8 +156,13 @@ class TestPungi(unittest.TestCase):
     def setUp(self):
         super(TestPungi, self).setUp()
 
+        self.patch_download_file = patch("odcs.server.pungi.download_file")
+        self.download_file = self.patch_download_file.start()
+
     def tearDown(self):
         super(TestPungi, self).tearDown()
+
+        self.patch_download_file.stop()
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):
@@ -167,6 +172,16 @@ class TestPungi(unittest.TestCase):
         pungi.run()
 
         execute_cmd.assert_called_once()
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_raw_config(self, execute_cmd):
+        pungi_cfg = "http://localhost/pungi.conf#hash"
+        pungi = Pungi(pungi_cfg)
+        pungi.run()
+
+        execute_cmd.assert_called_once()
+        self.download_file.assert_called_once_with(
+            "http://localhost/pungi.conf#hash", AnyStringWith("/pungi.conf"))
 
 
 class TestPungiRunroot(unittest.TestCase):
@@ -196,13 +211,21 @@ class TestPungiRunroot(unittest.TestCase):
         unique_path = self.patch_unique_path.start()
         unique_path.return_value = "odcs/unique_path"
 
+        def mocked_download_file(url, output_path):
+            with open(output_path, "w") as fd:
+                fd.write("fake pungi.conf")
+        self.patch_download_file = patch("odcs.server.pungi.download_file")
+        self.download_file = self.patch_download_file.start()
+        self.download_file.side_effect = mocked_download_file
+
     def tearDown(self):
         super(TestPungiRunroot, self).tearDown()
         self.config_patcher.stop()
         self.patch_make_koji_session.stop()
         self.patch_unique_path.stop()
+        self.patch_download_file.stop()
 
-        conf_topdir = os.path.join(conf.target_dir, "runroot_configs")
+        conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         shutil.rmtree(conf_topdir)
 
     def test_pungi_run_runroot(self):
@@ -213,14 +236,32 @@ class TestPungiRunroot(unittest.TestCase):
         pungi = Pungi(pungi_cfg)
         pungi.run()
 
-        conf_topdir = os.path.join(conf.target_dir, "runroot_configs",
-                                   pungi_cfg.release_name)
+        conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         self.koji_session.uploadWrapper.assert_any_call(
             os.path.join(conf_topdir, 'pungi.conf'), 'odcs/unique_path', callback=None)
         self.koji_session.uploadWrapper.assert_any_call(
             os.path.join(conf_topdir, 'variants.xml'), 'odcs/unique_path', callback=None)
         self.koji_session.uploadWrapper.assert_any_call(
             os.path.join(conf_topdir, 'comps.xml'), 'odcs/unique_path', callback=None)
+
+        self.koji_session.runroot.assert_called_once_with(
+            'f26-build', 'x86_64',
+            'cp /mnt/koji/work/odcs/unique_path/* . && '
+            'pungi-koji --config=./pungi.conf --target-dir=/mnt/koji/compose/odcs --nightly',
+            channel='channel', mounts=['/mnt/odcs-secrets'], packages=['pungi'], weight=3.5)
+
+        self.koji_session.taskFinished.assert_called_once_with(123)
+
+    def test_pungi_run_runroot_raw_config(self):
+        self.koji_session.getTaskInfo.return_value = {"state": koji.TASK_STATES["CLOSED"]}
+
+        pungi_cfg = "http://localhost/pungi.conf#hash"
+        pungi = Pungi(pungi_cfg)
+        pungi.run()
+
+        conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
+        self.koji_session.uploadWrapper.assert_called_once_with(
+            os.path.join(conf_topdir, 'pungi.conf'), 'odcs/unique_path', callback=None)
 
         self.koji_session.runroot.assert_called_once_with(
             'f26-build', 'x86_64',

@@ -438,6 +438,17 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.assertEqual(self.pungi_config.gather_method, "deps")
         self.assertEqual(self.pungi_config.pkgset_koji_inherit, False)
 
+    @patch.object(odcs.server.config.Config, 'raw_config_urls',
+                  new={"pungi_cfg": "http://localhost/pungi.conf#%s"})
+    def test_generate_pungi_compose_raw_config(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.RAW_CONFIG, "pungi_cfg#hash",
+            COMPOSE_RESULTS["repository"], 60)
+        c.id = 1
+
+        generate_pungi_compose(c)
+        self.assertEqual(self.pungi_config, "http://localhost/pungi.conf#hash")
+
 
 class TestGenerateODCSComposeCompose(ModelsBaseTest):
 

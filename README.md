@@ -120,6 +120,7 @@ Both `sources` and `source_type` are strings. Depending on `source_type` value, 
 | module        | White-space separated NAME-STREAM or NAME-STREAM-VERSION of modules to include in compose. |
 | pulp          | White-space separated list of context-sets. Repositories defined by these contests sets will be included in a compose. |
 | odcs_compose  | White-space separated list of other ODCS compose IDs. All the repositories will be merged using `mergerepo` tool and new .repo file will be available as a result of a compose. If merging `pulp` source_type compose, the `result_repo_name` must be set to name of one content set, so it is clear which repository will be merged. |
+| raw_config    | String in `name#commit` hash format. The `name` must match one of the raw config locations defined in ODCS server config as `raw_config_urls`. The `commit` is commit hash defining the version of raw config to use. This config is then used as input config for Pungi. |
 
 There are also additional optional attributes you can pass to `new_compose(...)` method:
 

@@ -32,7 +32,7 @@ from odcs.server.errors import NotFound
 from odcs.server.models import Compose
 from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES,
-    INVERSE_PUNGI_SOURCE_TYPE_NAMES)
+    INVERSE_PUNGI_SOURCE_TYPE_NAMES, PungiSourceType)
 from odcs.server.api_utils import pagination_metadata, filter_composes
 from odcs.server.auth import requires_role, login_required
 from odcs.server.auth import require_scopes
@@ -206,7 +206,28 @@ class ODCSAPI(MethodView):
             err = "No source provided for %s" % source_type
             log.error(err)
             raise ValueError(err)
-        source = ' '.join(filter(None, source))
+
+        # Validate RAW_CONFIG source_type.
+        if source_type == PungiSourceType.RAW_CONFIG:
+            if len(source) > 1:
+                raise ValueError(
+                    'Only single source is allowed for "raw_config" '
+                    'source_type')
+
+            source_name_hash = source[0].split("#")
+            if (len(source_name_hash) != 2 or not source_name_hash[0] or
+                    not source_name_hash[1]):
+                raise ValueError(
+                    'Source must be in "source_name#commit_hash" format for '
+                    '"raw_config" source_type.')
+
+            source_name, source_hash = source_name_hash
+            if source_name not in conf.raw_config_urls:
+                raise ValueError(
+                    'Source "%s" does not exist in server configuration.' %
+                    source_name)
+
+        source = ' '.join(source)
 
         packages = None
         if "packages" in source_data:
