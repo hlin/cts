@@ -75,6 +75,13 @@ class BackendThread(object):
                 self.do_work()
             except Exception:
                 log.exception("Exception in backend thread")
+                db.session.rollback()
+
+            # If the self.stop has been called from the do_work, break earlier
+            # so we don't wait on exit_cond.
+            if self.exit:
+                break
+
             self.exit_cond.acquire()
             self.exit_cond.wait(float(self.timeout))
             self.exit_cond.release()
