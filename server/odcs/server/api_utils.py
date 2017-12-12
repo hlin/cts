@@ -22,6 +22,46 @@
 import copy
 from flask import request, url_for
 from odcs.server.models import Compose
+import six
+
+
+def validate_json_data(dict_or_list, level=0):
+    """
+    Checks that json data represented by dict `dict_or_list` is valid ODCS
+    input. Raises ValueError in case the json data does not pass validation.
+
+    This mainly checks that any value in json data does not contain forbidden
+    characters and data types which could potentially lead to dangerous pungi
+    configuration being generated.
+    """
+    if isinstance(dict_or_list, dict):
+        iterator = dict_or_list.items()
+    else:
+        iterator = enumerate(dict_or_list)
+    for k, v in iterator:
+        if isinstance(v, dict):
+            # Allow only dict with "source" key name in first level of
+            # json object.
+            if level != 0 or k not in ["source"]:
+                raise ValueError(
+                    "Only 'source' key is allowed to contain dict.")
+            validate_json_data(v, level + 1)
+        elif isinstance(v, list):
+            validate_json_data(v, level + 1)
+        elif isinstance(v, six.string_types):
+            allowed_chars = [' ', '-', '/', '_', '.', ':', '#']
+            if not all(c.isalnum() or c in allowed_chars for c in v):
+                raise ValueError(
+                    "Only alphanumerical characters and %r characters "
+                    "are allowed in ODCS input variables" % (allowed_chars))
+        elif isinstance(v, (int, float)):
+            # Allow int, float and also bool, because that's subclass of int.
+            continue
+        else:
+            raise ValueError(
+                "Only dict, list, str, unicode, int, float and bool types "
+                "are allowed in ODCS input variables, but '%s' has '%s' "
+                "type" % (k, type(v)))
 
 
 def pagination_metadata(p_query, request_args):

@@ -38,11 +38,55 @@ from odcs.server.models import Compose, User
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.pungi import PungiSourceType
 from .utils import ModelsBaseTest
+from odcs.server.api_utils import validate_json_data
+
+import unittest
 
 
 @login_manager.user_loader
 def user_loader(username):
     return User.find_user_by_name(username=username)
+
+
+class TestValidateJSONData(unittest.TestCase):
+
+    def test_validate_json_data_allowed_dict(self):
+        data = {"source": {"source": ""}}
+        validate_json_data(data)
+
+    def test_validate_json_data_unallowed_dict(self):
+        data = {"source": {"source": {"k": "v"}}}
+        self.assertRaises(ValueError, validate_json_data, data)
+
+    def test_validate_json_data_unallowed_dict_toplevel(self):
+        data = {"source2": {"source": {"k": "v"}}}
+        self.assertRaises(ValueError, validate_json_data, data)
+
+    def test_validate_json_data_list(self):
+        data = {"source": ["1", "2"]}
+        validate_json_data(data)
+
+    def test_validate_json_data_list_unallowed_chars(self):
+        for char in ["\n", "{", "}", "'", '"']:
+            data = {"source": ["%s1" % char, "2"]}
+            self.assertRaises(ValueError, validate_json_data, data)
+
+    def test_validate_json_data_str_unallowed_chars(self):
+        for char in ["\n", "{", "}", "'", '"']:
+            data = {"source": {"x": char + "1"}}
+            self.assertRaises(ValueError, validate_json_data, data)
+
+    def test_validate_json_data_int(self):
+        data = {"source": {"x": 1}}
+        validate_json_data(data)
+
+    def test_validate_json_data_float(self):
+        data = {"source": {"x": 1.5}}
+        validate_json_data(data)
+
+    def test_validate_json_data_unallowed_type(self):
+        data = {"source": {"x": PropertyMock()}}
+        self.assertRaises(ValueError, validate_json_data, data)
 
 
 class ViewBaseTest(ModelsBaseTest):

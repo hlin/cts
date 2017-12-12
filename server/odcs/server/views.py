@@ -33,7 +33,8 @@ from odcs.server.models import Compose
 from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES,
     INVERSE_PUNGI_SOURCE_TYPE_NAMES, PungiSourceType)
-from odcs.server.api_utils import pagination_metadata, filter_composes
+from odcs.server.api_utils import (
+    pagination_metadata, filter_composes, validate_json_data)
 from odcs.server.auth import requires_role, login_required
 from odcs.server.auth import require_scopes
 from odcs.server.auth import raise_if_source_type_not_allowed
@@ -119,9 +120,10 @@ class ODCSAPI(MethodView):
     @requires_role('allowed_clients')
     def patch(self, id):
         if request.data:
-            data = data = request.get_json(force=True)
+            data = request.get_json(force=True)
         else:
             data = {}
+        validate_json_data(data)
 
         seconds_to_live = self._get_seconds_to_live(data)
 
@@ -175,6 +177,8 @@ class ODCSAPI(MethodView):
         data = request.get_json(force=True)
         if not data:
             raise ValueError('No JSON POST data submitted')
+
+        validate_json_data(data)
 
         seconds_to_live = self._get_seconds_to_live(data)
 
