@@ -280,6 +280,18 @@ class Config(object):
             'type': str,
             'default': None,
             'desc': 'Koji config profile.'},
+        'koji_krb_ccache': {
+            'type': str,
+            'default': None,
+            'desc': 'Kerberos ccache file to use for Koji auth.'},
+        'koji_krb_keytab': {
+            'type': str,
+            'default': None,
+            'desc': 'Kerberos keytab to use for Koji auth.'},
+        'koji_krb_principal': {
+            'type': str,
+            'default': None,
+            'desc': 'Kerberos principal to use for Koji auth.'},
         'raw_config_urls': {
             'type': dict,
             'default': {},

@@ -202,9 +202,9 @@ class Pungi(object):
         log.info("Connecting to koji %r with %r." % (address, authtype))
         koji_session = koji.ClientSession(address, opts=koji_config)
         if authtype == "kerberos":
-            ccache = getattr(conf, "krb_ccache", None)
-            keytab = getattr(conf, "krb_keytab", None)
-            principal = getattr(conf, "krb_principal", None)
+            ccache = getattr(conf, "koji_krb_ccache", None)
+            keytab = getattr(conf, "koji_krb_keytab", None)
+            principal = getattr(conf, "koji_krb_principal", None)
             log.debug("  ccache: %r, keytab: %r, principal: %r" % (
                 ccache, keytab, principal))
             if keytab and principal:
@@ -264,7 +264,7 @@ class Pungi(object):
                     "Failed to remove temporary directory {!r}: {}".format(
                         td, str(e)))
 
-    def _unique_path(prefix):
+    def _unique_path(self, prefix):
         """
         Create a unique path fragment by appending a path component
         to prefix.  The path component will consist of a string of letter and numbers
