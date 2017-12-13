@@ -269,7 +269,9 @@ class TestViews(ViewBaseTest):
                          'time_to_expire': data["time_to_expire"],
                          'flags': [],
                          'results': ['repository'],
-                         'sigkeys': ''}
+                         'sigkeys': '',
+                         'koji_event': None,
+                         'koji_task_id': None}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -772,7 +774,9 @@ class TestViews(ViewBaseTest):
                          'time_to_expire': data["time_to_expire"],
                          'flags': [],
                          'results': ['repository'],
-                         'sigkeys': ''}
+                         'sigkeys': '',
+                         'koji_event': None,
+                         'koji_task_id': None}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()

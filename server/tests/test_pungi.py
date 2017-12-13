@@ -159,6 +159,8 @@ class TestPungi(unittest.TestCase):
         self.patch_download_file = patch("odcs.server.pungi.download_file")
         self.download_file = self.patch_download_file.start()
 
+        self.compose = MagicMock()
+
     def tearDown(self):
         super(TestPungi, self).tearDown()
 
@@ -169,7 +171,7 @@ class TestPungi(unittest.TestCase):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
                                 "testmodule-master")
         pungi = Pungi(pungi_cfg)
-        pungi.run()
+        pungi.run(self.compose)
 
         execute_cmd.assert_called_once()
 
@@ -177,7 +179,7 @@ class TestPungi(unittest.TestCase):
     def test_pungi_run_raw_config(self, execute_cmd):
         pungi_cfg = "http://localhost/pungi.conf#hash"
         pungi = Pungi(pungi_cfg)
-        pungi.run()
+        pungi.run(self.compose)
 
         execute_cmd.assert_called_once()
         self.download_file.assert_called_once_with(
@@ -218,6 +220,8 @@ class TestPungiRunroot(unittest.TestCase):
         self.download_file = self.patch_download_file.start()
         self.download_file.side_effect = mocked_download_file
 
+        self.compose = MagicMock()
+
     def tearDown(self):
         super(TestPungiRunroot, self).tearDown()
         self.config_patcher.stop()
@@ -234,7 +238,7 @@ class TestPungiRunroot(unittest.TestCase):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
                                 "testmodule-master")
         pungi = Pungi(pungi_cfg)
-        pungi.run()
+        pungi.run(self.compose)
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         self.koji_session.uploadWrapper.assert_any_call(
@@ -251,13 +255,14 @@ class TestPungiRunroot(unittest.TestCase):
             channel='channel', mounts=['/mnt/odcs-secrets'], packages=['pungi'], weight=3.5)
 
         self.koji_session.taskFinished.assert_called_once_with(123)
+        self.assertEqual(self.compose.koji_task_id, 123)
 
     def test_pungi_run_runroot_raw_config(self):
         self.koji_session.getTaskInfo.return_value = {"state": koji.TASK_STATES["CLOSED"]}
 
         pungi_cfg = "http://localhost/pungi.conf#hash"
         pungi = Pungi(pungi_cfg)
-        pungi.run()
+        pungi.run(self.compose)
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         self.koji_session.uploadWrapper.assert_called_once_with(
@@ -270,3 +275,4 @@ class TestPungiRunroot(unittest.TestCase):
             channel='channel', mounts=['/mnt/odcs-secrets'], packages=['pungi'], weight=3.5)
 
         self.koji_session.taskFinished.assert_called_once_with(123)
+        self.assertEqual(self.compose.koji_task_id, 123)

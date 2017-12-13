@@ -288,7 +288,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         # run asserts against it.
         self.pungi_config = None
 
-        def fake_pungi_run(pungi_cls):
+        def fake_pungi_run(pungi_cls, compose):
             self.pungi_config = pungi_cls.pungi_cfg
 
         self.patch_pungi_run = patch("odcs.server.pungi.Pungi.run", autospec=True)

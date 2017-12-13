@@ -120,6 +120,9 @@ class Compose(ODCSBase):
     time_done = db.Column(db.DateTime)
     time_removed = db.Column(db.DateTime)
     reused_id = db.Column(db.Integer, index=True)
+    # In case Pungi composes are generated using ODCS Koji runroot task, this
+    # holds the Koji task id of this task.
+    koji_task_id = db.Column(db.Integer, index=True)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
@@ -261,7 +264,9 @@ class Compose(ODCSBase):
             'result_repofile': self.result_repofile_url,
             'flags': flags,
             'results': results,
-            'sigkeys': self.sigkeys if self.sigkeys else ""
+            'sigkeys': self.sigkeys if self.sigkeys else "",
+            'koji_event': self.koji_event,
+            'koji_task_id': self.koji_task_id,
         }
 
     @staticmethod

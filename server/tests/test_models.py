@@ -59,7 +59,9 @@ class TestModels(ModelsBaseTest):
                          'time_to_expire': c.json()["time_to_expire"],
                          'flags': [],
                          'results': ['repository'],
-                         'sigkeys': ''}
+                         'sigkeys': '',
+                         'koji_event': None,
+                         'koji_task_id': None}
         self.assertEqual(c.json(), expected_json)
 
 

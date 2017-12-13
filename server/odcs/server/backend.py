@@ -507,7 +507,7 @@ def generate_pungi_compose(compose):
             koji_event = compose.koji_event
 
         pungi = Pungi(pungi_cfg, koji_event)
-        pungi.run()
+        pungi.run(compose)
 
         _write_repo_file(compose)
 

@@ -32,7 +32,7 @@ import random
 import string
 
 import odcs.server.utils
-from odcs.server import conf, log
+from odcs.server import conf, log, db
 from odcs.server import comps
 from odcs.common.types import PungiSourceType, COMPOSE_RESULTS
 from odcs.server.utils import makedirs, download_file
@@ -295,7 +295,7 @@ class Pungi(object):
 
         return serverdir
 
-    def run_in_runroot(self):
+    def run_in_runroot(self, compose):
         """
         Runs the compose in runroot, waits for a result and raises an
         exception if the Koji runroot tasks failed.
@@ -324,6 +324,9 @@ class Pungi(object):
             conf.pungi_parent_runroot_tag, conf.pungi_parent_runroot_arch,
             " ".join(cmd), **kwargs)
 
+        compose.koji_task_id = task_id
+        db.session.commit()
+
         while True:
             # wait for the task to finish
             if koji_session.taskFinished(task_id):
@@ -338,12 +341,15 @@ class Pungi(object):
         if state in ('FAILED', 'CANCELED'):
             raise RuntimeError("Koji runroot task %r failed." % task_id)
 
-    def run(self):
+    def run(self, compose):
         """
         Runs the compose in Pungi. Blocks until the compose is done.
         Raises an exception if compose generation fails.
+
+        :param models.Compose compose: Compose this Pungi process is running
+            for.
         """
         if conf.pungi_runroot_enabled:
-            self.run_in_runroot()
+            self.run_in_runroot(compose)
         else:
             self.run_locally()
