@@ -102,12 +102,15 @@ class TestComposerThread(ModelsBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
+        self.assertEqual(self.composer.currently_generating, [])
+
         self.composer.do_work()
         c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
         self.assertEqual(c.result_repo_dir,
                          os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(self.composer.currently_generating, [1])
 
     @mock_pdc
     @patch("odcs.server.utils.execute_cmd")
@@ -260,3 +263,55 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_dir,
                          os.path.join(odcs.server.conf.target_dir, "latest-odcs-2-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary")
+
+
+class TestComposerThreadLostComposes(ModelsBaseTest):
+    maxDiff = None
+
+    def setUp(self):
+        self.client = app.test_client()
+        super(TestComposerThreadLostComposes, self).setUp()
+        self.composer = ComposerThread()
+
+        self.patch_generate_new_compose = patch(
+            "odcs.server.backend.ComposerThread._generate_new_compose")
+        self.generate_new_compose = self.patch_generate_new_compose.start()
+
+    def tearDown(self):
+        super(TestComposerThreadLostComposes, self).tearDown()
+        self.patch_generate_new_compose.stop()
+
+    def _add_test_compose(self, state):
+        compose = Compose.create(
+            db.session, "unknown", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, "", 0)
+        compose.state = state
+        db.session.add(compose)
+        db.session.commit()
+        return compose
+
+    def test_generate_lost_composes_generating_state(self):
+        compose = self._add_test_compose(COMPOSE_STATES["generating"])
+        self.composer.do_work()
+        self.generate_new_compose.assert_called_once_with(compose)
+
+    def test_generate_lost_composes_currently_generating(self):
+        compose = self._add_test_compose(COMPOSE_STATES["generating"])
+        self.composer.currently_generating.append(compose.id)
+        self.composer.do_work()
+        self.generate_new_compose.assert_not_called()
+
+    def test_generate_lost_composes_all_states(self):
+        for state in ["wait", "done", "removed", "failed"]:
+            self._add_test_compose(COMPOSE_STATES[state])
+
+        self.composer.generate_lost_composes()
+        self.generate_new_compose.assert_not_called()
+
+    def test_refresh_currently_generating(self):
+        generating = self._add_test_compose(COMPOSE_STATES["generating"])
+        done = self._add_test_compose(COMPOSE_STATES["done"])
+
+        self.composer.currently_generating += [done.id, generating.id]
+        self.composer.do_work()
+        self.assertEqual(self.composer.currently_generating, [generating.id])
