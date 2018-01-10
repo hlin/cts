@@ -186,7 +186,7 @@ class TestHandlingErrors(ViewBaseTest):
         delete.side_effect = BadRequest('bad request to delete')
 
         resp = self.client.delete('/api/1/composes/100')
-        data = json.loads(resp.data.decode('utf-8'))
+        data = json.loads(resp.get_data(as_text=True))
 
         self.assertEqual('Bad Request', data['error'])
         self.assertEqual(400, data['status'])
@@ -201,7 +201,7 @@ class TestHandlingErrors(ViewBaseTest):
         for e in possible_errors:
             with patch('odcs.server.views.filter_composes', side_effect=e):
                 resp = self.client.get('/api/1/composes/')
-                data = json.loads(resp.data.decode('utf-8'))
+                data = json.loads(resp.get_data(as_text=True))
 
                 self.assertEqual('Internal Server Error', data['error'])
                 self.assertEqual(500, data['status'])
@@ -242,7 +242,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data="{")
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(rv.status, '400 BAD REQUEST')
         self.assertEqual(data["error"], "Bad Request")
@@ -257,7 +257,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
@@ -287,7 +287,7 @@ class TestViews(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
                  'flags': ['no_deps']}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['flags'], ['no_deps'])
 
@@ -305,7 +305,7 @@ class TestViews(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
                  'flags': ['no_inheritance']}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['flags'], ['no_inheritance'])
 
@@ -323,7 +323,7 @@ class TestViews(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
                  'results': ['boot.iso']}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(set(data['results']), set(['repository', 'boot.iso']))
 
@@ -343,7 +343,7 @@ class TestViews(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed'],
                             'sigkeys': ["123", "456"]}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['sigkeys'], '123 456')
 
@@ -361,7 +361,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['sigkeys'], 'x y')
 
@@ -380,7 +380,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.patch('/api/1/composes/1')
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['id'], 3)
         self.assertEqual(data['state_name'], 'wait')
@@ -401,7 +401,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.patch('/api/1/composes/1')
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['id'], 3)
         self.assertEqual(data['state_name'], 'wait')
@@ -418,7 +418,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.patch('/api/1/composes/1')
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['message'], 'No compose with id 1 found')
 
@@ -429,7 +429,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.patch('/api/1/composes/100')
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['message'], 'No compose with id 100 found')
 
@@ -441,7 +441,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'repo', 'source': '/path'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(
             data['message'],
@@ -455,7 +455,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'unknown', 'source': '/path'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(
             data['message'], 'Unknown source type "unknown"')
@@ -468,7 +468,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': '/path'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["state_name"], "wait")
 
@@ -480,7 +480,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': '/path'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(
             data['message'],
@@ -494,7 +494,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': '/path'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["state_name"], "wait")
 
@@ -506,7 +506,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'tag', 'source': '/path'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(
             data['message'],
@@ -514,43 +514,43 @@ class TestViews(ViewBaseTest):
 
     def test_query_compose(self):
         resp = self.client.get('/api/1/composes/1')
-        data = json.loads(resp.data.decode('utf8'))
+        data = json.loads(resp.get_data(as_text=True))
         self.assertEqual(data['id'], 1)
         self.assertEqual(data['source'], "testmodule-master")
 
     def test_query_composes(self):
         resp = self.client.get('/api/1/composes/')
-        evs = json.loads(resp.data.decode('utf8'))['items']
+        evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 2)
 
     def test_query_compose_owner(self):
         resp = self.client.get('/api/1/composes/?owner=me')
-        evs = json.loads(resp.data.decode('utf8'))['items']
+        evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 1)
         self.assertEqual(evs[0]['source'], 'f26')
 
     def test_query_compose_state_done(self):
         resp = self.client.get(
             '/api/1/composes/?state=%d' % COMPOSE_STATES["done"])
-        evs = json.loads(resp.data.decode('utf8'))['items']
+        evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 0)
 
     def test_query_compose_state_wait(self):
         resp = self.client.get(
             '/api/1/composes/?state=%d' % COMPOSE_STATES["wait"])
-        evs = json.loads(resp.data.decode('utf8'))['items']
+        evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 2)
 
     def test_query_compose_source_type(self):
         resp = self.client.get(
             '/api/1/composes/?source_type=%d' % PungiSourceType.MODULE)
-        evs = json.loads(resp.data.decode('utf8'))['items']
+        evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 1)
 
     def test_query_compose_source(self):
         resp = self.client.get(
             '/api/1/composes/?source=f26')
-        evs = json.loads(resp.data.decode('utf8'))['items']
+        evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 1)
 
     def test_delete_compose(self):
@@ -570,7 +570,7 @@ class TestViews(ViewBaseTest):
                 ]
 
                 resp = self.client.delete("/api/1/composes/%s" % c3.id)
-                data = json.loads(resp.data.decode('utf8'))
+                data = json.loads(resp.get_data(as_text=True))
 
             self.assertEqual(resp.status, '202 ACCEPTED')
 
@@ -602,7 +602,7 @@ class TestViews(ViewBaseTest):
                     ]
 
                     resp = self.client.delete("/api/1/composes/%s" % compose_id)
-                    data = json.loads(resp.data.decode('utf8'))
+                    data = json.loads(resp.get_data(as_text=True))
 
                 self.assertEqual(resp.status, '400 BAD REQUEST')
                 self.assertEqual(data['status'], 400)
@@ -617,7 +617,7 @@ class TestViews(ViewBaseTest):
             ]
 
             resp = self.client.delete("/api/1/composes/999999")
-            data = json.loads(resp.data.decode('utf8'))
+            data = json.loads(resp.get_data(as_text=True))
 
         self.assertEqual(resp.status, '404 NOT FOUND')
         self.assertEqual(data['status'], 404)
@@ -631,7 +631,7 @@ class TestViews(ViewBaseTest):
             ]
 
             resp = self.client.delete("/api/1/composes/%s" % self.c1.id)
-            data = json.loads(resp.data.decode('utf8'))
+            data = json.loads(resp.get_data(as_text=True))
 
         self.assertEqual(resp.status, '403 FORBIDDEN')
         self.assertEqual(resp.status_code, 403)
@@ -646,7 +646,7 @@ class TestViews(ViewBaseTest):
 
             resp = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
-            data = json.loads(resp.data.decode('utf8'))
+            data = json.loads(resp.get_data(as_text=True))
 
         self.assertEqual(resp.status, '403 FORBIDDEN')
         self.assertEqual(resp.status_code, 403)
@@ -682,7 +682,7 @@ class TestViews(ViewBaseTest):
             ]
 
             resp = self.client.delete("/api/1/composes/%s" % c3.id)
-            data = json.loads(resp.data.decode('utf8'))
+            data = json.loads(resp.get_data(as_text=True))
 
         self.assertEqual(resp.status, '202 ACCEPTED')
         self.assertEqual(resp.status_code, 202)
@@ -705,7 +705,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 12}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
         time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
@@ -727,7 +727,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
         time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
@@ -748,7 +748,7 @@ class TestViews(ViewBaseTest):
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
         time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
@@ -762,7 +762,7 @@ class TestViews(ViewBaseTest):
         with self.test_request_context():
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'module', 'source': 'testmodule-master'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait', 'source': u'testmodule-master',
@@ -833,7 +833,7 @@ class TestExtendExpiration(ViewBaseTest):
         with self.test_request_context():
             rv = self.client.patch('/api/1/composes/{0}'.format(self.c1.id),
                                    data=post_data)
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
             self.assertEqual(400, data['status'])
             self.assertEqual('Bad Request', data['error'])
@@ -845,7 +845,7 @@ class TestExtendExpiration(ViewBaseTest):
         with self.test_request_context():
             rv = self.client.patch('/api/1/composes/{0}'.format(self.c1.id),
                                    data='abc')
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
             self.assertEqual(400, data['status'])
             self.assertEqual('Bad Request', data['error'])
@@ -861,7 +861,7 @@ class TestExtendExpiration(ViewBaseTest):
                                    'http://example.com/renew-compose']
 
             rv = self.client.patch('/api/1/composes/999', data=post_data)
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual('No compose with id 999 found', data['message'])
 
@@ -879,7 +879,7 @@ class TestExtendExpiration(ViewBaseTest):
 
             rv = self.client.patch('/api/1/composes/{0}'.format(self.c1.id),
                                    data=post_data)
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual('No compose with id {0} found'.format(self.c1.id),
                          data['message'])
@@ -905,7 +905,7 @@ class TestExtendExpiration(ViewBaseTest):
             with freeze_time(fake_utcnow):
                 url = '/api/1/composes/{0}'.format(self.c2.id)
                 rv = self.client.patch(url, data=post_data)
-                data = json.loads(rv.data.decode('utf8'))
+                data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(
             Compose._utc_datetime_to_iso(expected_time_to_expire),
@@ -941,7 +941,7 @@ class TestViewsRawConfig(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'raw_config',
                             'source': 'pungi_cfg#hash pungi2cfg_hash'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["status"], 400)
         self.assertEqual(
@@ -957,7 +957,7 @@ class TestViewsRawConfig(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'raw_config',
                             'source': 'pungi_cfg'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["status"], 400)
         self.assertEqual(
@@ -974,7 +974,7 @@ class TestViewsRawConfig(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'raw_config',
                             'source': 'pungi_cfg#'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["status"], 400)
         self.assertEqual(
@@ -991,7 +991,7 @@ class TestViewsRawConfig(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'raw_config',
                             'source': '#hash'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["status"], 400)
         self.assertEqual(
@@ -1008,7 +1008,7 @@ class TestViewsRawConfig(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'raw_config',
                             'source': '#'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["status"], 400)
         self.assertEqual(
@@ -1025,7 +1025,7 @@ class TestViewsRawConfig(ViewBaseTest):
             rv = self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'raw_config',
                             'source': 'pungi_cfg#hash'}}))
-            data = json.loads(rv.data.decode('utf8'))
+            data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["status"], 400)
         self.assertEqual(
