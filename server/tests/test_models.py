@@ -50,7 +50,9 @@ class TestModels(ModelsBaseTest):
         self.assertTrue(c.time_to_expire)
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
-                         'state_name': 'wait', 'source': u'testmodule-master',
+                         'state_name': 'wait',
+                         'state_reason': None,
+                         'source': u'testmodule-master',
                          'owner': u'me',
                          'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
                          'result_repofile': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary/odcs-1.repo',

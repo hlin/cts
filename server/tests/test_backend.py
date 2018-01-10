@@ -32,8 +32,8 @@ from odcs.common.types import COMPOSE_FLAGS, COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.pdc import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
 from odcs.server.backend import (resolve_compose, get_reusable_compose,
-                                 generate_pulp_compose, validate_pungi_compose,
-                                 generate_pungi_compose)
+                                 generate_compose, generate_pulp_compose,
+                                 generate_pungi_compose, validate_pungi_compose)
 from odcs.server.utils import makedirs
 import odcs.server.backend
 from .utils import ModelsBaseTest
@@ -236,6 +236,9 @@ gpgcheck=0
 """
         _write_repo_file.assert_called_once_with(c, expected_repofile)
 
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+        self.assertEqual(c.state_reason, 'Compose is generated successfully')
+
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose_content_set_not_found(
@@ -252,7 +255,12 @@ gpgcheck=0
         c = Compose.create(
             db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
             COMPOSE_RESULTS["repository"], 3600)
-        self.assertRaises(ValueError, generate_pulp_compose, c)
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.object(odcs.server.backend.conf, 'pulp_server_url',
+                          "https://localhost/"):
+            generate_compose(1)
 
         expected_query = {
             "criteria": {
@@ -267,6 +275,10 @@ gpgcheck=0
         pulp_rest_post.assert_called_once_with('repositories/search/',
                                                expected_query)
         _write_repo_file.assert_not_called()
+
+        c1 = Compose.query.filter(Compose.id == 1).one()
+        self.assertEqual(c1.state, COMPOSE_STATES["failed"])
+        self.assertRegexpMatches(c1.state_reason, r'Error while generating compose: Failed to find all the content_sets.*')
 
 
 class TestGeneratePungiCompose(ModelsBaseTest):

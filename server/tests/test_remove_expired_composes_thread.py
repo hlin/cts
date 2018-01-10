@@ -80,6 +80,7 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         db.session.expunge_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["removed"])
+        self.assertEqual(c.state_reason, 'Compose is expired')
 
     def test_does_not_remove_a_compose_which_is_not_expired(self):
         """

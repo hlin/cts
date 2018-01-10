@@ -109,6 +109,8 @@ class Compose(ODCSBase):
     sigkeys = db.Column(db.String)
     # COMPOSES_STATES
     state = db.Column(db.Integer, nullable=False, index=True)
+    # Reason of state change
+    state_reason = db.Column(db.String, nullable=True)
     # COMPOSE_RESULTS
     results = db.Column(db.Integer, nullable=False)
     # White-space separated list of packages
@@ -256,6 +258,7 @@ class Compose(ODCSBase):
             'source': self.source,
             'state': self.state,
             'state_name': INVERSE_COMPOSE_STATES[self.state],
+            'state_reason': self.state_reason,
             'time_to_expire': self._utc_datetime_to_iso(self.time_to_expire),
             'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
             'time_done': self._utc_datetime_to_iso(self.time_done),

@@ -260,7 +260,9 @@ class TestViews(ViewBaseTest):
             data = json.loads(rv.get_data(as_text=True))
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
-                         'state_name': 'wait', 'source': u'testmodule-master',
+                         'state_name': 'wait',
+                         'state_reason': None,
+                         'source': u'testmodule-master',
                          'owner': u'dev',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
@@ -765,7 +767,9 @@ class TestViews(ViewBaseTest):
             data = json.loads(rv.get_data(as_text=True))
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
-                         'state_name': 'wait', 'source': u'testmodule-master',
+                         'state_name': 'wait',
+                         'state_reason': None,
+                         'source': u'testmodule-master',
                          'owner': u'unknown',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
