@@ -388,6 +388,15 @@ class TestValidatePungiCompose(ModelsBaseTest):
         rm.add(
             "Temporary",
             "x86_64",
+            "pkg1-lib-0:2.18-11.fc26.x86_64.rpm",
+            path="Temporary/x86_64/os/Packages/p/pkg1-lib-2.18-11.fc26.x86_64.rpm",
+            sigkey="246110c1",
+            category="binary",
+            srpm_nevra="pkg1-0:2.18-11.fc26.src.rpm",
+        )
+        rm.add(
+            "Temporary",
+            "x86_64",
             "pkg1-0:2.18-11.fc26.src.rpm",
             path="Temporary/source/SRPMS/p/pkg1-2.18-11.fc26.x86_64.rpm",
             sigkey="246110c1",
@@ -399,6 +408,15 @@ class TestValidatePungiCompose(ModelsBaseTest):
             "x86_64",
             "pkg2-0:2.18-11.fc26.x86_64.rpm",
             path="Temporary/x86_64/os/Packages/p/pkg2-0.18-11.fc26.x86_64.rpm",
+            sigkey="246110c1",
+            category="binary",
+            srpm_nevra="pkg2-0:0.18-11.fc26.src.rpm",
+        )
+        rm.add(
+            "Temporary",
+            "x86_64",
+            "pkg2-lib-0:2.18-11.fc26.x86_64.rpm",
+            path="Temporary/x86_64/os/Packages/p/pkg2-lib-0.18-11.fc26.x86_64.rpm",
             sigkey="246110c1",
             category="binary",
             srpm_nevra="pkg2-0:0.18-11.fc26.src.rpm",
@@ -422,7 +440,7 @@ class TestValidatePungiCompose(ModelsBaseTest):
             validate_pungi_compose(self.c)
 
     def test_all_packages_are_included(self):
-        self.c.packages = 'pkg1 pkg2'
+        self.c.packages = 'pkg1 pkg1-lib pkg2 pkg2-lib'
         db.session.commit()
 
         validate_pungi_compose(self.c)

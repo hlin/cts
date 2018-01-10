@@ -529,18 +529,18 @@ def validate_pungi_compose(compose):
         packages = compose.packages.split()
         pungi_compose = productmd.compose.Compose(compose.toplevel_dir)
         rm = pungi_compose.rpms.rpms
-        srpm_nevras = []
+        rpm_nevras = []
         for variant in rm:
             for arch in rm[variant]:
                 for srpm_nevra, data in six.iteritems(rm[variant][arch]):
                     for rpm_nevra, data in six.iteritems(rm[variant][arch][srpm_nevra]):
-                        if data['category'] != 'source':
+                        if data['category'] == 'source':
                             continue
-                        srpm_nevras.append(srpm_nevra)
-        srpms = [productmd.common.parse_nvra(n)['name'] for n in srpm_nevras]
+                        rpm_nevras.append(rpm_nevra)
+        rpms = set([productmd.common.parse_nvra(n)['name'] for n in rpm_nevras])
         not_found = []
         for pkg in packages:
-            if pkg not in srpms:
+            if pkg not in rpms:
                 not_found.append(pkg)
         if not_found:
             msg = "The following requested packages are not present in the generated compose: %s." % \
