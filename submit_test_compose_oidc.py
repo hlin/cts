@@ -43,8 +43,11 @@ parser.add_argument(
     '--source-type', default=None, choices=['tag', 'module'],
     help="Type for the source.  Must be 'tag' or 'module'")
 parser.add_argument(
-    '--flag', default=None, choices=['no_deps'],
+    '--flag', default=[], action='append',
     help="Flag to pass to influence the compose.")
+parser.add_argument(
+    '--result', default=[], action='append',
+    help="Results of a compose to influence the compose.")
 parser.add_argument(
     'packages', metavar='package', nargs='*',
     help='Packages to be included in the compose.')
@@ -83,6 +86,7 @@ scopes = [
 ]
 try:
     token = oidc.get_token(scopes, new_token=True)
+    token = oidc.report_token_issue()
 except requests.exceptions.HTTPError as e:
     print(e.response.text)
     raise
@@ -97,6 +101,7 @@ result = client.new_compose(
     source=args.source,
     source_type=args.source_type,
     packages=args.packages,
-    flags=[args.flag],
+    results=args.result,
+    flags=args.flag,
 )
 print(result)

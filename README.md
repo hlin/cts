@@ -73,6 +73,7 @@ scopes = [
 ]
 try:
     token = oidc.get_token(scopes, new_token=True)
+    token = oidc.report_token_issue()
 except requests.exceptions.HTTPError as e:
     print(e.response.text)
     raise
@@ -126,11 +127,11 @@ There are also additional optional attributes you can pass to `new_compose(...)`
 - `seconds_to_live` - Number of seconds after which the generated compose should expire and will be removed.
 - `packages` - List of packages which should be included in a compose. This is used only when `source_type` is set to `tag` to further limit the compose repository.
 - `flags` - List of flags to further modify the compose output:
-  - `no_deps` - For `tag` `source_type`, do not resolve dependencies between packages and include only packages listed in the `packages` in the compose. For `module` `source_type`, do not resolve dependencies between modules and include only the requested module in the compose.
+    - `no_deps` - For `tag` `source_type`, do not resolve dependencies between packages and include only packages listed in the `packages` in the compose. For `module` `source_type`, do not resolve dependencies between modules and include only the requested module in the compose.
 - `sigkeys` - List of signature keys IDs. Only packages signed by one of these keys will be included in a compose. If there is no signed version of a package, compose will fail. It is also possible to pass an empty-string in a list meaning unsigned packages are allowed. For example if you want to prefer packages signed by key with ID `123` and also allow unsigned packages to appear in a compose, you can do it by setting sigkeys to `["123", ""]`.
 - `results` - List of additional results which will be generated as part of a compose. Valid keys are:
-  - `iso` - Generates non-installable ISO files with RPMs from a compose.
-  - `boot.iso` - Generates `images/boot.iso` file which is needed to build base container images from resulting compose.
+    - `iso` - Generates non-installable ISO files with RPMs from a compose.
+    - `boot.iso` - Generates `images/boot.iso` file which is needed to build base container images from resulting compose.
 
 The `new_compose` method returns `dict` object describing the compose, for example:
 
