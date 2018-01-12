@@ -26,7 +26,7 @@ import tempfile
 import unittest
 import koji
 
-from mock import patch, MagicMock
+from mock import patch, MagicMock, call
 from kobo.conf import PyConfigParser
 
 from odcs.server.pungi import (Pungi, PungiConfig, PungiSourceType,
@@ -251,6 +251,7 @@ class TestPungiRunroot(unittest.TestCase):
         self.koji_session.runroot.assert_called_once_with(
             'f26-build', 'x86_64',
             'cp /mnt/koji/work/odcs/unique_path/* . && '
+            'cp ./odcs_koji.conf /etc/koji.conf.d/ && '
             'pungi-koji --config=./pungi.conf --target-dir=/mnt/koji/compose/odcs --nightly',
             channel='channel', mounts=['/mnt/odcs-secrets'], packages=['pungi'], weight=3.5)
 
@@ -265,12 +266,16 @@ class TestPungiRunroot(unittest.TestCase):
         pungi.run(self.compose)
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
-        self.koji_session.uploadWrapper.assert_called_once_with(
-            os.path.join(conf_topdir, 'pungi.conf'), 'odcs/unique_path', callback=None)
+        self.koji_session.uploadWrapper.assert_has_calls(
+            [call(os.path.join(conf_topdir, 'odcs_koji.conf'),
+                  'odcs/unique_path', callback=None),
+             call(os.path.join(conf_topdir, 'pungi.conf'),
+                  'odcs/unique_path', callback=None)])
 
         self.koji_session.runroot.assert_called_once_with(
             'f26-build', 'x86_64',
             'cp /mnt/koji/work/odcs/unique_path/* . && '
+            'cp ./odcs_koji.conf /etc/koji.conf.d/ && '
             'pungi-koji --config=./pungi.conf --target-dir=/mnt/koji/compose/odcs --nightly',
             channel='channel', mounts=['/mnt/odcs-secrets'], packages=['pungi'], weight=3.5)
 

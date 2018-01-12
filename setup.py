@@ -85,6 +85,7 @@ setup(name='odcs',
                               'odcs-manager = odcs.server.manage:manager_wrapper [server]'],
       },
       data_files=[
-          (get_dir(['etc', 'odcs']), ['server/conf/config.py', 'server/conf/pungi.conf'])
+          (get_dir(['etc', 'odcs']), ['server/conf/config.py', 'server/conf/pungi.conf',
+                                      'server/conf/runroot_koji.conf'])
       ],
       )
