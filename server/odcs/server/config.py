@@ -173,6 +173,12 @@ class Config(object):
             'type': str,
             'default': "/etc/odcs/pungi.conf",
             'desc': 'Full path to the pungi.conf jinja2 template.'},
+        'pungi_runroot_koji_conf_path': {
+            'type': str,
+            'default': "/etc/odcs/runroot_koji.conf",
+            'desc': 'Full path to the runroot_koji.conf configuration file. '
+                    'This file holds Koji configuration used in a Pungi parent '
+                    'runroot task if pungi_runroot_enabled is True.'},
         'target_dir': {
             'type': str,
             'default': "/tmp",

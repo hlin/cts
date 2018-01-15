@@ -185,6 +185,10 @@ class Pungi(object):
             output_path = os.path.join(topdir, "pungi.conf")
             download_file(self.pungi_cfg, output_path)
 
+        if conf.pungi_runroot_koji_conf_path:
+            shutil.copy2(conf.pungi_runroot_koji_conf_path,
+                         os.path.join(topdir, "odcs_koji.conf"))
+
     def make_koji_session(self):
         """
         Creates new KojiSession according to odcs.server.conf, logins to
@@ -289,7 +293,7 @@ class Pungi(object):
         """
         serverdir = self._unique_path("odcs")
 
-        for name in os.listdir(localdir):
+        for name in sorted(os.listdir(localdir)):
             path = os.path.join(localdir, name)
             koji_session.uploadWrapper(path, serverdir, callback=None)
 
@@ -308,9 +312,9 @@ class Pungi(object):
         koji_session = self.make_koji_session()
         serverdir = self.upload_files_to_koji(koji_session, conf_topdir)
 
-        # TODO: Copy keytab from secret repo and generate koji profile.
         cmd = []
         cmd += ["cp", "/mnt/koji/work/%s/*" % serverdir, ".", "&&"]
+        cmd += ["cp", "./odcs_koji.conf", "/etc/koji.conf.d/", "&&"]
         cmd += self.get_pungi_cmd("./", conf.pungi_runroot_target_dir)
 
         kwargs = {

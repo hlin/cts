@@ -151,6 +151,7 @@ class TestConfiguration(BaseConfiguration):
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
     PUNGI_CONF_PATH = path.join(confdir, 'pungi.conf')
+    PUNGI_RUNROOT_KOJI_CONF_PATH = path.join(confdir, 'runroot_koji.conf')
     # Global network-related values, in seconds
     NET_TIMEOUT = 3
     NET_RETRY_INTERVAL = 1
