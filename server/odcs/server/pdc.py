@@ -62,29 +62,63 @@ class PDC(object):
 
     def variant_dict_from_str(self, module_str):
         """
-        Method which parses module NVR string and returns a module info
+        Method which parses module NSV string and returns a module info
         dictionary instead.
-        :param str module_str: string, the NV(R) of module
+
+        For more information about format of module_str, read:
+        https://pagure.io/modularity/blob/master/f/source/development/
+        building-modules/naming-policy.rst
+
+        ODCS supports only N:S and N:S:V, because other combinations do not
+        have sense for composes.
+
+        :param str module_str: string, the NS(V) of module
         """
-        module_info = {}
-        # The regex is matching a string which should represent the release number
-        # of a module. The release number is in format: "%Y%m%d%H%M%S"
-        release_regex = re.compile("^(\d){14}$")
-        section_start = module_str.rfind('-')
-        module_str_first_part = module_str[section_start + 1:]
 
-        if release_regex.match(module_str_first_part):
-            module_info['variant_release'] = module_str_first_part
-            module_str = module_str[:section_start]
-            section_start = module_str.rfind('-')
-            module_info['variant_version'] = module_str[section_start + 1:]
+        # The new format can be distinguished by colon in module_str, because
+        # there is not module in Fedora with colon in a name or stream and it is
+        # now disallowed to create one. So if colon is there, it must be new
+        # naming policy format.
+        if module_str.find(":") != -1:
+            module_info = {}
+            module_info['variant_type'] = 'module'
+
+            nsv = module_str.split(":")
+            if len(nsv) > 3:
+                raise ValueError(
+                    "Module string \"%s\" is not allowed. "
+                    "Only NAME:STREAM or NAME:STREAM:VERSION is allowed.")
+            if len(nsv) > 2:
+                module_info["variant_release"] = nsv[2]
+            if len(nsv) > 1:
+                module_info["variant_version"] = nsv[1]
+            module_info["variant_id"] = nsv[0]
+            return module_info
         else:
-            module_info['variant_version'] = module_str_first_part
+            # Fallback to previous old format with '-' delimiter.
+            log.warn(
+                "Variant file uses old format of module definition with '-'"
+                "delimiter, please switch to official format defined by "
+                "Modules Naming Policy.")
 
-        module_info['variant_id'] = module_str[:section_start]
-        module_info['variant_type'] = 'module'
+            module_info = {}
+            # The regex is matching a string which should represent the release number
+            # of a module. The release number is in format: "%Y%m%d%H%M%S"
+            release_regex = re.compile("^(\d){14}$")
 
-        return module_info
+            section_start = module_str.rfind('-')
+            module_str_first_part = module_str[section_start + 1:]
+            if release_regex.match(module_str_first_part):
+                module_info['variant_release'] = module_str_first_part
+                module_str = module_str[:section_start]
+                section_start = module_str.rfind('-')
+                module_info['variant_version'] = module_str[section_start + 1:]
+            else:
+                module_info['variant_version'] = module_str_first_part
+            module_info['variant_id'] = module_str[:section_start]
+            module_info['variant_type'] = 'module'
+
+            return module_info
 
     def get_latest_module(self, **kwargs):
         """

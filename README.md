@@ -118,7 +118,7 @@ Both `sources` and `source_type` are strings. Depending on `source_type` value, 
 | `source_type` | `source` |
 |---------------|----------|
 | tag           | Name of Koji tag to take RPMs from. |
-| module        | White-space separated NAME-STREAM or NAME-STREAM-VERSION of modules to include in compose. |
+| module        | White-space separated NAME:STREAM or NAME:STREAM:VERSION of modules to include in compose. |
 | pulp          | White-space separated list of context-sets. Repositories defined by these contests sets will be included in a compose. |
 | raw_config    | String in `name#commit` hash format. The `name` must match one of the raw config locations defined in ODCS server config as `raw_config_urls`. The `commit` is commit hash defining the version of raw config to use. This config is then used as input config for Pungi. |
 

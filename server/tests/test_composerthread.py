@@ -127,7 +127,42 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_dir,
                          os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
-        self.assertEqual(c.source, "testmodule-master-20170515074419")
+        self.assertEqual(c.source, "testmodule:master:20170515074419")
+
+    @mock_pdc
+    @patch("odcs.server.utils.execute_cmd")
+    @patch("odcs.server.backend._write_repo_file")
+    def test_submit_build_colon_separator(self, wrf, execute_cmd):
+        self._add_module_compose("testmodule:master:20170515074419")
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+        self.assertEqual(self.composer.currently_generating, [])
+
+        self.composer.do_work()
+        c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
+        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(self.composer.currently_generating, [1])
+
+    @mock_pdc
+    @patch("odcs.server.utils.execute_cmd")
+    @patch("odcs.server.backend._write_repo_file")
+    def test_submit_build_module_without_release_colon_separator(
+            self, wrf, execute_cmd):
+        self._add_module_compose("testmodule:master")
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+        self.composer.do_work()
+        c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
+        self.assertEqual(c.result_repo_dir,
+                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
+        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(c.source, "testmodule:master:20170515074419")
 
     @mock_pdc
     @patch("odcs.server.utils.execute_cmd")

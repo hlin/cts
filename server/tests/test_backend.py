@@ -70,10 +70,10 @@ class TestBackend(ModelsBaseTest):
 
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.source,
-                         ' '.join(["moduleA-f26-20170809000000",
-                                   "moduleB-f26-20170808000000",
-                                   "moduleC-f26-20170807000000",
-                                   "moduleD-f26-20170806000000"]))
+                         ' '.join(["moduleA:f26:20170809000000",
+                                   "moduleB:f26:20170808000000",
+                                   "moduleC:f26:20170807000000",
+                                   "moduleD:f26:20170806000000"]))
 
     @mock_pdc
     def test_resolve_compose_module_no_deps(self):
@@ -88,7 +88,7 @@ class TestBackend(ModelsBaseTest):
         db.session.commit()
 
         c = db.session.query(Compose).filter(Compose.id == 1).one()
-        self.assertEqual(c.source, "moduleA-f26-20170809000000")
+        self.assertEqual(c.source, "moduleA:f26:20170809000000")
 
     @mock_pdc
     def expect_module_lookup_error(self, source, match):
