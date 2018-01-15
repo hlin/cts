@@ -144,7 +144,7 @@ def check_compose(compose, source_type, source, packages, flags):
         assert len(pkgs) > 0
 
 
-def check_new_compose(source_type, source, packages, flags):
+def check_new_compose(source_type, source, packages, flags, sigkeys=None):
     """
     Submits new compose and checks the result.
     """
@@ -156,6 +156,7 @@ def check_new_compose(source_type, source, packages, flags):
         source_type=source_type,
         packages=packages,
         flags=flags,
+        sigkeys=sigkeys,
     )
     compose = client.wait_for_compose(compose["id"])
     check_compose(compose, source_type, source, packages, flags)
@@ -200,6 +201,7 @@ if profile == "redhat":
 
     check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
     check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
+    check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
 else:
     compose_id = check_new_compose("module", "testmodule-master", [], ["no_deps"])
 
