@@ -294,7 +294,9 @@ def resolve_compose(compose):
         expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
         new_modules = pdc.validate_module_list(specified_modules, expand=expand)
 
-        uids = sorted(m["variant_uid"] for m in new_modules)
+        uids = sorted(
+            "{variant_id}:{variant_version}:{variant_release}".format(**m)
+            for m in new_modules)
         compose.source = ' '.join(uids)
 
 
