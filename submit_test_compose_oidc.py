@@ -40,7 +40,8 @@ parser.add_argument(
     help="Source for the compose.  May be a koji tag or a "
     "whitespace separated list of modules.")
 parser.add_argument(
-    '--source-type', default=None, choices=['tag', 'module'],
+    '--source-type', default=None,
+    choices=['tag', 'module', 'raw_config'],
     help="Type for the source.  Must be 'tag' or 'module'")
 parser.add_argument(
     '--flag', default=[], action='append',

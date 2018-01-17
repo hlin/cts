@@ -182,7 +182,18 @@ class Pungi(object):
             self._write_cfg(os.path.join(topdir, "variants.xml"), variants_cfg)
             self._write_cfg(os.path.join(topdir, "comps.xml"), comps_cfg)
         else:
-            output_path = os.path.join(topdir, "pungi.conf")
+            # In case the raw_config wrapper config is set, download the
+            # original pungi.conf as "raw_config.conf" and use
+            # the raw_config wrapper as real "pungi.conf".
+            # The reason is that wrapper config can import raw_config
+            # and override some variables.
+            if conf.raw_config_wrapper_conf_path:
+                output_path = os.path.join(topdir, "raw_config.conf")
+                shutil.copy2(conf.raw_config_wrapper_conf_path,
+                            os.path.join(topdir, "pungi.conf"))
+            else:
+                output_path = os.path.join(topdir, "pungi.conf")
+
             download_file(self.pungi_cfg, output_path)
 
         if conf.pungi_runroot_koji_conf_path:

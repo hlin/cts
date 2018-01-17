@@ -305,6 +305,13 @@ class Config(object):
                     'source_type. Key is the name of the raw_config "source", '
                     'value is the URL in which the %s string is replaced with, '
                     '"commit_hash" value.'},
+        'raw_config_wrapper_conf_path': {
+            'type': str,
+            'default': "/etc/odcs/raw_config_wrapper.conf",
+            'desc': 'Full path to the raw_config_wrapper.conf configuration '
+                    'file. This file holds Pungi configuration which should '
+                    'import real pungi configuration from raw_config.conf '
+                    'in order to override some variables.'},
     }
 
     def __init__(self, conf_section_obj):
