@@ -183,7 +183,7 @@ class TestPungi(unittest.TestCase):
 
         execute_cmd.assert_called_once()
         self.download_file.assert_called_once_with(
-            "http://localhost/pungi.conf#hash", AnyStringWith("/pungi.conf"))
+            "http://localhost/pungi.conf#hash", AnyStringWith("/raw_config.conf"))
 
 
 class TestPungiRunroot(unittest.TestCase):
@@ -270,6 +270,8 @@ class TestPungiRunroot(unittest.TestCase):
             [call(os.path.join(conf_topdir, 'odcs_koji.conf'),
                   'odcs/unique_path', callback=None),
              call(os.path.join(conf_topdir, 'pungi.conf'),
+                  'odcs/unique_path', callback=None),
+             call(os.path.join(conf_topdir, 'raw_config.conf'),
                   'odcs/unique_path', callback=None)])
 
         self.koji_session.runroot.assert_called_once_with(
