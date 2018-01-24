@@ -1,6 +1,10 @@
-# On Demand Compose Service
+# On Demand Compose Service - ODCS
 
-The main goal of On Demand Compose Service (ODCS) is to allow generation of temporary composes using the REST API calls. By a compose, we mainly mean RPM repository with packages taken from different sources, but in the future, generation of other output types could be possible too.
+![logo of ODCS](https://pagure.io/odcs/raw/master/f/logo.png)
+
+## What is ODCS
+
+The main goal of ODCS is to allow generation of temporary composes using the REST API calls. By a compose, we mainly mean RPM repository with packages taken from different sources, but in the future, generation of other output types could be possible too.
 
 ODCS can take RPMs for a compose from multiple sources like Koji tag, module built in Koji or external repository provided by Pulp tool.
 
