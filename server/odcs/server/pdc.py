@@ -163,7 +163,7 @@ class PDC(object):
         Helper for ``validate_module_list()`` - scans ``modules`` and adds any missing
         requirements to ``module_map``.
 
-        :param module_map: dict mapping module names to modules
+        :param module_map: dict mapping module name:stream to module.
         :param modules: the list of modules to scan for dependencies.
         :return: a list of any modules that were added to ``module_map``.
         """
@@ -172,19 +172,18 @@ class PDC(object):
         for module in modules:
             mmd = modulemd.ModuleMetadata()
             mmd.loads(module['modulemd'])
+
+            # Check runtime dependency (name:stream) of a module and if this
+            # dependency is already in module_map/new_modules, do nothing.
+            # But otherwise get the latest module in this name:stream from PDC
+            # and add it to new_modules/module_map.
             for name, stream in mmd.requires.items():
-                if name in module_map:
-                    old_module = module_map[name]
-                    if stream != old_module['variant_version']:
-                        raise ModuleLookupError("Module %s requires %s:%s which conflicts with %s" %
-                                                (module['variant_uid'],
-                                                 name, stream,
-                                                 old_module['variant_uid']))
-                else:
-                    new_module = self.get_latest_module(variant_id=name,
-                                                        variant_version=stream)
+                key = "%s:%s" % (name, stream)
+                if key not in module_map:
+                    new_module = self.get_latest_module(
+                        variant_id=name, variant_version=stream)
                     new_modules.append(new_module)
-                    module_map[name] = new_module
+                    module_map[key] = new_module
 
         return new_modules
 
@@ -203,19 +202,27 @@ class PDC(object):
                 conflict occurred when resolving dependencies.
         """
 
+        # List of modules we are going to return.
         new_modules = []
+        # Temporary dict with "name:stream" as key and module dict as value.
         module_map = {}
 
         for module in modules:
-            if module['variant_id'] in module_map:
-                old_module = module_map[module['variant_id']]
-                if module['variant_uid'] != old_module['variant_uid']:
-                    raise ModuleLookupError("%s conflicts with %s" % (module['variant_uid'],
-                                                                      old_module['variant_uid']))
-                else:
-                    continue
-            module_map[module['variant_id']] = module
-            new_modules.append(module)
+            key = "%s:%s" % (module['variant_id'], module['variant_version'])
+
+            # If this module is not in `new_modules` yet, add it there and
+            # continue to next module.
+            if key not in module_map:
+                module_map[key] = module
+                new_modules.append(module)
+                continue
+
+            # Check if there is already this module in new_modules, but in
+            # different version. If so, raise an exception.
+            old_module = module_map[key]
+            if (module['variant_release'] != old_module['variant_release']):
+                raise ModuleLookupError("%s conflicts with %s" % (module['variant_uid'],
+                                                                    old_module['variant_uid']))
 
         if expand:
             added_module_list = new_modules

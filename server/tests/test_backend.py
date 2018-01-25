@@ -91,11 +91,12 @@ class TestBackend(ModelsBaseTest):
         self.assertEqual(c.source, "moduleA:f26:20170809000000")
 
     @mock_pdc
-    def expect_module_lookup_error(self, source, match):
+    def expect_module_lookup_error(self, source, match, flags=0):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,
             source,
-            COMPOSE_RESULTS["repository"], 3600)
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=flags)
         db.session.commit()
 
         with self.assertRaisesRegexp(ModuleLookupError, match):
@@ -110,12 +111,25 @@ class TestBackend(ModelsBaseTest):
                                         "Failed to find")
 
     def test_resolve_compose_module_conflict(self):
-        self.expect_module_lookup_error("moduleA-f26 moduleB-f27",
-                                        "which conflicts with")
+        self.expect_module_lookup_error(
+            "moduleA-f26-20170809000000 moduleA-f26-20170805000000",
+            "conflicts with")
 
-    def test_resolve_compose_module_conflict2(self):
-        self.expect_module_lookup_error("moduleB-f26 moduleB-f27",
-                                        "conflicts with")
+    @mock_pdc
+    def test_resolve_compose_module_not_conflict(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "moduleB-f26 moduleB-f27",
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=COMPOSE_FLAGS["no_deps"])
+        db.session.commit()
+
+        resolve_compose(c)
+
+    def test_resolve_compose_module_dep_not_found(self):
+        self.expect_module_lookup_error(
+            "moduleB-f26 moduleB-f27",
+            "Failed to find module moduleC-f27 in the PDC.")
 
     @patch("odcs.server.backend.create_koji_session")
     def test_resolve_compose_repo_no_override_koji_event(
