@@ -63,5 +63,8 @@ def start_to_publish_messages(session):
         } for compose in _cached_composes]
         log.debug('Sending messages: %s', msgs)
         if msgs:
-            messaging.publish(msgs)
+            try:
+                messaging.publish(msgs)
+            except Exception:
+                log.exception("Cannot publish message to bus.")
         del _cached_composes[:]
