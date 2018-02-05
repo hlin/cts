@@ -27,14 +27,44 @@ import requests.exceptions
 
 import odcs.client.odcs
 
+env_config = {
+    'fedora': {
+        'prod': {
+            'server_url': 'https://odcs.fedoraproject.org',
+        },
+        'staging': {
+            'server_url': 'https://odcs.stg.fedoraproject.org',
+        }
+    },
+    'redhat': {
+        'prod': {
+            'server_url': 'https://odcs.engineering.redhat.com',
+        },
+        'staging': {
+            'server_url': 'https://odcs.stage.engineering.redhat.com',
+        }
+    }
+}
+
+id_provider_config = {
+    'prod': 'https://id.fedoraproject.org/openidc/',
+    'staging': 'https://id.stg.fedoraproject.org/openidc/',
+}
 
 parser = argparse.ArgumentParser(
     description=textwrap.dedent(__doc__),
     formatter_class=argparse.RawDescriptionHelpFormatter,
 )
 parser.add_argument(
-    '--staging', default=False, action='store_true',
-    help="Use the Fedora Infra staging enbironment.")
+    '--redhat', action='store_const',
+    const='redhat', default='fedora', dest='infra',
+    help='Use internal ODCS infra environment. If omitted, Fedora Infra will '
+         'be used by default.')
+parser.add_argument(
+    '--staging', action='store_const',
+    const='staging', default='prod', dest='env',
+    help='Use Fedora Infra staging environment, or internal\'s if --redhat '
+         'is specified. Otherwise production environment will be used.')
 parser.add_argument(
     '--source', default=None,
     help="Source for the compose.  May be a koji tag or a "
@@ -61,42 +91,45 @@ for attr in required:
         print("%r is required" % attr)
         sys.exit(1)
 
-if args.staging:
-    odcs_url = 'https://odcs.stg.fedoraproject.org'
-    id_provider = 'https://id.stg.fedoraproject.org/openidc/'
+
+odcs_url = env_config[args.infra][args.env]['server_url']
+
+if args.infra == 'fedora':
+    id_provider = id_provider_config[args.env]
+
+    # Get the auth token using the OpenID client.
+    oidc = openidc_client.OpenIDCClient(
+        'odcs',
+        id_provider,
+        {'Token': 'Token', 'Authorization': 'Authorization'},
+        'odcs-authorizer',
+        'notsecret',
+    )
+
+    scopes = [
+        'openid',
+        'https://id.fedoraproject.org/scope/groups',
+        'https://pagure.io/odcs/new-compose',
+        'https://pagure.io/odcs/renew-compose',
+        'https://pagure.io/odcs/delete-compose',
+    ]
+    try:
+        token = oidc.get_token(scopes, new_token=True)
+        token = oidc.report_token_issue()
+    except requests.exceptions.HTTPError as e:
+        print(e.response.text)
+        raise
+
+    client = odcs.client.odcs.ODCS(
+        odcs_url,
+        auth_mech=odcs.client.odcs.AuthMech.OpenIDC,
+        openidc_token=token,
+    )
 else:
-    odcs_url = 'https://odcs.fedoraproject.org'
-    id_provider = 'https://id.fedoraproject.org/openidc/'
-
-
-# Get the auth token using the OpenID client.
-oidc = openidc_client.OpenIDCClient(
-    'odcs',
-    id_provider,
-    {'Token': 'Token', 'Authorization': 'Authorization'},
-    'odcs-authorizer',
-    'notsecret',
-)
-
-scopes = [
-    'openid',
-    'https://id.fedoraproject.org/scope/groups',
-    'https://pagure.io/odcs/new-compose',
-    'https://pagure.io/odcs/renew-compose',
-    'https://pagure.io/odcs/delete-compose',
-]
-try:
-    token = oidc.get_token(scopes, new_token=True)
-    token = oidc.report_token_issue()
-except requests.exceptions.HTTPError as e:
-    print(e.response.text)
-    raise
-
-client = odcs.client.odcs.ODCS(
-    odcs_url,
-    auth_mech=odcs.client.odcs.AuthMech.OpenIDC,
-    openidc_token=token,
-)
+    client = odcs.client.odcs.ODCS(
+        odcs_url,
+        auth_mech=odcs.client.odcs.AuthMech.Kerberos,
+    )
 
 result = client.new_compose(
     source=args.source,
