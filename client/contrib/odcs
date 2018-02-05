@@ -1,26 +1,8 @@
 #!/usr/bin/env python
-""" submit_test_compose_oidc.py - Submit a test compose, via OpenID Connect.
-
-If you have problems authenticating, try::
-
-    $ rm -rf ~/.openidc/
-
-Example usage::
-
-    export PYTHONPATH=.:$VIRTUAL_ENV/lib/python2.7/site-packages:client
-    ./submit_test_compose_oidc.py \
-        --staging \
-        --source f26 \
-        --source-type tag \
-        --flag no_deps \
-        python-requests python-urllib3
-
-"""
 from __future__ import print_function
 
 import argparse
 import sys
-import textwrap
 
 import openidc_client
 import requests.exceptions
@@ -52,7 +34,20 @@ id_provider_config = {
 }
 
 parser = argparse.ArgumentParser(
-    description=textwrap.dedent(__doc__),
+    description='''\
+%(prog)s - Submit a test compose.
+
+If you have problems authenticating with OpenID Connect, try:
+
+  $ rm -rf ~/.openidc/
+
+Example usage:
+
+  # Assume a Python virtual environment is activated
+  export PYTHONPATH=client
+  %(prog)s --staging --source f26 --source-type tag --flag no_deps \\
+    python-requests python-urllib3
+''',
     formatter_class=argparse.RawDescriptionHelpFormatter,
 )
 parser.add_argument(
