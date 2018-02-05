@@ -254,6 +254,8 @@ exit 0
 %dir %{_sysconfdir}/odcs
 %config(noreplace) %{_sysconfdir}/odcs/config.py
 %config(noreplace) %{_sysconfdir}/odcs/pungi.conf
+%config(noreplace) %{_sysconfdir}/odcs/raw_config_wrapper.conf
+%config(noreplace) %{_sysconfdir}/odcs/runroot_koji.conf
 %exclude %{_sysconfdir}/odcs/*.py[co]
 %exclude %{python2_sitelib}/odcs/__pycache__
 
