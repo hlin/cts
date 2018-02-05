@@ -58,8 +58,9 @@ parser.add_argument(
 parser.add_argument(
     '--staging', action='store_const',
     const='staging', default='prod', dest='env',
-    help='Use Fedora Infra staging environment, or internal\'s if --redhat '
-         'is specified. Otherwise production environment will be used.')
+    help='Use Fedora Infra or internal staging environment, which depends on '
+         'if --redhat is specified. If omitted, production environment will '
+         'be used.')
 
 subparsers = parser.add_subparsers(
     description='These commands you can use to operate composes with ODCS')
