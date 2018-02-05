@@ -65,31 +65,30 @@ parser.add_argument(
     const='staging', default='prod', dest='env',
     help='Use Fedora Infra staging environment, or internal\'s if --redhat '
          'is specified. Otherwise production environment will be used.')
-parser.add_argument(
-    '--source', default=None,
+
+subparsers = parser.add_subparsers(
+    description='These commands you can use to operate composes with ODCS')
+create_parser = subparsers.add_parser(
+    'create', help='create a new compose')
+create_parser.add_argument(
+    '--source', default=None, required=True,
     help="Source for the compose.  May be a koji tag or a "
     "whitespace separated list of modules.")
-parser.add_argument(
-    '--source-type', default=None,
+create_parser.add_argument(
+    '--source-type', default=None, required=True,
     choices=['tag', 'module', 'raw_config'],
     help="Type for the source.  Must be 'tag' or 'module'")
-parser.add_argument(
+create_parser.add_argument(
     '--flag', default=[], action='append',
     help="Flag to pass to influence the compose.")
-parser.add_argument(
+create_parser.add_argument(
     '--result', default=[], action='append',
     help="Results of a compose to influence the compose.")
-parser.add_argument(
+create_parser.add_argument(
     'packages', metavar='package', nargs='*',
     help='Packages to be included in the compose.')
 
 args = parser.parse_args()
-
-required = ['source', 'source_type']
-for attr in required:
-    if getattr(args, attr, None) is None:
-        print("%r is required" % attr)
-        sys.exit(1)
 
 
 odcs_url = env_config[args.infra][args.env]['server_url']
