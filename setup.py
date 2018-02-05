@@ -77,6 +77,7 @@ setup(name='odcs',
       zip_safe=False,
       install_requires=extras_require["client"],
       tests_require=test_requirements,
+      scripts=['client/contrib/odcs'],
       entry_points={
           'console_scripts': ['odcs-upgradedb = odcs.server.manage:upgradedb [server]',
                               'odcs-gencert = odcs.server.manage:generatelocalhostcert [server]',
