@@ -175,6 +175,16 @@ Requires:       python2-odcs-common = %{version}-%{release}
 Client library for sending requests to On Demand Compose Service (ODCS).
 
 
+%package -n odcs-client
+Summary:        ODCS command line client
+Requires:       python2-openidc-client
+Requires:       python2-odcs-client = %{version}-%{release}
+
+
+%description -n odcs-client
+Command line client for sending requests to ODCS.
+
+
 %prep
 %setup -q
 
@@ -226,6 +236,11 @@ exit 0
 # Test fails currently, reported here: https://pagure.io/odcs/issue/25
 # Should be fixed in next release
 #nosetests-2.7 -v
+
+%files -n odcs-client
+%doc README.md
+%license LICENSE
+%{_bindir}/odcs
 
 %files -n python2-odcs-common
 %doc README.md
