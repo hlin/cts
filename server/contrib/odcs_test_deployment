@@ -1,21 +1,29 @@
 #!/usr/bin/env python
+
 from __future__ import print_function
+
+import argparse
 import sys
 import odcs.client.odcs
 import requests
-import dnf
 import time
 import shutil
 import tempfile
 import openidc_client
 
-if len(sys.argv) != 3:
-    print("Usage:", sys.argv[0], "<odcs_api_url>", "<profile>")
-    print("profile can be either \"redhat\" or \"fedora\"")
-    sys.exit(0)
 
-odcs_api_url = sys.argv[1]
-profile = sys.argv[2]
+class TemporaryDirectory(object):
+    """
+    Context manager for tempfile.mkdtemp() so it's usable with "with"
+    statement.
+    """
+    def __enter__(self):
+        self.name = tempfile.mkdtemp()
+        return self.name
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        shutil.rmtree(self.name)
+
 
 def get_oidc_token():
     if "stg" in odcs_api_url:
@@ -46,41 +54,17 @@ def get_oidc_token():
         raise
     return token
 
-if profile == "redhat":
-    token = None
-    auth_mech = odcs.client.odcs.AuthMech.Kerberos
-elif profile == "fedora":
-    token = get_oidc_token()
-    auth_mech = odcs.client.odcs.AuthMech.OpenIDC
-else:
-    print("Unknown profile")
-    sys.exit(0)
-
-client = odcs.client.odcs.ODCS(
-    odcs_api_url,
-    auth_mech=auth_mech,
-    openidc_token=token,
-)
-
-
-class TemporaryDirectory(object):
-    """
-    Context manager for tempfile.mkdtemp() so it's usable with "with"
-    statement.
-    """
-    def __enter__(self):
-        self.name = tempfile.mkdtemp()
-        return self.name
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        shutil.rmtree(self.name)
-
 
 def get_packages_in_repo(repo_url):
     """
     Uses "dnf" API to list all packages available in remote repository defined
     by `repo_url`.
     """
+    try:
+        import dnf
+    except ImportError:
+        raise ImportWarning("Can't import dnf. Check your OS platform.")
+
     base = dnf.Base()
 
     with TemporaryDirectory() as temp_cache_dir:
@@ -194,14 +178,53 @@ def check_delete_compose(compose_id):
     print("OK")
     print("")
 
-if profile == "redhat":
-    compose_id = check_new_compose("tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"])
-    check_delete_compose(compose_id)
-    check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"])
 
-    check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
-    check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
-    check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
-else:
-    compose_id = check_new_compose("module", "testmodule-master", [], ["no_deps"])
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Test ODCS deployment.")
+    parser.add_argument("odcs_api_url",
+                        help="URL of the ODCS instance to test")
+    parser.add_argument("profile",
+                        help="can be either \"redhat\" or \"fedora\"")
+    parser.add_argument("--fast-check", action="store_true",
+                        help="perform just a single compose check")
+    args = parser.parse_args()
 
+    odcs_api_url = args.odcs_api_url
+    profile = args.profile
+    fast_check = args.fast_check
+
+    if profile == "redhat":
+        token = None
+        auth_mech = odcs.client.odcs.AuthMech.Kerberos
+    elif profile == "fedora":
+        token = get_oidc_token()
+        auth_mech = odcs.client.odcs.AuthMech.OpenIDC
+    else:
+        print("Unknown profile")
+        sys.exit(2)
+
+    client = odcs.client.odcs.ODCS(
+        odcs_api_url,
+        auth_mech=auth_mech,
+        openidc_token=token,
+    )
+
+    if profile == "redhat":
+        if fast_check:
+            compose_id = check_new_compose(
+                "pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
+            sys.exit(0) if compose_id else sys.exit(1)
+
+        compose_id = check_new_compose("tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"])
+        check_delete_compose(compose_id)
+        check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"])
+
+        check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
+        check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
+        check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
+    else:
+        if fast_check:
+            print("Ignoring --fast-check option. Applicable only for redhat profile.")
+        compose_id = check_new_compose(
+            "module", "testmodule-master", [], ["no_deps"])
+        sys.exit(0) if compose_id else sys.exit(1)
