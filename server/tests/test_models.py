@@ -63,7 +63,9 @@ class TestModels(ModelsBaseTest):
                          'results': ['repository'],
                          'sigkeys': '',
                          'koji_event': None,
-                         'koji_task_id': None}
+                         'koji_task_id': None,
+                         'packages': None,
+                         'arches': 'x86_64'}
         self.assertEqual(c.json(), expected_json)
 
 

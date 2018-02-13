@@ -257,10 +257,14 @@ class ODCSAPI(MethodView):
                     raise ValueError("Unknown result %s", name)
                 results |= COMPOSE_RESULTS[name]
 
+        arches = None
+        if "arches" in data:
+            arches = ' '.join(data["arches"])
+
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
             results, seconds_to_live,
-            packages, flags, sigkeys)
+            packages, flags, sigkeys, arches)
         db.session.add(compose)
         db.session.commit()
 

@@ -190,7 +190,7 @@ class Pungi(object):
             if conf.raw_config_wrapper_conf_path:
                 output_path = os.path.join(topdir, "raw_config.conf")
                 shutil.copy2(conf.raw_config_wrapper_conf_path,
-                            os.path.join(topdir, "pungi.conf"))
+                             os.path.join(topdir, "pungi.conf"))
             else:
                 output_path = os.path.join(topdir, "pungi.conf")
 

@@ -181,6 +181,7 @@ class TestBackend(ModelsBaseTest):
         attrs["sigkeys"] = "321"
         attrs["koji_event"] = 123456
         attrs["source"] = "123"
+        attrs["arches"] = "ppc64 x86_64"
         for attr, value in attrs.items():
             c = Compose.create(
                 db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
@@ -332,7 +333,8 @@ class TestGeneratePungiCompose(ModelsBaseTest):
     def test_generate_pungi_compose(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3')
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3',
+            arches="x86_64 s390")
         c.id = 1
 
         generate_pungi_compose(c)
@@ -343,6 +345,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
 
         self.assertEqual(self.pungi_config.gather_method, "deps")
         self.assertEqual(self.pungi_config.pkgset_koji_inherit, True)
+        self.assertEqual(set(self.pungi_config.arches), set(["x86_64", "s390"]))
 
     def test_generate_pungi_compose_nodeps(self):
         c = Compose.create(

@@ -125,10 +125,13 @@ class Compose(ODCSBase):
     # In case Pungi composes are generated using ODCS Koji runroot task, this
     # holds the Koji task id of this task.
     koji_task_id = db.Column(db.Integer, index=True)
+    # White-space separated list of arches to build for.
+    arches = db.Column(db.String)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
-               seconds_to_live, packages=None, flags=0, sigkeys=None):
+               seconds_to_live, packages=None, flags=0, sigkeys=None,
+               arches=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -141,6 +144,7 @@ class Compose(ODCSBase):
             time_to_expire=now + timedelta(seconds=seconds_to_live),
             packages=packages,
             flags=flags,
+            arches=arches if arches else " ".join(conf.arches)
         )
         session.add(compose)
         return compose
@@ -150,7 +154,7 @@ class Compose(ODCSBase):
         """
         Creates new compose with all the options influencing the resulting
         compose copied from the `compose`. The `owner` and `seconds_to_live`
-        can be set independently. The state of copies compose is "wait".
+        can be set independently. The state of copied compose is "wait".
         """
         now = datetime.utcnow()
         if not seconds_to_live:
@@ -167,6 +171,7 @@ class Compose(ODCSBase):
             packages=compose.packages,
             flags=compose.flags,
             koji_event=compose.koji_event,
+            arches=compose.arches,
         )
         session.add(compose)
         return compose
@@ -270,6 +275,8 @@ class Compose(ODCSBase):
             'sigkeys': self.sigkeys if self.sigkeys else "",
             'koji_event': self.koji_event,
             'koji_task_id': self.koji_task_id,
+            'packages': self.packages,
+            'arches': self.arches,
         }
 
     @staticmethod

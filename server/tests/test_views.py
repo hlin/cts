@@ -273,7 +273,9 @@ class TestViews(ViewBaseTest):
                          'results': ['repository'],
                          'sigkeys': '',
                          'koji_event': None,
-                         'koji_task_id': None}
+                         'koji_task_id': None,
+                         'packages': None,
+                         'arches': 'x86_64'}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -366,6 +368,23 @@ class TestViews(ViewBaseTest):
             data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data['sigkeys'], 'x y')
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_arches(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
+                 'arches': ["ppc64", "s390"]}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['arches'], 'ppc64 s390')
 
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
@@ -780,7 +799,9 @@ class TestViews(ViewBaseTest):
                          'results': ['repository'],
                          'sigkeys': '',
                          'koji_event': None,
-                         'koji_task_id': None}
+                         'koji_task_id': None,
+                         'packages': None,
+                         'arches': 'x86_64'}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()

@@ -63,12 +63,15 @@ class TestPungiConfig(unittest.TestCase):
 
     def test_pungi_config_tag(self):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
-                                "f26", packages=["file"], sigkeys="123 456")
+                                "f26", packages=["file"], sigkeys="123 456",
+                                arches=["ppc64", "s390"])
         cfg = pungi_cfg.get_pungi_config()
         variants = pungi_cfg.get_variants_config()
         comps = pungi_cfg.get_comps_config()
 
         self.assertTrue(variants.find("<groups>") != -1)
+        self.assertTrue(variants.find("ppc64") != -1)
+        self.assertTrue(variants.find("s390") != -1)
         self.assertTrue(comps.find("file</packagereq>") != -1)
         self.assertTrue(cfg.find("sigkeys = [\"123\", \"456\"]"))
 

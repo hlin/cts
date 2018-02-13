@@ -222,7 +222,7 @@ class PDC(object):
             old_module = module_map[key]
             if (module['variant_release'] != old_module['variant_release']):
                 raise ModuleLookupError("%s conflicts with %s" % (module['variant_uid'],
-                                                                    old_module['variant_uid']))
+                                                                  old_module['variant_uid']))
 
         if expand:
             added_module_list = new_modules

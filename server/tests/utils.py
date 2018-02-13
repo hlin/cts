@@ -70,10 +70,14 @@ class ModelsBaseTest(unittest.TestCase):
 
     def setUp(self):
         # Not all tests need handlers of event before_commit and after_commit.
-        event.remove(SignallingSession, 'before_commit',
-                     cache_composes_if_state_changed)
-        event.remove(SignallingSession, 'after_commit',
-                     start_to_publish_messages)
+        if event.contains(SignallingSession, 'before_commit',
+                          cache_composes_if_state_changed):
+            event.remove(SignallingSession, 'before_commit',
+                         cache_composes_if_state_changed)
+        if event.contains(SignallingSession, 'after_commit',
+                          start_to_publish_messages):
+            event.remove(SignallingSession, 'after_commit',
+                         start_to_publish_messages)
 
         db.session.remove()
         db.drop_all()

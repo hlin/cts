@@ -365,6 +365,15 @@ def get_reusable_compose(compose):
                       old_compose)
             continue
 
+        arches = set(compose.arches.split(" ")) \
+            if compose.arches else set()
+        old_arches = set(old_compose.arches.split(" ")) \
+            if old_compose.arches else set()
+        if arches != old_arches:
+            log.debug("%r: Cannot reuse %r - arches not same", compose,
+                      old_compose)
+            continue
+
         if compose.source_type == PungiSourceType.KOJI_TAG:
             # For KOJI_TAG compose, check that all the inherited tags by our
             # Koji tag have not changed since previous old_compose.
@@ -445,7 +454,7 @@ def generate_pulp_compose(compose):
 
     repofile = ""
 
-    for arch in conf.arches:
+    for arch in compose.arches.split(" "):
         repos = pulp.get_repo_urls_from_content_sets(content_sets, arch)
 
         if len(repos) != len(content_sets):
@@ -503,7 +512,8 @@ def generate_pungi_compose(compose):
             pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
                                     compose.source, packages=packages,
                                     sigkeys=compose.sigkeys,
-                                    results=compose.results)
+                                    results=compose.results,
+                                    arches=compose.arches.split(" "))
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:
