@@ -239,7 +239,7 @@ class TestComposerThread(ModelsBaseTest):
         create_koji_session.return_value = koji_session
         koji_session.getLastEvent.return_value = {"id": 123}
 
-        def mocked_execute_cmd(args, stdout=None, stderr=None, cwd=None):
+        def mocked_execute_cmd(args, stdout=None, stderr=None, cwd=None, **kwargs):
             pungi_cfg = open(os.path.join(cwd, "pungi.conf"), "r").read()
             self.assertTrue(pungi_cfg.find("gather_method = 'nodeps'") != -1)
 

@@ -133,6 +133,11 @@ class Config(object):
             'type': str,
             'default': "pungi-koji",
             'desc': 'Name or full-path to pungi-koji binary.'},
+        'pungi_timeout': {
+            'type': int,
+            'default': 3600,
+            'desc': 'Time in seconds after which the local pungi-koji is '
+                    'killed and compose is marked as failed'},
         'pungi_runroot_enabled': {
             'type': bool,
             'default': False,

@@ -269,7 +269,8 @@ class Pungi(object):
             td = tempfile.mkdtemp()
             self._write_cfgs(td)
             pungi_cmd = self.get_pungi_cmd(td, conf.target_dir)
-            odcs.server.utils.execute_cmd(pungi_cmd, cwd=td)
+            odcs.server.utils.execute_cmd(pungi_cmd, cwd=td,
+                                          timeout=conf.pungi_timeout)
         finally:
             try:
                 if td is not None:
