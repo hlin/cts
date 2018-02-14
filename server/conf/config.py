@@ -45,17 +45,27 @@ class BaseConfiguration(object):
     # principal) into ALLOWED_CLIENTS. The group names are from ldap for
     # kerberos users or FAS for openidc users.
     #
-    # You can also specify per-user or per-group source_types like this:
+    # You can also specify granular per-user or per-group permissions like
+    # this:
+    #
     # ALLOWED_CLIENTS = {
-    #   'users': [
-    #     {'mike': ['tag', 'module']},  # Can do only tag/module composes
-    #     {'ralph': ['tag']},           # Can do only tag compose
-    #     'joe',                        # Can do ALLOWED_SOURCE_TYPES composes
-    #   ]
+    #   'users': {
+    #     'joe': {}, # Can use any flags/source_types/... as globally allowed
+    #     'mike': {  # Can do only tag/module composes
+    #       'source_types': ['tag', 'module'],
+    #     },
+    #     'ralph': { # Can use only 'no_deps' flags and 'repository' results
+    #       'flags': ['no_deps'],
+    #       'results': ['repository'],
+    #     },
+    #     'foo': { # Allow any source
+    #       'source': [''],
+    #     },
+    #   }
     # }
     ALLOWED_CLIENTS = {
-        'groups': [],
-        'users': [],
+        'groups': {},
+        'users': {},
     }
 
     # Users in ADMINS are granted with admin permission.

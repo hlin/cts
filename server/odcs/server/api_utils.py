@@ -20,9 +20,126 @@
 # SOFTWARE.
 
 import copy
+import six
+import flask
 from flask import request, url_for
 from odcs.server.models import Compose
-import six
+from odcs.server import conf
+from odcs.server.errors import Forbidden
+from odcs.common.types import (
+    COMPOSE_RESULTS, COMPOSE_FLAGS, INVERSE_PUNGI_SOURCE_TYPE_NAMES)
+
+
+def _load_allowed_clients_attrs(key, attrs):
+    """
+    Loads attributes from the
+    conf.allowed_clients[key][user_name/group_name] dict. If the requested
+    attribute is not found in the loaded dict, the conf.allowed_$attr_name
+    is used as a default.
+
+    :param str key: "users" or "groups".
+    :param list attrs: List of attribute names to load from the dict.
+    :return: Dict with loaded attributes.
+    """
+    clients = conf.allowed_clients.get(key, {})
+    ret_attrs = []
+    if key == "users":
+        # Check if the user is defined in clients, if not, return None.
+        if flask.g.user.username in clients:
+            ret_attrs = dict(copy.deepcopy(clients[flask.g.user.username]))
+        else:
+            return None
+    elif key == "groups":
+        # Check if the group is defined in clients, if not, return None
+        for group in flask.g.groups:
+            if group in clients:
+                ret_attrs = dict(copy.deepcopy(clients[group]))
+                break
+        else:
+            return None
+    else:
+        raise ValueError(
+            "Unknown key %r passed to _load_allowed_clients_attrs" % key)
+
+    # If some requested attributes are missing in allowed_clients variable,
+    # try to get them from "conf.gallowed_$attr_name". If they are not there
+    # too, use empty list to disallow everything.
+    for attr in attrs:
+        if attr not in ret_attrs:
+            ret_attrs[attr] = getattr(conf, "allowed_%s" % attr, [])
+
+    return ret_attrs
+
+
+def _enum_int_to_str_list(enum_dict, val):
+    """
+    Convenient method converting int value to list of strings
+    according to enum dict.
+
+    For example for {"a": 1, "b": 2, "c": 4} and val=6, this method
+    returns ["b", "c"].
+    """
+    tmp = []
+    for enum_name, enum_val in enum_dict.items():
+        if val & enum_val == enum_val:
+            tmp.append(enum_name)
+    return tmp
+
+
+def raise_if_input_not_allowed(**kwargs):
+    """
+    Raises `Forbidden` exception if currently logged in user is not allowed
+    to operate with a compose of given attributes passed as kwargs.
+
+    Following attributes are valid:
+      - flags - compose.flags int
+      - results - copose.reults int
+      - source_types - compose.source_type
+      - sources - compose.source
+      - arches - compose.arches
+
+    The decision whether the user is allowed or not is done based on
+    conf.allowed_clients value.
+    """
+    if conf.auth_backend == 'noauth':
+        return
+
+    # Prefer args for particular user - these overrides group ones.
+    attrs = _load_allowed_clients_attrs("users", kwargs.keys())
+    if not attrs:
+        attrs = _load_allowed_clients_attrs("groups", kwargs.keys())
+        if not attrs:
+            raise Forbidden("User %s not allowed to operate with any "
+                            "compose" % flask.g.user.username)
+
+    for name, values in kwargs.items():
+        if name not in attrs:
+            # This should not happen, but be defensive in this part of code...
+            raise Forbidden(
+                "User %s not allowed to operate with compose with %s=%r"
+                % (flask.g.user.username, name, values))
+
+        # Conver integers from db format to string list.
+        if name == "source_types":
+            values = INVERSE_PUNGI_SOURCE_TYPE_NAMES[values]
+        elif name == "flags":
+            values = _enum_int_to_str_list(COMPOSE_FLAGS, values)
+        elif name == "results":
+            values = _enum_int_to_str_list(COMPOSE_RESULTS, values)
+
+        if type(values) == int:
+            values = [values]
+        elif isinstance(values, six.string_types):
+            # `arches` and `sources` are white-space separated lists.
+            values = values.split(" ")
+
+        for value in values:
+            allowed_values = attrs[name]
+            if ((not allowed_values or value not in allowed_values) and
+                    allowed_values != [""]):
+                raise Forbidden(
+                    "User %s not allowed to operate with compose with %s=%s"
+                    % (flask.g.user.username, name, value))
 
 
 def validate_json_data(dict_or_list, level=0):

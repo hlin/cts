@@ -27,6 +27,7 @@ import os
 import sys
 
 from odcs.server import logger
+from odcs.common.types import COMPOSE_RESULTS, COMPOSE_FLAGS
 
 
 def init_config(app):
@@ -208,6 +209,22 @@ class Config(object):
             'type': list,
             'default': ["tag", "module"],
             'desc': 'Allowed source types.'},
+        'allowed_flags': {
+            'type': list,
+            'default': COMPOSE_FLAGS.keys(),
+            'desc': 'Allowed compose flags.'},
+        'allowed_arches': {
+            'type': list,
+            'default': ["x86_64"],
+            'desc': 'Allowed compose arches.'},
+        'allowed_results': {
+            'type': list,
+            'default': COMPOSE_RESULTS,
+            'desc': 'Allowed compose results.'},
+        'allowed_sources': {
+            'type': list,
+            'default': [""],
+            'desc': 'Allowed sources.'},
         'auth_ldap_server': {
             'type': str,
             'default': '',
@@ -218,7 +235,7 @@ class Config(object):
             'desc': "Group base to query user's groups from LDAP server."},
         'allowed_clients': {
             'type': dict,
-            'default': {'groups': [], 'users': []},
+            'default': {'groups': {}, 'users': {}},
             'desc': "Groups and users that are allowed to generate composes."},
         'admins': {
             'type': dict,
@@ -385,6 +402,25 @@ class Config(object):
     #
     # Register your _setifok_* handlers here
     #
+
+    def _setifok_allowed_clients(self, clients):
+        if type(clients) != dict:
+            raise TypeError("allowed_clients must be a dict.")
+        for role, role_dict in clients.items():
+            if role not in ["users", "groups"]:
+                raise ValueError("Unknown role %s in allowed_clients." % role)
+            if type(role_dict) != dict:
+                raise TypeError("allowed_clients['%s'] is not a dict" % role)
+            for user, user_dict in role_dict.items():
+                if type(user_dict) != dict:
+                    raise TypeError(
+                        "allowed_clients['%s']['%s'] is not a dict" % (role, user))
+                for key, value in user_dict.items():
+                    if type(value) not in [set, list]:
+                        raise ValueError(
+                            "allowed_clients['%s']['%s']['%s'] is not a "
+                            "list" % (role, user, key))
+        self._allowed_clients = clients
 
     def _setifok_log_backend(self, s):
         if s is None:

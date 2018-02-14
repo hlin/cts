@@ -32,12 +32,12 @@ from odcs.server.errors import NotFound
 from odcs.server.models import Compose
 from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES,
-    INVERSE_PUNGI_SOURCE_TYPE_NAMES, PungiSourceType)
+    PungiSourceType)
 from odcs.server.api_utils import (
-    pagination_metadata, filter_composes, validate_json_data)
+    pagination_metadata, filter_composes, validate_json_data,
+    raise_if_input_not_allowed)
 from odcs.server.auth import requires_role, login_required
 from odcs.server.auth import require_scopes
-from odcs.server.auth import raise_if_source_type_not_allowed
 
 
 api_v1 = {
@@ -139,8 +139,10 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise NotFound(err)
 
-        source_type = INVERSE_PUNGI_SOURCE_TYPE_NAMES[old_compose.source_type]
-        raise_if_source_type_not_allowed(source_type)
+        raise_if_input_not_allowed(
+            source_types=old_compose.source_type, sources=old_compose.source,
+            results=old_compose.results, flags=old_compose.flags,
+            arches=old_compose.arches)
 
         has_to_create_a_copy = old_compose.state in (
             COMPOSE_STATES['removed'], COMPOSE_STATES['failed'])
@@ -201,8 +203,6 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise ValueError(err)
 
-        raise_if_source_type_not_allowed(source_type)
-
         source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
 
         source = source_data["source"].split(" ")
@@ -260,6 +260,12 @@ class ODCSAPI(MethodView):
         arches = None
         if "arches" in data:
             arches = ' '.join(data["arches"])
+        else:
+            arches = " ".join(conf.arches)
+
+        raise_if_input_not_allowed(
+            source_types=source_type, sources=source, results=results,
+            flags=flags, arches=arches)
 
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
