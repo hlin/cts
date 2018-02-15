@@ -73,8 +73,6 @@ class PungiConfig(object):
             self.gather_source = "comps"
             self.gather_method = "deps"
         elif source_type == PungiSourceType.MODULE:
-            # We have to set koji_tag to something even when we are not using
-            # it.
             self.koji_tag = None
             self.gather_source = "module"
             self.gather_method = "nodeps"
