@@ -23,12 +23,16 @@
 import inspect
 import requests
 import re
-import modulemd
+
 from pdc_client import PDCClient
 from beanbag.bbexcept import BeanBagException
 
 import odcs.server.utils
 from odcs.server import log
+
+import gi
+gi.require_version('Modulemd', '1.0') # noqa
+from gi.repository import Modulemd
 
 
 class ModuleLookupError(Exception):
@@ -170,20 +174,22 @@ class PDC(object):
 
         new_modules = []
         for module in modules:
-            mmd = modulemd.ModuleMetadata()
-            mmd.loads(module['modulemd'])
+            mmd = Modulemd.Module.new_from_string(module['modulemd'])
+            mmd.upgrade()
 
             # Check runtime dependency (name:stream) of a module and if this
             # dependency is already in module_map/new_modules, do nothing.
             # But otherwise get the latest module in this name:stream from PDC
             # and add it to new_modules/module_map.
-            for name, stream in mmd.requires.items():
-                key = "%s:%s" % (name, stream)
-                if key not in module_map:
-                    new_module = self.get_latest_module(
-                        variant_id=name, variant_version=stream)
-                    new_modules.append(new_module)
-                    module_map[key] = new_module
+            for deps in mmd.get_dependencies():
+                for name, streams in deps.get_requires().items():
+                    for stream in streams.get():
+                        key = "%s:%s" % (name, stream)
+                        if key not in module_map:
+                            new_module = self.get_latest_module(
+                                variant_id=name, variant_version=stream)
+                            new_modules.append(new_module)
+                            module_map[key] = new_module
 
         return new_modules
 

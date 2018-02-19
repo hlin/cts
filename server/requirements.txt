@@ -3,7 +3,6 @@ httplib2
 m2crypto < 0.27
 m2ext
 mock
-modulemd
 munch
 pdc-client
 pyOpenSSL
