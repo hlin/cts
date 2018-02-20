@@ -1,7 +1,5 @@
 funcsigs  # Python2 only
 httplib2
-m2crypto < 0.27
-m2ext
 mock
 munch
 pyOpenSSL
