@@ -33,6 +33,13 @@ from odcs.server.config import init_config
 from odcs.server.proxy import ReverseProxy
 from odcs.server.errors import NotFound, Unauthorized, Forbidden
 
+import pkg_resources
+
+try:
+    version = pkg_resources.get_distribution('odcs').version
+except pkg_resources.DistributionNotFound:
+    version = 'unknown'
+
 app = Flask(__name__)
 app.wsgi_app = ReverseProxy(app.wsgi_app)
 
