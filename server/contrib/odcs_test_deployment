@@ -221,7 +221,9 @@ if __name__ == "__main__":
 
         check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
         check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
-        check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
+        compose_id = check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
+        check_delete_compose(compose_id)
+        check_new_compose("module", "postgresql:10", [], ["no_deps"], [""])
     else:
         if fast_check:
             print("Ignoring --fast-check option. Applicable only for redhat profile.")
