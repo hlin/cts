@@ -33,7 +33,7 @@ from mock import patch, PropertyMock
 
 import odcs.server.auth
 
-from odcs.server import conf, db, app, login_manager
+from odcs.server import conf, db, app, login_manager, version
 from odcs.server.models import Compose, User
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.pungi import PungiSourceType
@@ -234,6 +234,12 @@ class TestViews(ViewBaseTest):
             db.session.add(self.c1)
             db.session.add(self.c2)
             db.session.commit()
+
+    def test_about(self):
+        rv = self.client.get('/api/1/about/')
+        data = json.loads(rv.get_data(as_text=True))
+        self.assertEqual(
+            data, {'version': version, 'auth_backend': 'noauth'})
 
     def test_submit_invalid_json(self):
         with self.test_request_context(user='dev'):

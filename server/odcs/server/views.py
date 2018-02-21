@@ -27,7 +27,7 @@ from flask.views import MethodView
 from flask import request, jsonify, g
 from werkzeug.exceptions import BadRequest
 
-from odcs.server import app, db, log, conf
+from odcs.server import app, db, log, conf, version
 from odcs.server.errors import NotFound
 from odcs.server.models import Compose
 from odcs.common.types import (
@@ -70,6 +70,12 @@ api_v1 = {
         'url': '/api/1/composes/<int:id>',
         'options': {
             'methods': ['DELETE'],
+        }
+    },
+    'about': {
+        'url': '/api/1/about/',
+        'options': {
+            'methods': ['GET']
         }
     },
 }
@@ -297,14 +303,38 @@ class ODCSAPI(MethodView):
             raise NotFound('No such compose found.')
 
 
+class AboutAPI(MethodView):
+    def get(self):
+        json = {'version': version}
+        config_items = ['auth_backend']
+        for item in config_items:
+            config_item = getattr(conf, item)
+            # All config items have a default, so if doesn't exist it is
+            # an error
+            if not config_item:
+                raise ValueError(
+                    'An invalid config item of "%s" was specified' % item)
+            json[item] = config_item
+        return jsonify(json), 200
+
+
 def register_api_v1():
     """ Registers version 1 of ODCS API. """
-    module_view = ODCSAPI.as_view('composes')
+    composes_view = ODCSAPI.as_view('composes')
+    about_view = AboutAPI.as_view('about')
     for key, val in api_v1.items():
-        app.add_url_rule(val['url'],
-                         endpoint=key,
-                         view_func=module_view,
-                         **val['options'])
+        if key.startswith("compose"):
+            app.add_url_rule(val['url'],
+                             endpoint=key,
+                             view_func=composes_view,
+                             **val['options'])
+        elif key.startswith("about"):
+            app.add_url_rule(val['url'],
+                             endpoint=key,
+                             view_func=about_view,
+                             **val['options'])
+        else:
+            raise ValueError("Unhandled API key: %s." % key)
 
 
 register_api_v1()
