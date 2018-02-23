@@ -121,6 +121,8 @@ class Compose(ODCSBase):
     time_submitted = db.Column(db.DateTime, nullable=False)
     time_done = db.Column(db.DateTime)
     time_removed = db.Column(db.DateTime)
+    # removed_by is set when compose is deleted rather than expired normally
+    removed_by = db.Column(db.String, nullable=True)
     reused_id = db.Column(db.Integer, index=True)
     # In case Pungi composes are generated using ODCS Koji runroot task, this
     # holds the Koji task id of this task.
@@ -268,6 +270,7 @@ class Compose(ODCSBase):
             'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
             'time_done': self._utc_datetime_to_iso(self.time_done),
             'time_removed': self._utc_datetime_to_iso(self.time_removed),
+            'removed_by': self.removed_by,
             'result_repo': self.result_repo_url,
             'result_repofile': self.result_repofile_url,
             'flags': flags,

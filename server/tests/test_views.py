@@ -287,6 +287,7 @@ class TestViews(ViewBaseTest):
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_removed': None,
+                         'removed_by': None,
                          'time_to_expire': data["time_to_expire"],
                          'flags': [],
                          'results': ['repository'],
@@ -624,6 +625,7 @@ class TestViews(ViewBaseTest):
             self.assertEqual(len(Compose.composes_to_expire()), 1)
             expired_compose = Compose.composes_to_expire().pop()
             self.assertEqual(expired_compose.id, c3.id)
+            self.assertEqual(expired_compose.removed_by, 'root')
 
     def test_delete_not_allowed_states_compose(self):
         for state in COMPOSE_STATES.keys():
@@ -813,6 +815,7 @@ class TestViews(ViewBaseTest):
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_removed': None,
+                         'removed_by': None,
                          'time_to_expire': data["time_to_expire"],
                          'flags': [],
                          'results': ['repository'],
