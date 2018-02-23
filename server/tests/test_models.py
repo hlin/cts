@@ -58,6 +58,7 @@ class TestModels(ModelsBaseTest):
                          'result_repofile': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary/odcs-1.repo',
                          'time_submitted': c.json()["time_submitted"], 'id': 1,
                          'time_removed': None,
+                         'removed_by': None,
                          'time_to_expire': c.json()["time_to_expire"],
                          'flags': [],
                          'results': ['repository'],
