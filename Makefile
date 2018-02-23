@@ -20,6 +20,4 @@ clean:
 
 .PHONY: check
 check:
-	# Hack swig opts to workaround m2crypto < 0.27 installation
-	# failure under Fedora 26 python3.6
-	SWIG_FEATURES=-I/usr/include/openssl/ tox -r -e py27,py3,flake8
+	tox -r -e py27,py3,flake8
