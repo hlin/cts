@@ -94,9 +94,22 @@ class ViewBaseTest(ModelsBaseTest):
     def setUp(self):
         super(ViewBaseTest, self).setUp()
 
-        patched_allowed_clients = {'groups': ['composer', {'dev2': ['module']}],
-                                   'users': ['dev', {'dev2': [
-                                       'module', 'raw_config']}]}
+        patched_allowed_clients = {
+            'groups': {
+                'composer': {},
+                'dev2': {
+                    'source_types': ['module']
+                }
+            },
+            'users': {
+                'dev': {
+                    'arches': ['ppc64', 's390', 'x86_64']
+                },
+                'dev2': {
+                    'source_types': ['module', 'raw_config']
+                }
+            }
+        }
         patched_admins = {'groups': ['admin'], 'users': ['root']}
         self.patch_allowed_clients = patch.object(odcs.server.auth.conf,
                                                   'allowed_clients',
@@ -472,7 +485,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'User dev not allowed to operate with compose of repo source_type')
+            'User dev not allowed to operate with compose with source_types=repo')
 
     def test_submit_build_unknown_source_type(self):
         with self.test_request_context(user='dev'):
@@ -511,7 +524,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'User dev2 not allowed to operate with compose of tag source_type')
+            'User dev2 not allowed to operate with compose with source_types=tag')
 
     def test_submit_build_per_group_source_type_allowed(self):
         with self.test_request_context(user="unknown", groups=['dev2', "x"]):
@@ -537,7 +550,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'User unknown not allowed to operate with compose of tag source_type')
+            'User unknown not allowed to operate with compose with source_types=tag')
 
     def test_query_compose(self):
         resp = self.client.get('/api/1/composes/1')
