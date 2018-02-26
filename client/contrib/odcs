@@ -8,6 +8,7 @@ import openidc_client
 import requests.exceptions
 
 import odcs.client.odcs
+from pprint import pprint
 
 env_config = {
     'fedora': {
@@ -61,19 +62,25 @@ parser.add_argument(
     help='Use Fedora Infra or internal staging environment, which depends on '
          'if --redhat is specified. If omitted, production environment will '
          'be used.')
+parser.add_argument(
+    '--no-wait', action='store_true',
+    help='When used, odcs client will not wait for the action to finish.')
 
 subparsers = parser.add_subparsers(
     description='These commands you can use to operate composes with ODCS')
+
+
 create_parser = subparsers.add_parser(
     'create', help='create a new compose')
+create_parser.set_defaults(command='create')
 create_parser.add_argument(
-    '--source', default=None, required=True,
-    help="Source for the compose.  May be a koji tag or a "
+    'source_type', default=None,
+    choices=['tag', 'module', 'raw_config', 'pulp'],
+    help="Type for the source. Must be 'tag' or 'module'")
+create_parser.add_argument(
+    'source', default=None,
+    help="Source for the compose. May be a koji tag or a "
     "whitespace separated list of modules.")
-create_parser.add_argument(
-    '--source-type', default=None, required=True,
-    choices=['tag', 'module', 'raw_config'],
-    help="Type for the source.  Must be 'tag' or 'module'")
 create_parser.add_argument(
     '--flag', default=[], action='append',
     help="Flag to pass to influence the compose.")
@@ -81,8 +88,35 @@ create_parser.add_argument(
     '--result', default=[], action='append',
     help="Results of a compose to influence the compose.")
 create_parser.add_argument(
+    '--sigkey', default=[], action='append',
+    help="Signing key ID using which the packages must be signed - "
+    "\none\" for no signing key.")
+create_parser.add_argument(
     'packages', metavar='package', nargs='*',
     help='Packages to be included in the compose.')
+
+
+wait_parser = subparsers.add_parser(
+    'wait', help='wait for a compose to finish')
+wait_parser.set_defaults(command='wait')
+wait_parser.add_argument(
+    'compose_id', default=None,
+    help="ODCS compose id")
+
+
+delete_parser = subparsers.add_parser(
+    'delete', help='delete compose')
+delete_parser.set_defaults(command='delete')
+delete_parser.add_argument(
+    'compose_id', default=None,
+    help="ODCS compose id")
+
+renew_parser = subparsers.add_parser(
+    'renew', help='renew compose')
+renew_parser.set_defaults(command='renew')
+renew_parser.add_argument(
+    'compose_id', default=None,
+    help="ODCS compose id")
 
 args = parser.parse_args()
 
@@ -125,12 +159,34 @@ else:
         odcs_url,
         auth_mech=odcs.client.odcs.AuthMech.Kerberos,
     )
+try:
+    if args.command == "create":
+        args.sigkey = [key.replace('none', '') for key in args.sigkey]
+        result = client.new_compose(
+            source=args.source,
+            source_type=args.source_type,
+            packages=args.packages,
+            results=args.result,
+            sigkeys=args.sigkey,
+            flags=args.flag,
+        )
+    elif args.command == "wait":
+        result = {"id": int(args.compose_id)}
+    elif args.command == "delete":
+        args.no_wait = True
+        result = client.delete_compose(args.compose_id)
+    elif args.command == "renew":
+        result = client.renew_compose(args.compose_id)
+    else:
+        print("Unknown command %s" % args.command)
+except requests.exceptions.HTTPError as e:
+    # error message gets printed in ODCS class.
+    sys.exit(-1)
 
-result = client.new_compose(
-    source=args.source,
-    source_type=args.source_type,
-    packages=args.packages,
-    results=args.result,
-    flags=args.flag,
-)
-print(result)
+if args.no_wait:
+    pprint(result)
+else:
+    print("Waiting for command %s on compose %d to finish." %
+          (args.command, result["id"]))
+    result = client.wait_for_compose(result["id"], 3600)
+    pprint(result)
