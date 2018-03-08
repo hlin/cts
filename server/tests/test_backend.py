@@ -57,7 +57,7 @@ class TestBackend(ModelsBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.koji_event, 1496834159)
 
-    @mock_pdc
+    @mock_pdc()
     def test_resolve_compose_module(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,
@@ -75,7 +75,7 @@ class TestBackend(ModelsBaseTest):
                                    "moduleC:f26:20170807000000",
                                    "moduleD:f26:20170806000000"]))
 
-    @mock_pdc
+    @mock_pdc()
     def test_resolve_compose_module_no_deps(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,
@@ -90,8 +90,53 @@ class TestBackend(ModelsBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.source, "moduleA:f26:20170809000000")
 
-    @mock_pdc
+    @mock_pdc()
     def expect_module_lookup_error(self, source, match, flags=0):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            source,
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=flags)
+        db.session.commit()
+
+        with self.assertRaisesRegexp(ModuleLookupError, match):
+            resolve_compose(c)
+
+    @mock_pdc(1)
+    def test_resolve_compose_module_mmdv1(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "moduleA-f26",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source,
+                         ' '.join(["moduleA:f26:20170809000000",
+                                   "moduleB:f26:20170808000000",
+                                   "moduleC:f26:20170807000000",
+                                   "moduleD:f26:20170806000000"]))
+
+    @mock_pdc(1)
+    def test_resolve_compose_module_no_deps_mmdv1(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "moduleA-f26 moduleA-f26",
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=COMPOSE_FLAGS["no_deps"])
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source, "moduleA:f26:20170809000000")
+
+    @mock_pdc(1)
+    def expect_module_lookup_error_mmdv1(self, source, match, flags=0):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,
             source,
@@ -115,8 +160,19 @@ class TestBackend(ModelsBaseTest):
             "moduleA-f26-20170809000000 moduleA-f26-20170805000000",
             "conflicts with")
 
-    @mock_pdc
+    @mock_pdc()
     def test_resolve_compose_module_not_conflict(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "moduleB-f26 moduleB-f27",
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=COMPOSE_FLAGS["no_deps"])
+        db.session.commit()
+
+        resolve_compose(c)
+
+    @mock_pdc(1)
+    def test_resolve_compose_module_not_conflict_mmdv1(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,
             "moduleB-f26 moduleB-f27",

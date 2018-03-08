@@ -1,7 +1,6 @@
 funcsigs  # Python2 only
 httplib2
 mock
-modulemd
 munch
 pdc-client
 pyOpenSSL
