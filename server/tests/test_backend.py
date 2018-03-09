@@ -291,7 +291,7 @@ class TestBackend(ModelsBaseTest):
 
         expected_query = {
             "criteria": {
-                "fields": ["notes.relative_url", "notes.content_set"],
+                "fields": ["notes.relative_url", "notes.content_set", "notes.arch"],
                 "filters": {
                     "notes.content_set": {"$in": ["foo-1", "foo-2", "foo-3"]},
                     "notes.include_in_download_service": "True"
@@ -353,7 +353,7 @@ gpgcheck=0
 
         expected_query = {
             "criteria": {
-                "fields": ["notes.relative_url", "notes.content_set"],
+                "fields": ["notes.relative_url", "notes.content_set", "notes.arch"],
                 "filters": {
                     "notes.content_set": {"$in": ["foo-1", "foo-2"]},
                     "notes.include_in_download_service": "True"
