@@ -45,7 +45,10 @@ BuildRequires:    python2-modulemd >= 1.1.0
 BuildRequires:    python-qpid
 BuildRequires:    python2-openidc-client
 BuildRequires:    python-ldap
-
+BuildRequires:    libmodulemd
+BuildRequires:    python2-solv
+BuildRequires:    gobject-introspection
+BuildRequires:    python-gobject-base
 
 %if 0%{?rhel} && 0%{?rhel} <= 7
 BuildRequires:    python-setuptools
@@ -105,6 +108,10 @@ Requires:    python2-openidc-client
 Requires:    python-ldap
 Requires:    python-productmd
 Requires:    hardlink
+Requires:    libmodulemd
+Requires:    python2-solv
+Requires:    gobject-introspection
+Requires:    python-gobject-base
 
 %if 0%{?rhel} && 0%{?rhel} <= 7
 Requires:    python-flask-sqlalchemy
