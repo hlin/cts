@@ -211,7 +211,7 @@ class ODCS(object):
 
     def new_compose(self, source, source_type,
                     seconds_to_live=None, packages=[], flags=[],
-                    sigkeys=None, results=None):
+                    sigkeys=None, results=None, arches=None):
         """Request a new compose
 
         :param str source: from where to grab and make new compose, different
@@ -253,6 +253,8 @@ class ODCS(object):
             request_data['flags'] = flags
         if results:
             request_data['results'] = results
+        if arches:
+            request_data['arches'] = arches
 
         r = self._post('composes/', request_data)
         return r.json()

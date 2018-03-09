@@ -136,28 +136,35 @@ There are also additional optional attributes you can pass to `new_compose(...)`
 - `results` - List of additional results which will be generated as part of a compose. Valid keys are:
     - `iso` - Generates non-installable ISO files with RPMs from a compose.
     - `boot.iso` - Generates `images/boot.iso` file which is needed to build base container images from resulting compose.
+- `arches` - List of additional Koji arches to build this compose for. By default, the compose is built only for "x86_64" arch.
 
 The `new_compose` method returns `dict` object describing the compose, for example:
 
 ```
 {
+    "arches": "x86_64 ppc64",
     "flags": [
-    "no_deps"
-    ], 
-    "id": 1, 
-    "owner": "jkaluza", 
-    "result_repo": "https://odcs.fedoraproject.org/composes/latest-odcs-1-1/compose/Temporary", 
-    "result_repofile": "https://odcs.fedoraproject.org/composes/latest-odcs-1-1/compose/Temporary/odcs-1.repo", 
-    "sigkeys": "", 
-    "source": "f26", 
-    "source_type": 1, 
-    "state": 3, 
-    "state_name": "wait", 
-    "time_done": "2017-10-13T17:03:13Z", 
-    "time_removed": "2017-10-14T17:00:00Z", 
-    "time_submitted": "2017-10-13T16:59:51Z", 
+        "no_deps"
+    ],
+    "id": 1,
+    "owner": "jkaluza",
+    "packages": "gofer-package",
+    "removed_by": null,
+    "result_repo": "https://odcs.fedoraproject.org/composes/latest-odcs-1-1/compose/Temporary",
+    "result_repofile": "https://odcs.fedoraproject.org/composes/latest-odcs-1-1/compose/Temporary/odcs-1.repo",
+    "results": [
+        "repository"
+    ],
+    "sigkeys": "",
+    "source": "f26",
+    "source_type": 1,
+    "state": 3,
+    "state_name": "wait",
+    "time_done": "2017-10-13T17:03:13Z",
+    "time_removed": "2017-10-14T17:00:00Z",
+    "time_submitted": "2017-10-13T16:59:51Z",
     "time_to_expire": "2017-10-14T16:59:51Z"
-}, 
+}
 ```
 
 The most useful data there is `result_repofile`, which points to the .repo file with URLs for generated compose. Another very important data there is the `state` and `state_name` field. There are following states of a compose:

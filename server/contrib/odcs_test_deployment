@@ -82,7 +82,7 @@ def get_packages_in_repo(repo_url):
         return [x.name for x in base.sack.query().available()]
 
 
-def check_compose(compose, source_type, source, packages, flags):
+def check_compose(compose, source_type, source, packages, flags, arches=None):
     """
     Checks that the compose defined by compose data `compose` is properly
     generated for given input values `source_type, `source`, `packages`
@@ -97,38 +97,41 @@ def check_compose(compose, source_type, source, packages, flags):
 
     assert compose["state_name"] == "done"
 
-    if source_type == "pulp":
-        # For pulp compose, just check that the content_sets are
-        # in the resulting repo file.
-        for content_set in source.split(" "):
-            assert content_set in r.text
-    elif source_type == "tag":
-        # For Koji tag, try to get list of packages in a repo.
-        baseurl = compose["result_repo"] + "/x86_64/os"
-        pkgs = get_packages_in_repo(baseurl)
-        print("Packages in resulting repo: %r" % pkgs)
+    arches = arches or ["x86_64"]
+    for arch in arches:
+        if source_type == "pulp":
+            # For pulp compose, just check that the content_sets are
+            # in the resulting repo file.
+            for content_set in source.split(" "):
+                assert content_set in r.text
+        elif source_type == "tag":
+            # For Koji tag, try to get list of packages in a repo.
+            baseurl = compose["result_repo"] + "/" + arch + "/os"
+            pkgs = get_packages_in_repo(baseurl)
+            print("Packages in resulting repo (%s): %r" % (arch, pkgs))
 
-        # Check that all requested packages are in a compose
-        for pkg in packages:
-            assert pkg in pkgs
+            # Check that all requested packages are in a compose
+            for pkg in packages:
+                assert pkg in pkgs
 
-        # In case of "no_deps" flag, no extra packages are allowed in
-        # a compose. In case the flag is not there, there must be more
-        # packages in a compose because of dependencies of a package.
-        if "no_deps" in flags:
-            assert len(pkgs) == len(packages)
-        else:
-            assert len(pkgs) > len(packages)
-    elif source_type == "module":
-        # TODO
-        # For Koji tag, try to get list of packages in a repo.
-        baseurl = compose["result_repo"] + "/x86_64/os"
-        pkgs = get_packages_in_repo(baseurl)
-        print("Packages in resulting repo: %r" % pkgs)
-        assert len(pkgs) > 0
+            # In case of "no_deps" flag, no extra packages are allowed in
+            # a compose. In case the flag is not there, there must be more
+            # packages in a compose because of dependencies of a package.
+            if "no_deps" in flags:
+                assert len(pkgs) == len(packages)
+            else:
+                assert len(pkgs) > len(packages)
+        elif source_type == "module":
+            # TODO
+            # For Koji tag, try to get list of packages in a repo.
+            baseurl = compose["result_repo"] + "/" + arch + "/os"
+            pkgs = get_packages_in_repo(baseurl)
+            print("Packages in resulting repo: %r" % pkgs)
+            assert len(pkgs) > 0
 
 
-def check_new_compose(source_type, source, packages, flags, sigkeys=None):
+def check_new_compose(source_type, source, packages, flags,
+                      sigkeys=None, arches=None):
     """
     Submits new compose and checks the result.
     """
@@ -141,23 +144,25 @@ def check_new_compose(source_type, source, packages, flags, sigkeys=None):
         packages=packages,
         flags=flags,
         sigkeys=sigkeys,
+        arches=arches,
     )
     compose = client.wait_for_compose(compose["id"])
-    check_compose(compose, source_type, source, packages, flags)
+    check_compose(compose, source_type, source, packages, flags, arches)
 
     print("OK")
     print("")
     return compose["id"]
 
 
-def check_renew_compose(compose_id, source_type, source, packages, flags):
+def check_renew_compose(compose_id, source_type, source, packages,
+                        flags, arches=None):
     """
     Renews the compose and checks the compose is renewed properly.
     """
     print("Renewing compose: %s" % compose_id)
     compose = client.renew_compose(compose_id)
     compose = client.wait_for_compose(compose["id"])
-    check_compose(compose, source_type, source, packages, flags)
+    check_compose(compose, source_type, source, packages, flags, arches)
     print("OK")
     print("")
     return compose["id"]
@@ -215,9 +220,11 @@ if __name__ == "__main__":
                 "pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
             sys.exit(0) if compose_id else sys.exit(1)
 
-        compose_id = check_new_compose("tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"])
+        compose_id = check_new_compose("tag", "cf-1.0-rhel-5", ["gofer-package"],
+                                       ["no_deps"], arches=["x86_64", "ppc64"])
         check_delete_compose(compose_id)
-        check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"])
+        check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5",
+                            ["gofer-package"], ["no_deps"], ["x86_64", "ppc64"])
 
         check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
         check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
