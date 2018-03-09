@@ -62,7 +62,7 @@ class Pulp(object):
                     'notes.arch': arch,
                     'notes.include_in_download_service': "True",
                 },
-                'fields': ['notes.relative_url', 'notes.content_set'],
+                'fields': ['notes.relative_url', 'notes.content_set', 'notes.arch'],
             }
         }
         repos = self._rest_post('repositories/search/', query_data)
