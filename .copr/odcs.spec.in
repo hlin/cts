@@ -46,7 +46,6 @@ BuildRequires:    python-qpid
 BuildRequires:    python2-openidc-client
 BuildRequires:    python-ldap
 BuildRequires:    libmodulemd
-BuildRequires:    python2-solv
 BuildRequires:    gobject-introspection
 BuildRequires:    python-gobject-base
 
@@ -109,7 +108,6 @@ Requires:    python-ldap
 Requires:    python-productmd
 Requires:    hardlink
 Requires:    libmodulemd
-Requires:    python2-solv
 Requires:    gobject-introspection
 Requires:    python-gobject-base
 
