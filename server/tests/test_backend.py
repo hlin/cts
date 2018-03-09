@@ -262,18 +262,28 @@ class TestBackend(ModelsBaseTest):
                 "notes": {
                     "relative_url": "content/1/x86_64/os",
                     "content_set": "foo-1",
+                    "arch": "x86_64",
                 },
             },
             {
                 "notes": {
                     "relative_url": "content/2/x86_64/os",
                     "content_set": "foo-2",
+                    "arch": "x86_64",
+                }
+            }
+,
+            {
+                "notes": {
+                    "relative_url": "content/3/ppc64/os",
+                    "content_set": "foo-3",
+                    "arch": "ppc64",
                 }
             }
         ]
 
         c = Compose.create(
-            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2 foo-3",
             COMPOSE_RESULTS["repository"], 3600)
         with patch.object(odcs.server.backend.conf, 'pulp_server_url',
                           "https://localhost/"):
@@ -283,8 +293,7 @@ class TestBackend(ModelsBaseTest):
             "criteria": {
                 "fields": ["notes.relative_url", "notes.content_set"],
                 "filters": {
-                    "notes.arch": "x86_64",
-                    "notes.content_set": {"$in": ["foo-1", "foo-2"]},
+                    "notes.content_set": {"$in": ["foo-1", "foo-2", "foo-3"]},
                     "notes.include_in_download_service": "True"
                 }
             }
@@ -304,11 +313,19 @@ name=foo-2
 baseurl=http://localhost/content/2/x86_64/os
 enabled=1
 gpgcheck=0
+
+[foo-3]
+name=foo-3
+baseurl=http://localhost/content/3/ppc64/os
+enabled=1
+gpgcheck=0
 """
         _write_repo_file.assert_called_once_with(c, expected_repofile)
 
         self.assertEqual(c.state, COMPOSE_STATES["done"])
         self.assertEqual(c.state_reason, 'Compose is generated successfully')
+        self.assertEqual(len(c.arches.split(" ")), 2)
+        self.assertEqual(set(c.arches.split(" ")), set(["x86_64", "ppc64"]))
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
@@ -319,6 +336,7 @@ gpgcheck=0
                 "notes": {
                     "relative_url": "content/1/x86_64/os",
                     "content_set": "foo-1",
+                    "arch": "ppc64",
                 },
             },
         ]
@@ -337,7 +355,6 @@ gpgcheck=0
             "criteria": {
                 "fields": ["notes.relative_url", "notes.content_set"],
                 "filters": {
-                    "notes.arch": "x86_64",
                     "notes.content_set": {"$in": ["foo-1", "foo-2"]},
                     "notes.include_in_download_service": "True"
                 }

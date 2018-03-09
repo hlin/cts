@@ -456,29 +456,30 @@ def generate_pulp_compose(compose):
                 password=conf.pulp_password)
 
     repofile = ""
+    repos = pulp.get_repos_from_content_sets(content_sets)
+    if len(repos) != len(content_sets):
+        err = "Failed to find all the content_sets %r in the Pulp, " \
+            "found only %r" % (content_sets, repos.keys())
+        log.error(err)
+        raise ValueError(err)
 
-    for arch in compose.arches.split(" "):
-        repos = pulp.get_repo_urls_from_content_sets(content_sets, arch)
-
-        if len(repos) != len(content_sets):
-            err = "Failed to find all the content_sets %r in the Pulp, " \
-                "found only %r" % (content_sets, repos.keys())
-            log.error(err)
-            raise ValueError(err)
-
-        for name in sorted(repos.keys()):
-            url = repos[name]
-            r = """
+    arches = set()
+    for name in sorted(repos.keys()):
+        repo_data = repos[name]
+        url = repo_data["url"]
+        r = """
 [%s]
 name=%s
 baseurl=%s
 enabled=1
 gpgcheck=0
 """ % (name, name, url)
-            repofile += r
+        repofile += r
+        arches.add(repo_data["arch"])
 
     _write_repo_file(compose, repofile)
 
+    compose.arches = " ".join(arches)
     compose.state = COMPOSE_STATES["done"]
     compose.state_reason = "Compose is generated successfully"
     log.info("%r: Compose done", compose)

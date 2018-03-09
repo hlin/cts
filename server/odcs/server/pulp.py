@@ -43,23 +43,28 @@ class Pulp(object):
         r.raise_for_status()
         return r.json()
 
-    def get_repo_urls_from_content_sets(self, content_sets, arch):
+    def get_repos_from_content_sets(self, content_sets):
         """
-        Returns dictionary with URLs of all shipped repositories defining
-        the content set for given arch.
+        Returns dictionary with URLs of all shipped repositories defined by
+        the content_sets.
         The key in the returned dict is the content_set name and the value
         is the URL to repository with RPMs.
 
         :param list content_sets: Content sets to look for.
-        :param str arch: Architecture of returned repositories.
         :rtype: dict
-        :return: Dictionary with {content_set:repo_url}.
+        :return: Dictionary in following format:
+            {
+                content_set_1: {
+                    "url": repo_url,
+                    "arch": repo_arch
+                },
+                ...
+            }
         """
         query_data = {
             'criteria': {
                 'filters': {
                     'notes.content_set': {'$in': content_sets},
-                    'notes.arch': arch,
                     'notes.include_in_download_service': "True",
                 },
                 'fields': ['notes.relative_url', 'notes.content_set'],
@@ -71,10 +76,14 @@ class Pulp(object):
         for repo in repos:
             url = "%s/%s" % (self.server_url.rstrip('/'),
                              repo['notes']['relative_url'])
+            arch = repo["notes"]["arch"]
             # OSBS cannot verify https during the container image build, so
             # fallback to http for now.
             if url.startswith("https://"):
                 url = "http://" + url[len("https://"):]
-            ret[repo["notes"]["content_set"]] = url
+            ret[repo["notes"]["content_set"]] = {
+                "url": url,
+                "arch": arch
+            }
 
         return ret
