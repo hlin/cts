@@ -56,7 +56,8 @@ class Pulp(object):
             {
                 content_set_1: {
                     "url": repo_url,
-                    "arch": repo_arch
+                    "arch": repo_arch,
+                    'sigkeys': ['sigkey1', 'sigkey2', ...]
                 },
                 ...
             }
@@ -67,7 +68,8 @@ class Pulp(object):
                     'notes.content_set': {'$in': content_sets},
                     'notes.include_in_download_service': "True",
                 },
-                'fields': ['notes.relative_url', 'notes.content_set', 'notes.arch'],
+                'fields': ['notes.relative_url', 'notes.content_set',
+                           'notes.arch', 'notes.signatures'],
             }
         }
         repos = self._rest_post('repositories/search/', query_data)
@@ -77,13 +79,15 @@ class Pulp(object):
             url = "%s/%s" % (self.server_url.rstrip('/'),
                              repo['notes']['relative_url'])
             arch = repo["notes"]["arch"]
+            sigkeys = repo["notes"]["signatures"].split(",")
             # OSBS cannot verify https during the container image build, so
             # fallback to http for now.
             if url.startswith("https://"):
                 url = "http://" + url[len("https://"):]
             ret[repo["notes"]["content_set"]] = {
                 "url": url,
-                "arch": arch
+                "arch": arch,
+                "sigkeys": sigkeys,
             }
 
         return ret

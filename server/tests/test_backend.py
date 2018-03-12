@@ -263,6 +263,7 @@ class TestBackend(ModelsBaseTest):
                     "relative_url": "content/1/x86_64/os",
                     "content_set": "foo-1",
                     "arch": "x86_64",
+                    "signatures": "SIG1,SIG2",
                 },
             },
             {
@@ -270,14 +271,15 @@ class TestBackend(ModelsBaseTest):
                     "relative_url": "content/2/x86_64/os",
                     "content_set": "foo-2",
                     "arch": "x86_64",
+                    "signatures": "SIG1,SIG2",
                 }
-            }
-,
+            },
             {
                 "notes": {
                     "relative_url": "content/3/ppc64/os",
                     "content_set": "foo-3",
                     "arch": "ppc64",
+                    "signatures": "SIG1,SIG3",
                 }
             }
         ]
@@ -291,7 +293,8 @@ class TestBackend(ModelsBaseTest):
 
         expected_query = {
             "criteria": {
-                "fields": ["notes.relative_url", "notes.content_set", "notes.arch"],
+                "fields": ["notes.relative_url", "notes.content_set",
+                           "notes.arch", "notes.signatures"],
                 "filters": {
                     "notes.content_set": {"$in": ["foo-1", "foo-2", "foo-3"]},
                     "notes.include_in_download_service": "True"
@@ -326,6 +329,8 @@ gpgcheck=0
         self.assertEqual(c.state_reason, 'Compose is generated successfully')
         self.assertEqual(len(c.arches.split(" ")), 2)
         self.assertEqual(set(c.arches.split(" ")), set(["x86_64", "ppc64"]))
+        self.assertEqual(len(c.sigkeys.split(" ")), 3)
+        self.assertEqual(set(c.sigkeys.split(" ")), set(["SIG1", "SIG2", "SIG3"]))
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
@@ -337,6 +342,7 @@ gpgcheck=0
                     "relative_url": "content/1/x86_64/os",
                     "content_set": "foo-1",
                     "arch": "ppc64",
+                    "signatures": "SIG1,SIG2"
                 },
             },
         ]
@@ -353,7 +359,8 @@ gpgcheck=0
 
         expected_query = {
             "criteria": {
-                "fields": ["notes.relative_url", "notes.content_set", "notes.arch"],
+                "fields": ["notes.relative_url", "notes.content_set",
+                           "notes.arch", "notes.signatures"],
                 "filters": {
                     "notes.content_set": {"$in": ["foo-1", "foo-2"]},
                     "notes.include_in_download_service": "True"

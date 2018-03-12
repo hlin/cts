@@ -464,6 +464,7 @@ def generate_pulp_compose(compose):
         raise ValueError(err)
 
     arches = set()
+    sigkeys = set()
     for name in sorted(repos.keys()):
         repo_data = repos[name]
         url = repo_data["url"]
@@ -476,10 +477,12 @@ gpgcheck=0
 """ % (name, name, url)
         repofile += r
         arches.add(repo_data["arch"])
+        sigkeys = sigkeys.union(repo_data["sigkeys"])
 
     _write_repo_file(compose, repofile)
 
     compose.arches = " ".join(arches)
+    compose.sigkeys = " ".join(sigkeys)
     compose.state = COMPOSE_STATES["done"]
     compose.state_reason = "Compose is generated successfully"
     log.info("%r: Compose done", compose)
