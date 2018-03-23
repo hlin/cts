@@ -7,4 +7,5 @@ python-fedora
 # qpid-python  # Python2 only; not necessary; just to hide warning messages
 six
 futures  # Python 2 only
+requests-kerberos
 requests
