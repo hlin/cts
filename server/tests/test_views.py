@@ -302,6 +302,21 @@ class TestViews(ViewBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
+    def test_submit_build_no_packages(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26'},
+                 'flags': ['no_deps']}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(
+            data['message'],
+            '"packages" must be defined for "tag" source_type.')
+
     def test_submit_build_nodeps(self):
         with self.test_request_context(user='dev'):
             flask.g.oidc_scopes = [
@@ -520,7 +535,8 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'tag', 'source': '/path'}}))
+                {'source': {'type': 'tag', 'source': '/path',
+                            'packages': ['foo']}}))
             data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(
@@ -546,7 +562,8 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'tag', 'source': '/path'}}))
+                {'source': {'type': 'tag', 'source': '/path',
+                            'packages': ['foo']}}))
             data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(
