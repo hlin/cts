@@ -25,6 +25,7 @@
 """
 
 import os
+import glob
 
 from datetime import datetime, timedelta
 
@@ -191,6 +192,17 @@ class Compose(ODCSBase):
 
     @property
     def toplevel_dir(self):
+        # In case this compose failed, there won't be latest-* directory,
+        # but there might be the odcs-$id-1-$date.n.0 directory.
+        # The issue is that we cannot really know the date, because there is
+        # a race between we start Pungi and when Pungi generates that dir,
+        # so just use `glob` to find out the rigth directory.
+        if self.state == COMPOSE_STATES["failed"]:
+            glob_str = os.path.join(
+                conf.target_dir, "odcs-%d-1-*.n.0" % self.id)
+            toplevel_dirs = glob.glob(glob_str)
+            if toplevel_dirs:
+                return toplevel_dirs[0]
         return os.path.join(conf.target_dir, self.latest_dir)
 
     @property

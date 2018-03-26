@@ -367,3 +367,62 @@ class Pungi(object):
             self.run_in_runroot(compose)
         else:
             self.run_locally()
+
+
+class PungiLogs(object):
+    def __init__(self, compose):
+        self.compose = compose
+
+    @property
+    def global_log_path(self):
+        """
+        Returns the path to pungi.global.log.
+        """
+        return os.path.join(
+            self.compose.toplevel_dir, "logs", "global", "pungi.global.log")
+
+    def _get_global_log_errors(self):
+        """
+        Helper method which opens the `self.global_log_path` and search for
+        all errors in that log file.
+
+        :rtype: list
+        :return: List of error strings.
+        """
+        errors = []
+        try:
+            with open(self.global_log_path, "r") as global_log:
+                error = ""
+                for line in global_log.readlines():
+                    idx = line.find("[ERROR   ]")
+                    if idx == -1:
+                        if error:
+                            error += line
+                            errors.append(error)
+                            error = ""
+                        continue
+                    if error:
+                        errors.append(error)
+                    error = line[idx + len("[ERROR   ] "):]
+        except IOError:
+            pass
+        return errors
+
+    def get_error_string(self):
+        """
+        Returns the string with errors parsed from Pungi logs.
+
+        :rtype: str
+        :return: String with errors parsed from Pungi logs.
+        """
+        errors = ""
+
+        global_errors = self._get_global_log_errors()
+        for error in global_errors:
+            if error.startswith("Extended traceback in:"):
+                continue
+            errors += error
+
+        errors = errors.replace(
+            conf.target_dir, conf.target_dir_url)
+        return errors

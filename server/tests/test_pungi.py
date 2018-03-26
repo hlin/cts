@@ -26,14 +26,16 @@ import tempfile
 import unittest
 import koji
 
-from mock import patch, MagicMock, call
+from mock import patch, MagicMock, call, mock_open
 from kobo.conf import PyConfigParser
 
-from odcs.server.pungi import (Pungi, PungiConfig, PungiSourceType,
-                               COMPOSE_RESULTS)
+from odcs.server.pungi import (
+    Pungi, PungiConfig, PungiSourceType, PungiLogs)
 import odcs.server.pungi
-from odcs.server import conf
-from .utils import ConfigPatcher, AnyStringWith
+from odcs.server import conf, db
+from odcs.server.models import Compose
+from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
+from .utils import ConfigPatcher, AnyStringWith, ModelsBaseTest
 
 test_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -190,6 +192,61 @@ class TestPungi(unittest.TestCase):
         execute_cmd.assert_called_once()
         self.download_file.assert_called_once_with(
             "http://localhost/pungi.conf#hash", AnyStringWith("/raw_config.conf"))
+
+
+class TestPungiLogs(ModelsBaseTest):
+
+    def setUp(self):
+        super(TestPungiLogs, self).setUp()
+        self.compose = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "tag",
+            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+        self.compose.state = COMPOSE_STATES["failed"]
+        db.session.add(self.compose)
+        db.session.commit()
+
+    def tearDown(self):
+        super(TestPungiLogs, self).tearDown()
+
+    @patch("odcs.server.pungi.open", create=True)
+    def test_error_string(self, patched_open):
+        pungi_log = """
+2018-03-23 03:38:42 [INFO    ] Writing pungi config
+2018-03-23 03:38:42 [INFO    ] [BEGIN] Running pungi
+2018-03-22 17:10:49 [ERROR   ] Compose run failed: No such entry in table tag: tag
+2018-03-23 03:38:42 [ERROR   ] Compose run failed: ERROR running command: pungi -G
+For more details see {0}/odcs-717-1-20180323.n.0/work/x86_64/pungi/Temporary.x86_64.log
+2018-03-23 03:38:42 [ERROR   ] Extended traceback in: {0}/odcs-717-1-20180323.n.0/logs/global/traceback.global.log
+2018-03-23 03:38:42 [CRITICAL] Compose failed: {0}/odcs-717-1-20180323.n.0
+        """.format(conf.target_dir)
+        patched_open.return_value = mock_open(
+            read_data=pungi_log).return_value
+
+        pungi_logs = PungiLogs(self.compose)
+        errors = pungi_logs.get_error_string()
+        self.assertEqual(
+            errors,
+            "Compose run failed: No such entry in table tag: tag\n"
+            "Compose run failed: ERROR running command: pungi -G\n"
+            "For more details see http://localhost/odcs/odcs-717-1-20180323.n.0/work/x86_64/pungi/Temporary.x86_64.log\n")
+
+    @patch("odcs.server.pungi.open", create=True)
+    def test_error_string_no_error(self, patched_open):
+        pungi_log = """
+2018-03-23 03:38:42 [INFO    ] Writing pungi config
+2018-03-23 03:38:42 [INFO    ] [BEGIN] Running pungi
+        """.format(conf.target_dir)
+        patched_open.return_value = mock_open(
+            read_data=pungi_log).return_value
+
+        pungi_logs = PungiLogs(self.compose)
+        errors = pungi_logs.get_error_string()
+        self.assertEqual(errors, "")
+
+    def test_error_string_no_log(self):
+        pungi_logs = PungiLogs(self.compose)
+        errors = pungi_logs.get_error_string()
+        self.assertEqual(errors, "")
 
 
 class TestPungiRunroot(unittest.TestCase):
