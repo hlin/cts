@@ -375,6 +375,31 @@ gpgcheck=0
         self.assertEqual(c1.state, COMPOSE_STATES["failed"])
         self.assertRegexpMatches(c1.state_reason, r'Error while generating compose: Failed to find all the content_sets.*')
 
+    @patch("odcs.server.backend.resolve_compose")
+    @patch("odcs.server.backend.generate_pungi_compose")
+    @patch("odcs.server.pungi.PungiLogs.get_error_string")
+    def test_generate_compose_exception(
+            self, get_error_string, generate_pungi_compose, resolve_compose):
+        get_error_string.return_value = "Compose failed for unknown reason."
+        generate_pungi_compose.side_effect = RuntimeError("Expected exception")
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "foo-1",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        generate_compose(1)
+
+        get_error_string.assert_called_once()
+
+        c1 = Compose.query.filter(Compose.id == 1).one()
+        self.assertEqual(c1.state, COMPOSE_STATES["failed"])
+        self.assertRegexpMatches(
+            c1.state_reason,
+            r'Error while generating compose: Expected exception\n'
+            'Compose failed for unknown reason*')
+
 
 class TestGeneratePungiCompose(ModelsBaseTest):
 

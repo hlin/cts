@@ -31,7 +31,7 @@ import productmd.common
 from datetime import datetime
 from odcs.server import log, conf, app, db
 from odcs.server.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
-from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType
+from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType, PungiLogs
 from odcs.server.pulp import Pulp
 from concurrent.futures import ThreadPoolExecutor
 import glob
@@ -602,8 +602,12 @@ def generate_compose(compose_id, lost_compose=False):
             else:
                 log.exception("Error while generating compose %d", compose_id)
             compose.state = COMPOSE_STATES["failed"]
-            compose.state_reason = "Error while generating compose: %s" % str(e)
             compose.time_done = datetime.utcnow()
+
+            pungi_logs = PungiLogs(compose)
+            compose.state_reason = "Error while generating compose: %s\n" % str(e)
+            compose.state_reason += pungi_logs.get_error_string()
+
             db.session.add(compose)
             db.session.commit()
 
@@ -616,7 +620,7 @@ def generate_compose(compose_id, lost_compose=False):
                 odcs.server.utils.hardlink(conf.target_dir)
             except Exception as ex:
                 # not fail, just show warning message
-                log.warn("Error while running hardlink on system: %s" % ex.message, exc_info=True)
+                log.warn("Error while running hardlink on system: %s" % str(ex), exc_info=True)
 
 
 class ComposerThread(BackendThread):
