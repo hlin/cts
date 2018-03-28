@@ -100,10 +100,16 @@ def check_compose(compose, source_type, source, packages, flags, arches=None):
     arches = arches or ["x86_64"]
     for arch in arches:
         if source_type == "pulp":
-            # For pulp compose, just check that the content_sets are
+            # For pulp compose, check that the content_sets are
             # in the resulting repo file.
             for content_set in source.split(" "):
                 assert content_set in r.text
+
+            # Check that "arches" are set properly.
+            assert arch in compose["arches"]
+
+            # Check that "sigkeys" are set properly.
+            assert compose["sigkeys"] == "FD431D51"
         elif source_type == "tag":
             # For Koji tag, try to get list of packages in a repo.
             baseurl = compose["result_repo"] + "/" + arch + "/os"
@@ -131,23 +137,34 @@ def check_compose(compose, source_type, source, packages, flags, arches=None):
 
 
 def check_new_compose(source_type, source, packages, flags,
-                      sigkeys=None, arches=None):
+                      sigkeys=None, arches=None, expected_state_reason=None):
     """
     Submits new compose and checks the result.
     """
     print("Submitting new compose request: %s %s, %r %r" % (
           source_type, source, packages, flags))
 
-    compose = client.new_compose(
-        source=source,
-        source_type=source_type,
-        packages=packages,
-        flags=flags,
-        sigkeys=sigkeys,
-        arches=arches,
-    )
+    try:
+        compose = client.new_compose(
+            source=source,
+            source_type=source_type,
+            packages=packages,
+            flags=flags,
+            sigkeys=sigkeys,
+            arches=arches,
+        )
+    except requests.exceptions.HTTPError as e:
+        assert expected_state_reason in e.response.json()["message"]
+        print("OK (HTTPError expected)")
+        print ("")
+        return
+
     compose = client.wait_for_compose(compose["id"])
-    check_compose(compose, source_type, source, packages, flags, arches)
+    if expected_state_reason:
+        assert compose["state_name"] == "failed"
+        assert expected_state_reason in compose["state_reason"]
+    else:
+        check_compose(compose, source_type, source, packages, flags, arches)
 
     print("OK")
     print("")
@@ -183,6 +200,37 @@ def check_delete_compose(compose_id):
     print("OK")
     print("")
 
+
+def check_redhat_deployment():
+    """
+    Checks the Red Hat internal ODCS deployment
+    """
+    # Check "tag".
+    compose_id = check_new_compose(
+        "tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"],
+        arches=["x86_64", "ppc64"])
+    check_delete_compose(compose_id)
+    check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5",
+                        ["gofer-package"], ["no_deps"], ["x86_64", "ppc64"])
+
+    # Check "tag" with "deps".
+    check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
+
+    # Check "tag" with errors.
+    check_new_compose(
+        "tag", "cf-1.0-rhel-5", [], [],
+        expected_state_reason="\"packages\" must be defined for \"tag\" source_type.")
+    check_new_compose(
+        "tag", "unknown-tag", ["gofer-package"], [],
+        expected_state_reason="Compose run failed: No such entry in table tag: unknown-tag")
+
+    # Check "pulp".
+    check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
+
+    # Check "module".
+    compose_id = check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
+    check_delete_compose(compose_id)
+    check_new_compose("module", "postgresql:10", [], ["no_deps"], [""])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test ODCS deployment.")
@@ -220,17 +268,7 @@ if __name__ == "__main__":
                 "pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
             sys.exit(0) if compose_id else sys.exit(1)
 
-        compose_id = check_new_compose("tag", "cf-1.0-rhel-5", ["gofer-package"],
-                                       ["no_deps"], arches=["x86_64", "ppc64"])
-        check_delete_compose(compose_id)
-        check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5",
-                            ["gofer-package"], ["no_deps"], ["x86_64", "ppc64"])
-
-        check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
-        check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
-        compose_id = check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
-        check_delete_compose(compose_id)
-        check_new_compose("module", "postgresql:10", [], ["no_deps"], [""])
+        check_redhat_deployment()
     else:
         if fast_check:
             print("Ignoring --fast-check option. Applicable only for redhat profile.")
