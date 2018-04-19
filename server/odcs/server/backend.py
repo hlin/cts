@@ -33,6 +33,7 @@ from odcs.server import log, conf, app, db
 from odcs.server.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
 from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType, PungiLogs
 from odcs.server.pulp import Pulp
+from odcs.server.cache import KojiTagCache
 from concurrent.futures import ThreadPoolExecutor
 import glob
 import odcs.server.utils
@@ -495,6 +496,8 @@ def generate_pungi_compose(compose):
     """
     Generates the compose of KOJI, TAG, or REPO type using the Pungi tool.
     """
+    koji_tag_cache = KojiTagCache()
+
     # Reformat the data from database
     packages = compose.packages
     if packages:
@@ -530,7 +533,12 @@ def generate_pungi_compose(compose):
         if compose.source_type == PungiSourceType.KOJI_TAG:
             koji_event = compose.koji_event
 
-        pungi = Pungi(pungi_cfg, koji_event)
+        old_compose = None
+        if koji_tag_cache.is_cached(compose):
+            koji_tag_cache.reuse_cached(compose)
+            old_compose = koji_tag_cache.cache_dir
+
+        pungi = Pungi(pungi_cfg, koji_event, old_compose)
         pungi.run(compose)
 
         _write_repo_file(compose)
@@ -543,6 +551,8 @@ def generate_pungi_compose(compose):
     compose.time_done = datetime.utcnow()
     db.session.add(compose)
     db.session.commit()
+
+    koji_tag_cache.update_cache(compose)
 
 
 def validate_pungi_compose(compose):
@@ -613,6 +623,8 @@ def generate_compose(compose_id, lost_compose=False):
 
         compose = Compose.query.filter(Compose.id == compose_id).one()
 
+        koji_tag_cache = KojiTagCache()
+        koji_tag_cache.cleanup_reused(compose)
         # consolidate duplicate files in compose target dir
         if compose and compose.reused_id is None and compose.source_type != PungiSourceType.PULP:
             try:

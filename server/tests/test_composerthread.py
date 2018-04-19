@@ -52,9 +52,13 @@ class TestComposerThread(ModelsBaseTest):
                                                   new=patched_pungi_conf_path)
         self.patch_pungi_conf_path.start()
 
+        self.patch_update_cache = patch("odcs.server.backend.KojiTagCache.update_cache")
+        self.update_cache = self.patch_update_cache.start()
+
     def tearDown(self):
         super(TestComposerThread, self).tearDown()
         self.patch_pungi_conf_path.stop()
+        self.patch_update_cache.stop()
 
     def _wait_for_compose_state(self, id, state):
         c = None

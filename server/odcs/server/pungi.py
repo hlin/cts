@@ -145,9 +145,10 @@ class PungiConfig(object):
 
 
 class Pungi(object):
-    def __init__(self, pungi_cfg, koji_event=None):
+    def __init__(self, pungi_cfg, koji_event=None, old_compose=None):
         self.pungi_cfg = pungi_cfg
         self.koji_event = koji_event
+        self.old_compose = old_compose
 
     def _write_cfg(self, path, cfg):
         """
@@ -256,6 +257,8 @@ class Pungi(object):
 
         if self.koji_event:
             pungi_cmd += ["--koji-event", str(self.koji_event)]
+        if self.old_compose:
+            pungi_cmd += ["--old-composes", self.old_compose]
         return pungi_cmd
 
     def run_locally(self):

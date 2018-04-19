@@ -416,6 +416,15 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.patch_write_repo_file = patch("odcs.server.backend._write_repo_file")
         self.write_repo_file = self.patch_write_repo_file.start()
 
+        self.patch_is_cached = patch("odcs.server.backend.KojiTagCache.is_cached")
+        self.is_cached = self.patch_is_cached.start()
+
+        self.patch_reuse_cached = patch("odcs.server.backend.KojiTagCache.reuse_cached")
+        self.reuse_cached = self.patch_reuse_cached.start()
+
+        self.patch_update_cache = patch("odcs.server.backend.KojiTagCache.update_cache")
+        self.update_cache = self.patch_update_cache.start()
+
         # Mocked method to store Pungi.pungi_cfg to self.pungi_cfg, so we can
         # run asserts against it.
         self.pungi_config = None
@@ -433,6 +442,9 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.patch_get_reusable_compose.stop()
         self.patch_write_repo_file.stop()
         self.patch_pungi_run.stop()
+        self.patch_reuse_cached.stop()
+        self.patch_update_cache.stop()
+        self.patch_is_cached.stop()
         self.pungi_config = None
 
     def test_generate_pungi_compose(self):
@@ -447,6 +459,9 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.resolve_compose.assert_called_once_with(c)
         self.get_reusable_compose.assert_called_once_with(c)
         self.write_repo_file.assert_called_once_with(c)
+        self.is_cached.assert_called_once_with(c)
+        self.reuse_cached.assert_called_once_with(c)
+        self.update_cache.assert_called_once_with(c)
 
         self.assertEqual(self.pungi_config.gather_method, "deps")
         self.assertEqual(self.pungi_config.pkgset_koji_inherit, True)
