@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.2] - 2018-04-19
-
+## 0.2.2
+  - Release date: 2018-04-19.
   - The `packages` field is now requested for `tag` source type by frontend.
   - The `state_reason` field in frontend response now contains the error
     messages from the `pungi.global.log`, so the `state_reason` field is much
