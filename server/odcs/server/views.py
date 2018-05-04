@@ -159,6 +159,10 @@ class ODCSAPI(MethodView):
                                           self._get_compose_owner(),
                                           seconds_to_live)
             db.session.add(compose)
+            # Flush is needed, because we use `before_commit` SQLAlchemy
+            # event to send message and before_commit can be called before
+            # flush and therefore the compose ID won't be set.
+            db.session.flush()
             db.session.commit()
             return jsonify(compose.json()), 200
         else:
@@ -282,6 +286,10 @@ class ODCSAPI(MethodView):
             results, seconds_to_live,
             packages, flags, sigkeys, arches)
         db.session.add(compose)
+        # Flush is needed, because we use `before_commit` SQLAlchemy event to
+        # send message and before_commit can be called before flush and
+        # therefore the compose ID won't be set.
+        db.session.flush()
         db.session.commit()
 
         return jsonify(compose.json()), 200
