@@ -611,6 +611,29 @@ class TestViews(ViewBaseTest):
         evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 1)
 
+    def test_query_composes_order_by_default(self):
+        resp = self.client.get('/api/1/composes/')
+        composes = json.loads(resp.get_data(as_text=True))['items']
+        self.assertEqual([2, 1], [compose["id"] for compose in composes])
+
+    def test_query_composes_order_by_id_asc(self):
+        resp = self.client.get('/api/1/composes/?order_by=id')
+        composes = json.loads(resp.get_data(as_text=True))['items']
+        self.assertEqual([1, 2], [compose["id"] for compose in composes])
+
+    def test_query_composes_order_by_id_desc(self):
+        resp = self.client.get('/api/1/composes/?order_by=-id')
+        composes = json.loads(resp.get_data(as_text=True))['items']
+        self.assertEqual([2, 1], [compose["id"] for compose in composes])
+
+    def test_query_composes_order_by_id_unknown_key(self):
+        resp = self.client.get('/api/1/composes/?order_by=foo')
+        data = json.loads(resp.get_data(as_text=True))
+        self.assertEqual(data['status'], 400)
+        self.assertEqual(data['error'], 'Bad Request')
+        self.assertTrue(data['message'].startswith(
+            "An invalid order_by key was suplied, allowed keys are"))
+
     def test_delete_compose(self):
         with freeze_time(self.initial_datetime) as frozen_datetime:
             c3 = Compose.create(

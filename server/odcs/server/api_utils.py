@@ -228,6 +228,35 @@ def pagination_metadata(p_query, request_args):
     return pagination_data
 
 
+def _order_by(flask_request, query, base_class, allowed_keys, default_key):
+    """
+    Parses the "order_by" argument from flask_request.args, checks that
+    it is allowed for ordering in `allowed_keys` list and sets the ordering
+    in the `query`.
+    In case "order_by" is not set in flask_request.args, use `default_key`
+    instead.
+
+    If "order_by" argument starts with minus sign ('-'), the descending order
+    is used.
+    """
+    order_by = flask_request.args.get('order_by', default_key, type=str)
+    if order_by and len(order_by) > 1 and order_by[0] == "-":
+        order_asc = False
+        order_by = order_by[1:]
+    else:
+        order_asc = True
+
+    if order_by not in allowed_keys:
+        raise ValueError(
+            'An invalid order_by key was suplied, allowed keys are: '
+            '%r' % allowed_keys)
+
+    order_by_attr = getattr(base_class, order_by)
+    if not order_asc:
+        order_by_attr = order_by_attr.desc()
+    return query.order_by(order_by_attr)
+
+
 def filter_composes(flask_request):
     """
     Returns a flask_sqlalchemy.Pagination object based on the request parameters
@@ -244,6 +273,11 @@ def filter_composes(flask_request):
 
     if search_query:
         query = query.filter_by(**search_query)
+
+    query = _order_by(flask_request, query, Compose,
+                      ["id", "owner", "source_Type", "koji_event",
+                       "state", "time_to_expire", "time_submitted",
+                       "time_done", "time_removed"], "-id")
 
     page = flask_request.args.get('page', 1, type=int)
     per_page = flask_request.args.get('per_page', 10, type=int)
