@@ -24,7 +24,6 @@
 import os
 import shutil
 import threading
-import errno
 
 from odcs.common.types import PungiSourceType, COMPOSE_STATES
 from odcs.server import conf, log
