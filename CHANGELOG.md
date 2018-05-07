@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.3
+  - Release date: 2018-05-07
+  - REST API now accepts new `order_by` key. The value defines the ordering
+    of composes in response. It can be one of: "id", "owner", "source_Type",
+    "koji_event", "state", "time_to_expire", "time_submitted", "time_done" or
+    "time_removed". If the value is prefixed with minus sign ("-"), the order
+    is descending. Default ordering value is "-id".
+  - Rare traceback caused by None compose.id while sending UMB or fedmsg
+    messages is now fixed.
+
 ## 0.2.2
   - Release date: 2018-04-19.
   - The `packages` field is now requested for `tag` source type by frontend.
