@@ -79,6 +79,7 @@ setup(name='odcs',
       tests_require=test_requirements,
       scripts=['client/contrib/odcs'],
       entry_points={
+          'moksha.consumer': 'odcsconsumer = odcs.server.consumer:ODCSConsumer',
           'console_scripts': ['odcs-upgradedb = odcs.server.manage:upgradedb [server]',
                               'odcs-gencert = odcs.server.manage:generatelocalhostcert [server]',
                               'odcs-frontend = odcs.server.manage:runssl [server]',
@@ -88,6 +89,9 @@ setup(name='odcs',
       data_files=[
           (get_dir(['etc', 'odcs']), ['server/conf/config.py', 'server/conf/pungi.conf',
                                       'server/conf/runroot_koji.conf',
-                                      'server/conf/raw_config_wrapper.conf'])
+                                      'server/conf/raw_config_wrapper.conf']),
+          (get_dir(['etc', 'fedmsg.d']), ['fedmsg.d/odcs-logging.py',
+                                          'fedmsg.d/odcs-scheduler.py',
+                                          'fedmsg.d/odcs.py']),
       ],
       )

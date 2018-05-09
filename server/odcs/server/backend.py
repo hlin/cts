@@ -651,7 +651,7 @@ class ComposerThread(BackendThread):
         # instance.
         self.currently_generating = []
 
-    def _generate_new_compose(self, compose):
+    def generate_new_compose(self, compose):
         """
         Adds the compose to queue of composes to generate, so
         the ThreadPoolExecutor can start working on it.
@@ -673,7 +673,7 @@ class ComposerThread(BackendThread):
 
         for compose in composes:
             log.info("%r: Going to start compose generation.", compose)
-            self._generate_new_compose(compose)
+            self.generate_new_compose(compose)
 
     def generate_lost_composes(self):
         """
@@ -692,7 +692,7 @@ class ComposerThread(BackendThread):
                 continue
 
             log.info("%r: Going to regenerate lost compose.", compose)
-            self._generate_new_compose(compose)
+            self.generate_new_compose(compose)
 
     def refresh_currently_generating(self):
         """

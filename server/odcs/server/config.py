@@ -278,6 +278,10 @@ class Config(object):
             'type': str,
             'default': '',
             'desc': 'Messaging topic to which messages are sent.'},
+        'internal_messaging_topic': {
+            'type': str,
+            'default': '',
+            'desc': 'Messaging topic to which internal ODCS-only messages are sent.'},
         'oidc_base_namespace': {
             'type': str,
             'default': 'https://pagure.io/odcs/',

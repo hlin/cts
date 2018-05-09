@@ -127,9 +127,15 @@ class BaseConfiguration(object):
 
     MESSAGING_CA_CERT = ''
 
-    # The topic specific to selected messaging backend.
-    # For umb, it is the ActiveMQ virtual topic e.g. VirtualTopic.eng.service
+    # The MESSAGING_TOPIC is used as topic for messages sent when compose
+    # state is change.
+    # The INTERNAL_MESSAGING_TOPIC is used for ODCS internal messages sent
+    # from frontends to backends. It for example triggers removal of expired
+    # composes.
+    # For umb, it is the ActiveMQ virtual topic e.g.
+    # VirtualTopic.eng.odcs.state.changed.
     MESSAGING_TOPIC = ''
+    INTERNAL_MESSAGING_TOPIC = ''
 
 
 class DevConfiguration(BaseConfiguration):
@@ -164,8 +170,8 @@ class TestConfiguration(BaseConfiguration):
     PUNGI_RUNROOT_KOJI_CONF_PATH = path.join(confdir, 'runroot_koji.conf')
     RAW_CONFIG_WRAPPER_CONF_PATH = path.join(confdir, 'raw_config_wrapper.conf')
     # Global network-related values, in seconds
-    NET_TIMEOUT = 3
-    NET_RETRY_INTERVAL = 1
+    NET_TIMEOUT = 0
+    NET_RETRY_INTERVAL = 0
     TARGET_DIR = path.join(dbdir, "test_composes")
     try:
         makedirs(TARGET_DIR, mode=0o775)

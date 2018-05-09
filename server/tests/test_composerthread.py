@@ -313,7 +313,7 @@ class TestComposerThreadLostComposes(ModelsBaseTest):
         self.composer = ComposerThread()
 
         self.patch_generate_new_compose = patch(
-            "odcs.server.backend.ComposerThread._generate_new_compose")
+            "odcs.server.backend.ComposerThread.generate_new_compose")
         self.generate_new_compose = self.patch_generate_new_compose.start()
 
     def tearDown(self):
