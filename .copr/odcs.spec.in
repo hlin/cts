@@ -48,6 +48,7 @@ BuildRequires:    python-ldap
 BuildRequires:    libmodulemd
 BuildRequires:    gobject-introspection
 BuildRequires:    python-gobject-base
+BuildRequires:    fedmsg-hub
 
 %if 0%{?rhel} && 0%{?rhel} <= 7
 BuildRequires:    python-setuptools
@@ -110,6 +111,7 @@ Requires:    hardlink
 Requires:    libmodulemd
 Requires:    gobject-introspection
 Requires:    python-gobject-base
+Requires:    fedmsg-hub
 
 %if 0%{?rhel} && 0%{?rhel} <= 7
 Requires:    python-flask-sqlalchemy
@@ -276,6 +278,7 @@ exit 0
 %config(noreplace) %{_sysconfdir}/odcs/pungi.conf
 %config(noreplace) %{_sysconfdir}/odcs/raw_config_wrapper.conf
 %config(noreplace) %{_sysconfdir}/odcs/runroot_koji.conf
+%{_sysconfdir}/fedmsg.d/*
 %exclude %{_sysconfdir}/odcs/*.py[co]
 %exclude %{python2_sitelib}/odcs/__pycache__
 
