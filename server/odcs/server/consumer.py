@@ -116,7 +116,6 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
         Handles the parsed message `msg` of topic `topic`.
         """
         log.debug("Received: %r", msg)
-        print self.messaging_topic
         if topic.endswith(self.messaging_topic):
             compose_state = msg["state_name"]
             if compose_state != "wait":

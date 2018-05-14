@@ -69,10 +69,10 @@ class ModelsBaseTest(unittest.TestCase):
     disable_event_handlers = True
 
     def setUp(self):
-        # Not all tests need handlers of event before_commit and after_commit.
-        if event.contains(SignallingSession, 'before_commit',
+        # Not all tests need handlers of event after_flush and after_commit.
+        if event.contains(SignallingSession, 'after_flush',
                           cache_composes_if_state_changed):
-            event.remove(SignallingSession, 'before_commit',
+            event.remove(SignallingSession, 'after_flush',
                          cache_composes_if_state_changed)
         if event.contains(SignallingSession, 'after_commit',
                           start_to_publish_messages):
@@ -95,14 +95,14 @@ class ModelsBaseTest(unittest.TestCase):
         # And, if tests which need such event handlers or just tests those
         # handlers, add them back.
         if not self.disable_event_handlers:
-            event.listen(SignallingSession, 'before_commit',
+            event.listen(SignallingSession, 'after_flush',
                          cache_composes_if_state_changed)
             event.listen(SignallingSession, 'after_commit',
                          start_to_publish_messages)
 
     def tearDown(self):
         if not self.disable_event_handlers:
-            event.remove(SignallingSession, 'before_commit',
+            event.remove(SignallingSession, 'after_flush',
                          cache_composes_if_state_changed)
             event.remove(SignallingSession, 'after_commit',
                          start_to_publish_messages)
@@ -113,7 +113,7 @@ class ModelsBaseTest(unittest.TestCase):
 
         # Nothing special here. Just do what should be done in tearDown to
         # to restore enviornment for each test method.
-        event.listen(SignallingSession, 'before_commit',
+        event.listen(SignallingSession, 'after_flush',
                      cache_composes_if_state_changed)
         event.listen(SignallingSession, 'after_commit',
                      start_to_publish_messages)

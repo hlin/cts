@@ -44,7 +44,7 @@ from odcs.common.types import (
 from sqlalchemy import event, or_
 from flask_sqlalchemy import SignallingSession
 
-event.listen(SignallingSession, 'before_commit',
+event.listen(SignallingSession, 'after_flush',
              cache_composes_if_state_changed)
 
 event.listen(SignallingSession, 'after_commit',
