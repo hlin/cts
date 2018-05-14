@@ -66,12 +66,13 @@ class ConsumerTest(ConsumerBaseTest):
 
     def setUp(self):
         super(ConsumerTest, self).setUp()
-        self.consumer = self._create_consumer()
 
         self.config_patcher = ConfigPatcher(odcs.server.consumer.conf)
         self.config_patcher.patch("messaging_topic", "VirtualTopic.eng.odcs.state.change")
         self.config_patcher.patch("internal_messaging_topic", "VirtualTopic.eng.odcs.internal.cleanup")
         self.config_patcher.start()
+
+        self.consumer = self._create_consumer()
 
         self.compose = Compose.create(db.session, "me", 1, "foo-1", 1, 3600)
         db.session.add(self.compose)
