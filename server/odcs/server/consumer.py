@@ -62,7 +62,7 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
         reactor.callFromThread(reactor.stop)
 
     def validate(self, message):
-        if conf.messaging == 'fedmsg':
+        if conf.messaging_backend == 'fedmsg':
             super(ODCSConsumer, self).validate(message)
 
     def consume(self, message):
