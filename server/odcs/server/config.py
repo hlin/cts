@@ -274,6 +274,11 @@ class Config(object):
             'type': str,
             'default': '',
             'desc': 'Path to trusted CA certificate bundle.'},
+        'messaging_topic_prefix': {
+            'type': str,
+            'default': '',
+            'desc': 'Prefix for MESSAGING_TOPIC and INTERNAL_MESSAGING_TOPIC.'
+        },
         'messaging_topic': {
             'type': str,
             'default': '',

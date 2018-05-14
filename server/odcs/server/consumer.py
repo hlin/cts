@@ -38,11 +38,10 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
 
     def __init__(self, hub):
         # set topic before super, otherwise topic will not be subscribed
-        self.topic = [conf.messaging_topic, conf.internal_messaging_topic]
-        self.messaging_topic = ".".join(
-            conf.messaging_topic.rsplit(".", 2)[-2:])
-        self.internal_messaging_topic = ".".join(
-            conf.internal_messaging_topic.rsplit(".", 2)[-2:])
+        messaging_topic = conf.messaging_topic_prefix + conf.messaging_topic
+        internal_messaging_topic = conf.messaging_topic_prefix + \
+            conf.internal_messaging_topic
+        self.topic = [messaging_topic, internal_messaging_topic]
         log.debug('Setting topics: {}'.format(', '.join(self.topic)))
         super(ODCSConsumer, self).__init__(hub)
 
@@ -116,12 +115,12 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
         Handles the parsed message `msg` of topic `topic`.
         """
         log.debug("Received: %r", msg)
-        if topic.endswith(self.messaging_topic):
+        if topic.endswith(conf.messaging_topic):
             compose_state = msg["state_name"]
             if compose_state != "wait":
                 return
             compose_id = msg["id"]
             compose = self.get_odcs_compose(compose_id)
             self.composer.generate_new_compose(compose)
-        elif topic.endswith(self.internal_messaging_topic):
+        elif topic.endswith(conf.internal_messaging_topic):
             self.remove_expired_compose_thread.do_work()
