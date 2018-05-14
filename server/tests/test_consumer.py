@@ -38,16 +38,16 @@ class ConsumerBaseTest(ModelsBaseTest):
         return ODCSConsumer(hub)
 
     def _compose_state_change_msg(self, id=1, state=None):
-        msg = {'body': {
+        msg = {
+            "body": {
+                "compose": {
+                    "id": id,
+                    "state_name": state or "wait"
+                }
+            },
             "msg_id": "2017-7afcb214-cf82-4130-92d2-22f45cf59cf7",
             "topic": "VirtualTopic.eng.odcs.state.change",
-            "signature": "qRZ6oXBpKD/q8BTjBNa4MREkAPxT+KzI8Oret+TSKazGq/6gk0uuprdFpkfBXLR5dd4XDoh3NQWp\nyC74VYTDVqJR7IsEaqHtrv01x1qoguU/IRWnzrkGwqXm+Es4W0QZjHisBIRRZ4ywYBG+DtWuskvy\n6/5Mc3dXaUBcm5TnT0c=\n",
-            "msg": {
-                "id": id,
-                "state_name": state or "wait"
-            }
-        }}
-
+        }
         return msg
 
     def _internal_clean_composes_msg(self):
@@ -55,10 +55,14 @@ class ConsumerBaseTest(ModelsBaseTest):
             "msg_id": "2017-7afcb214-cf82-4130-92d2-22f45cf59cf7",
             "topic": "VirtualTopic.eng.odcs.internal.cleanup",
             "signature": "qRZ6oXBpKD/q8BTjBNa4MREkAPxT+KzI8Oret+TSKazGq/6gk0uuprdFpkfBXLR5dd4XDoh3NQWp\nyC74VYTDVqJR7IsEaqHtrv01x1qoguU/IRWnzrkGwqXm+Es4W0QZjHisBIRRZ4ywYBG+DtWuskvy\n6/5Mc3dXaUBcm5TnT0c=\n",
-            "msg": {
-            }
         }}
 
+        msg = {
+            "body": {
+            },
+            "msg_id": "2017-7afcb214-cf82-4130-92d2-22f45cf59cf7",
+            "topic": "VirtualTopic.eng.odcs.internal.cleanup",
+        }
         return msg
 
 

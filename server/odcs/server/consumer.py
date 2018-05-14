@@ -66,7 +66,7 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
             super(ODCSConsumer, self).validate(message)
 
     def consume(self, message):
-        topic, inner_msg = self.parse_message(message['body'])
+        topic, inner_msg = self.parse_message(message)
 
         # Primary work is done here.
         try:
@@ -84,7 +84,7 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
         """
         if 'topic' not in message:
             raise ValueError(
-                'The messaging format "{}" is not supported'.format(conf.messaging))
+                'The messaging format "{}" is not supported'.format(conf.messaging_backend))
 
         # Fallback to message['headers']['message-id'] if msg_id not defined.
         if ('msg_id' not in message and
@@ -97,7 +97,7 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
                 'Received message does not contain "msg_id" or "message-id": '
                 '%r' % (message))
 
-        inner_msg = message.get('msg')
+        inner_msg = message.get('body')
         return message["topic"], inner_msg
 
     @retry(wait_on=RuntimeError)
@@ -116,10 +116,10 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
         """
         log.debug("Received: %r", msg)
         if topic.endswith(conf.messaging_topic):
-            compose_state = msg["state_name"]
+            compose_state = msg["compose"]["state_name"]
             if compose_state != "wait":
                 return
-            compose_id = msg["id"]
+            compose_id = msg["compose"]["id"]
             compose = self.get_odcs_compose(compose_id)
             self.composer.generate_new_compose(compose)
         elif topic.endswith(conf.internal_messaging_topic):
