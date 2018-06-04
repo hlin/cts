@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.4
+  - Release date: 2018-06-04
+  - ODCS backend can now be run as fedmsg-hub consumer.
+  - Pulp composes are now not limited by `NUM_CONCURRENT_PUNGI` config
+    variable.
+
 ## 0.2.3
   - Release date: 2018-05-07
   - REST API now accepts new `order_by` key. The value defines the ordering
