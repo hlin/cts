@@ -20,7 +20,9 @@
 # SOFTWARE.
 #
 # Written by Chenxiong Qi <cqi@redhat.com>
+#            Jan Kaluza <jkaluza@redhat.com>
 
+import copy
 import json
 import requests
 
@@ -43,6 +45,46 @@ class Pulp(object):
         r.raise_for_status()
         return r.json()
 
+    def _try_arch_merge(self, content_set_repos):
+        """
+        Tries replacing arch string (e.g. "x86_64" or "ppc64le") in each "url"
+        in content_set_repos with "$basearch" and if this results in the same
+        repository URL for each repo in the content_set_repos and also
+        the sigkeys are the same, returns the single repo with $basearch.
+        If not, returns an empty dict.
+
+        The "arches" value of returned repo is set to union of merged "arches".
+
+        For example, for following input:
+            [{"url": "http://localhost/x86_64/os", "arches": ["x86_64"]},
+             {"url": "http://localhost/ppc64le/os", "arches": ["ppc64le"]}]
+        This method returns:
+            {"url": "http://localhost/$basearch/os",
+             "arches": ["x86_64", "ppc64le"]}
+        """
+        # For no or exactly one repo, there is nothing to merge.
+        if len(content_set_repos) < 2:
+            return {}
+
+        first_repo = None
+        for repo in content_set_repos:
+            if len(repo["arches"]) != 1:
+                # This should not happen normally, because each repo has just
+                # single arch in Pulp, but be defensive.
+                raise ValueError(
+                    "Content set repository %s does not have exactly 1 arch: "
+                    "%r." % (repo["url"], repo["arches"]))
+            url = repo["url"].replace(list(repo["arches"])[0], "$basearch")
+            if first_repo is None:
+                first_repo = copy.deepcopy(repo)
+                first_repo["url"] = url
+                continue
+            if (first_repo["url"] != url or
+                    first_repo["sigkeys"] != repo["sigkeys"]):
+                return {}
+            first_repo["arches"] = first_repo["arches"].union(repo["arches"])
+        return first_repo
+
     def get_repos_from_content_sets(self, content_sets):
         """
         Returns dictionary with URLs of all shipped repositories defined by
@@ -56,7 +98,7 @@ class Pulp(object):
             {
                 content_set_1: {
                     "url": repo_url,
-                    "arch": repo_arch,
+                    "arches": set([repo_arch1, repo_arch2]),
                     'sigkeys': ['sigkey1', 'sigkey2', ...]
                 },
                 ...
@@ -74,20 +116,31 @@ class Pulp(object):
         }
         repos = self._rest_post('repositories/search/', query_data)
 
-        ret = {}
+        per_content_set_repos = {}
         for repo in repos:
+            notes = repo["notes"]
             url = "%s/%s" % (self.server_url.rstrip('/'),
-                             repo['notes']['relative_url'])
-            arch = repo["notes"]["arch"]
-            sigkeys = repo["notes"]["signatures"].split(",")
+                             notes['relative_url'])
+            arch = notes["arch"]
+            sigkeys = sorted(notes["signatures"].split(","))
             # OSBS cannot verify https during the container image build, so
             # fallback to http for now.
             if url.startswith("https://"):
                 url = "http://" + url[len("https://"):]
-            ret[repo["notes"]["content_set"]] = {
+            if notes["content_set"] not in per_content_set_repos:
+                per_content_set_repos[notes["content_set"]] = []
+            per_content_set_repos[notes["content_set"]].append({
                 "url": url,
-                "arch": arch,
+                "arches": set([arch]),
                 "sigkeys": sigkeys,
-            }
+            })
+
+        ret = {}
+        for cs, repos in per_content_set_repos.items():
+            merged_repos = self._try_arch_merge(repos)
+            if merged_repos:
+                ret[cs] = merged_repos
+            else:
+                ret[cs] = repos[-1]
 
         return ret

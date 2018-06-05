@@ -477,7 +477,7 @@ enabled=1
 gpgcheck=0
 """ % (name, name, url)
         repofile += r
-        arches.add(repo_data["arch"])
+        arches = arches.union(repo_data["arches"])
         sigkeys = sigkeys.union(repo_data["sigkeys"])
 
     _write_repo_file(compose, repofile)
