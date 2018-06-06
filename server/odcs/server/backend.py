@@ -454,7 +454,8 @@ def generate_pulp_compose(compose):
 
     pulp = Pulp(server_url=conf.pulp_server_url,
                 username=conf.pulp_username,
-                password=conf.pulp_password)
+                password=conf.pulp_password,
+                compose=compose)
 
     repofile = ""
     repos = pulp.get_repos_from_content_sets(content_sets)

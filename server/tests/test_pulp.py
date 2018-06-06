@@ -20,20 +20,28 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
-import unittest
 from mock import patch
 
 from odcs.server.pulp import Pulp
+from odcs.server.pungi import PungiSourceType
+from odcs.server import db
+from odcs.server.models import Compose
+
+from .utils import ModelsBaseTest
 
 
 @patch("odcs.server.pulp.Pulp._rest_post")
-class TestPulp(unittest.TestCase):
+class TestPulp(ModelsBaseTest):
 
     def test_generate_pulp_compose_arch_merge(self, pulp_rest_post):
         """
         Tests that multiple repos in single content_set are merged into
         single one by replacing arch with $basearch variable if possible.
         """
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        db.session.commit()
+
         pulp_rest_post.return_value = [
             {
                 "notes": {
@@ -61,7 +69,7 @@ class TestPulp(unittest.TestCase):
             }
         ]
 
-        pulp = Pulp("http://localhost/", "user", "pass")
+        pulp = Pulp("http://localhost/", "user", "pass", c)
         ret = pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
         self.assertEqual(
             ret,
@@ -77,3 +85,63 @@ class TestPulp(unittest.TestCase):
                     "sigkeys": ["SIG1", "SIG3"],
                 }
             })
+
+    @patch("odcs.server.mergerepo.execute_cmd")
+    @patch("odcs.server.mergerepo.makedirs")
+    def test_pulp_compose_merge_repos(self, makedirs, execute_cmd, pulp_rest_post):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        db.session.commit()
+
+        pulp_rest_post.return_value = [
+            {
+                "notes": {
+                    "relative_url": "content/1.0/x86_64/os",
+                    "content_set": "foo-1",
+                    "arch": "x86_64",
+                    "signatures": "SIG1,SIG2",
+                },
+            },
+            {
+                "notes": {
+                    "relative_url": "content/1.1/x86_64/os",
+                    "content_set": "foo-1",
+                    "arch": "x86_64",
+                    "signatures": "SIG1,SIG2",
+                }
+            },
+            {
+                "notes": {
+                    "relative_url": "content/1.0/ppc64le/os",
+                    "content_set": "foo-1",
+                    "arch": "ppc64le",
+                    "signatures": "SIG1,SIG2",
+                },
+            },
+        ]
+
+        pulp = Pulp("http://localhost/", "user", "pass", c)
+        ret = pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
+
+        self.assertEqual(
+            ret,
+            {
+                "foo-1": {
+                    "url": "http://localhost/odcs/latest-odcs-1-1/compose/Temporary/$basearch",
+                    "arches": set(["x86_64", "ppc64le"]),
+                    "sigkeys": ["SIG1", "SIG2"],
+                }
+            })
+
+        makedirs.assert_any_call(c.result_repo_dir + "/x86_64")
+        makedirs.assert_any_call(c.result_repo_dir + "/ppc64le")
+
+        execute_cmd.assert_any_call(
+            ['/usr/bin/mergerepo_c', '-v', '-o',
+             c.result_repo_dir + '/ppc64le',
+             '-r', 'http://localhost/content/1.0/ppc64le/os'])
+        execute_cmd.assert_any_call(
+            ['/usr/bin/mergerepo_c', '-v', '-o',
+             c.result_repo_dir + '/x86_64',
+             '-r', 'http://localhost/content/1.0/x86_64/os',
+             '-r', 'http://localhost/content/1.1/x86_64/os'])

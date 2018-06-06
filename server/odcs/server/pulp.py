@@ -26,14 +26,17 @@ import copy
 import json
 import requests
 
+from odcs.server.mergerepo import MergeRepo
+
 
 class Pulp(object):
     """Interface to Pulp"""
 
-    def __init__(self, server_url, username, password):
+    def __init__(self, server_url, username, password, compose):
         self.username = username
         self.password = password
         self.server_url = server_url
+        self.compose = compose
         self.rest_api_root = '{0}/pulp/api/v2/'.format(self.server_url.rstrip('/'))
 
     def _rest_post(self, endpoint, post_data):
@@ -84,6 +87,46 @@ class Pulp(object):
                 return {}
             first_repo["arches"] = first_repo["arches"].union(repo["arches"])
         return first_repo
+
+    def _merge_repos(self, content_set_repos):
+        """
+        Merges the repositories of the same arch from `content_set_repos`
+        and returns the new repository dict pointing to the newly created
+        merged repository.
+
+        In case there is just single (or none) repository in
+        `content_set_repos`, returns empty dict.
+        """
+        # For no or exactly one repo, there is nothing to merge.
+        if len(content_set_repos) < 2:
+            return {}
+
+        # We must merge repos of the same arch only, so group them by arch
+        # at first.
+        per_arch_repos = {}
+        for repo in content_set_repos:
+            if len(repo["arches"]) != 1:
+                # This should not happen normally, because each repo has just
+                # single arch in Pulp, but be defensive.
+                raise ValueError(
+                    "Content set repository %s does not have exactly 1 arch: "
+                    "%r." % (repo["url"], repo["arches"]))
+            arch = list(repo["arches"])[0]
+            if arch not in per_arch_repos:
+                per_arch_repos[arch] = []
+            per_arch_repos[arch].append(repo)
+
+        merge_repo = MergeRepo(self.compose)
+
+        for arch, repos in per_arch_repos.items():
+            urls = [repo["url"] for repo in repos]
+            merge_repo.run(arch, urls)
+
+        return {
+            "url": self.compose.result_repo_url + "/$basearch",
+            "arches": set(per_arch_repos.keys()),
+            "sigkeys": content_set_repos[0]["sigkeys"],
+        }
 
     def get_repos_from_content_sets(self, content_sets):
         """
@@ -137,7 +180,13 @@ class Pulp(object):
 
         ret = {}
         for cs, repos in per_content_set_repos.items():
+            # In case there are multiple repos, at first try merging them
+            # by replacing arch in repository baseurl with $basearch.
             merged_repos = self._try_arch_merge(repos)
+            if not merged_repos:
+                # In case we cannot merge repositories by replacing the arch
+                # with $basearch, call mergerepo_c.
+                merged_repos = self._merge_repos(repos)
             if merged_repos:
                 ret[cs] = merged_repos
             else:
