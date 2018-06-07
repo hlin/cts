@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.5
+  - Release date: 2018-06-07
+  - Improve handling of Pulp content_sets with multiple repositories.
+
 ## 0.2.4
   - Release date: 2018-06-04
   - ODCS backend can now be run as fedmsg-hub consumer.
