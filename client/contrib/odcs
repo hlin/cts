@@ -63,6 +63,8 @@ parser.add_argument(
          'if --redhat is specified. If omitted, production environment will '
          'be used.')
 parser.add_argument(
+    '--server', default=None, help="Use custom ODCS server.")
+parser.add_argument(
     '--no-wait', action='store_true',
     help='When used, odcs client will not wait for the action to finish.')
 
@@ -123,8 +125,10 @@ renew_parser.add_argument(
 
 args = parser.parse_args()
 
-
-odcs_url = env_config[args.infra][args.env]['server_url']
+if args.server is None:
+    odcs_url = env_config[args.infra][args.env]['server_url']
+else:
+    odcs_url = args.server
 
 if args.infra == 'fedora':
     id_provider = id_provider_config[args.env]
