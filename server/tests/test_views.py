@@ -88,6 +88,10 @@ class TestValidateJSONData(unittest.TestCase):
         data = {"source": {"x": PropertyMock()}}
         self.assertRaises(ValueError, validate_json_data, data)
 
+    def test_validate_json_data_allowed_package(self):
+        data = {"packages": ["gcc-g++"]}
+        validate_json_data(data)
+
 
 class ViewBaseTest(ModelsBaseTest):
 

@@ -142,7 +142,7 @@ def raise_if_input_not_allowed(**kwargs):
                     % (flask.g.user.username, name, value))
 
 
-def validate_json_data(dict_or_list, level=0):
+def validate_json_data(dict_or_list, level=0, last_dict_key=None):
     """
     Checks that json data represented by dict `dict_or_list` is valid ODCS
     input. Raises ValueError in case the json data does not pass validation.
@@ -162,10 +162,14 @@ def validate_json_data(dict_or_list, level=0):
             if level != 0 or k not in ["source"]:
                 raise ValueError(
                     "Only 'source' key is allowed to contain dict.")
-            validate_json_data(v, level + 1)
+            validate_json_data(v, level + 1, k)
         elif isinstance(v, list):
             validate_json_data(v, level + 1)
         elif isinstance(v, six.string_types):
+            # Packages are stored in comps.xml, not in pungi.conf, so it is
+            # not exploitable.
+            if last_dict_key in ["packages"]:
+                continue
             allowed_chars = [' ', '-', '/', '_', '.', ':', '#']
             if not all(c.isalnum() or c in allowed_chars for c in v):
                 raise ValueError(
