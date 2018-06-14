@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.6
+  - Release date: 2018-06-14
+  - Any character is now allowed in the `packages` list (allowing gcc-c++).
+  - Custom ODCS server can be set in ODCS client.-
+
 ## 0.2.5
   - Release date: 2018-06-07
   - Improve handling of Pulp content_sets with multiple repositories.
