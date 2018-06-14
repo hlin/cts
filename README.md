@@ -237,7 +237,7 @@ $ make check
 
 ### Testing local composes from plain RPM repositories
 
-You can test ODCS by generating compose form the `./server/tests/repo` repository using following commands:
+You can test ODCS by generating compose from the `./server/tests/repo` repository using following commands:
 
 ```
 $ ./create_sqlite_db
