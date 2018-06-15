@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.6.1
+  - Release date: 2018-06-14
+  - Bugfix to the `packages` list change.
+
 ## 0.2.6
   - Release date: 2018-06-14
   - Any character is now allowed in the `packages` list (allowing gcc-c++).
