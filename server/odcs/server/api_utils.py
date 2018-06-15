@@ -164,7 +164,7 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
                     "Only 'source' key is allowed to contain dict.")
             validate_json_data(v, level + 1, k)
         elif isinstance(v, list):
-            validate_json_data(v, level + 1)
+            validate_json_data(v, level + 1, k)
         elif isinstance(v, six.string_types):
             # Packages are stored in comps.xml, not in pungi.conf, so it is
             # not exploitable.
