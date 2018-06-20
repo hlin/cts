@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.7
+  - Release date: 2018-06-20
+  - OIDC: service tokens are treated as having "no groups".
+
 ## 0.2.6.2
   - Release date: 2018-06-20
   - Added "get" option to the client cli
