@@ -123,6 +123,13 @@ renew_parser.add_argument(
     'compose_id', default=None,
     help="ODCS compose id")
 
+get_parser = subparsers.add_parser(
+    'get', help='get compose info')
+get_parser.set_defaults(command='get')
+get_parser.add_argument(
+    'compose_id', default=None,
+    help="ODCS compose id")
+
 args = parser.parse_args()
 
 if args.server is None:
@@ -185,6 +192,8 @@ try:
         result = client.delete_compose(args.compose_id)
     elif args.command == "renew":
         result = client.renew_compose(args.compose_id)
+    elif args.command == "get":
+        result = client.get_compose(args.compose_id)
     else:
         print("Unknown command %s" % args.command)
 except requests.exceptions.HTTPError as e:

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.6.2
+- Release date:
+- Added "get" option to the client cli
+
 ## 0.2.6.1
   - Release date: 2018-06-14
   - Bugfix to the `packages` list change.
