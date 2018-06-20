@@ -261,6 +261,28 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             self.assertEqual(self.user.id, flask.g.user.id)
             self.assertEqual(['admins', 'testers'], sorted(flask.g.groups))
 
+    @patch('odcs.server.auth.requests.get')
+    def test_user_info_failure(self, get):
+        # If the user_info endpoint errors out, we continue to authenticate
+        # based only on the user (which we have from the token), ignoring groups.
+        get.return_value.status_code = 400
+
+        environ_base = {
+            'REMOTE_USER': self.user.username,
+            'OIDC_access_token': '39283',
+            'OIDC_CLAIM_iss': 'https://iddev.fedorainfracloud.org/openidc/',
+            'OIDC_CLAIM_scope': 'openid https://id.fedoraproject.org/scope/groups '
+                                'https://pagure.io/odcs/new-compose '
+                                'https://pagure.io/odcs/renew-compose '
+                                'https://pagure.io/odcs/delete-compose',
+        }
+
+        with app.test_request_context(environ_base=environ_base):
+            load_openidc_user(flask.request)
+
+            self.assertEqual(self.user.id, flask.g.user.id)
+            self.assertEqual([], sorted(flask.g.groups))
+
     def test_401_if_remote_user_not_present(self):
         environ_base = {
             # Missing REMOTE_USER here

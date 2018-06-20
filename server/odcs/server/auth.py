@@ -203,8 +203,13 @@ def get_user_info(token):
     }
     r = requests.get(conf.auth_openidc_userinfo_uri, headers=headers)
     if r.status_code != 200:
-        raise Unauthorized('Cannot get user information from {0} endpoint.'.format(
-            conf.auth_openidc_userinfo_uri))
+        # In Fedora, the manually created service tokens can't be used with the UserInfo
+        # endpoint. We treat this as an empty response - and hence an empty group list. An empty
+        # group list only makes our authorization checks more strict, so it should be safe
+        # to proceed and check the user.
+        log.warning("Failed to query group information - UserInfo endpoint failed with status=%d",
+                    r.status_code)
+        return {}
 
     return r.json()
 
