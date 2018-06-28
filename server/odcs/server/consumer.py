@@ -86,17 +86,6 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
             raise ValueError(
                 'The messaging format "{}" is not supported'.format(conf.messaging_backend))
 
-        # Fallback to message['headers']['message-id'] if msg_id not defined.
-        if ('msg_id' not in message and
-                'headers' in message and
-                "message-id" in message['headers']):
-            message['body']['msg_id'] = message['headers']['message-id']
-
-        if 'msg_id' not in message and 'msg_id' not in message['body']:
-            raise ValueError(
-                'Received message does not contain "msg_id" or "message-id": '
-                '%r' % (message))
-
         inner_msg = message.get('body')
         inner_msg = inner_msg.get('msg', inner_msg)
         return message["topic"], inner_msg
