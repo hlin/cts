@@ -26,22 +26,11 @@ import os
 import signal
 import time
 import subprocess
-import requests
+import shutil
 from distutils.spawn import find_executable
 from threading import Timer
 
 from odcs.server import conf, log
-
-
-def download_file(url, output_path):
-    """
-    Downloads file from URL `url` to `output_path`.
-    """
-    r = requests.get(url)
-    r.raise_for_status()
-
-    with open(output_path, 'wb') as f:
-        f.write(r.content)
 
 
 def retry(timeout=conf.net_timeout, interval=conf.net_retry_interval, wait_on=Exception, logger=None):
@@ -129,6 +118,30 @@ def execute_cmd(args, stdout=None, stderr=None, cwd=None, timeout=None):
     if proc.returncode != 0:
         err_msg = "Command '%s' returned non-zero value %d%s" % (args, proc.returncode, out_log_msg)
         raise RuntimeError(err_msg)
+
+
+def clone_repo(url, dest, branch='master', commit=None):
+    cmd = ['git', 'clone', '-b', branch, url, dest]
+    execute_cmd(cmd)
+
+    if commit:
+        cmd = ['git', 'checkout', commit]
+        execute_cmd(cmd, cwd=dest)
+
+    return dest
+
+
+def copytree(src, dst, symlinks=False, ignore=None):
+    """
+    Implementation of shutil.copytree which does not fail when `dst` exists.
+    """
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)
 
 
 def hardlink(dirs, verbose=False):

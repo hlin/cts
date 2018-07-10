@@ -431,6 +431,19 @@ class Config(object):
                             "list" % (role, user, key))
         self._allowed_clients = clients
 
+    def _setifok_raw_config_urls(self, raw_config_urls):
+        if type(raw_config_urls) != dict:
+            raise TypeError("raw_config_urls must be a dict.")
+        for name, url_data in raw_config_urls.items():
+            if type(url_data) != dict:
+                raise TypeError("raw_config_urls['%s'] is not a dict." % name)
+            for key in ["url", "config_filename"]:
+                if key not in url_data:
+                    raise ValueError(
+                        "raw_config_urls['%s']['%s'] is not defined."
+                        % (name, key))
+        self._raw_config_urls = raw_config_urls
+
     def _setifok_log_backend(self, s):
         if s is None:
             self._log_backend = "console"

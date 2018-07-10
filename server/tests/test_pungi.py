@@ -35,6 +35,7 @@ import odcs.server.pungi
 from odcs.server import conf, db
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
+from odcs.server.utils import makedirs
 from .utils import ConfigPatcher, AnyStringWith, ModelsBaseTest
 
 test_dir = os.path.abspath(os.path.dirname(__file__))
@@ -161,15 +162,24 @@ class TestPungi(unittest.TestCase):
     def setUp(self):
         super(TestPungi, self).setUp()
 
-        self.patch_download_file = patch("odcs.server.pungi.download_file")
-        self.download_file = self.patch_download_file.start()
+        def mocked_clone_repo(url, dest, branch='master', commit=None):
+            makedirs(dest)
+            makedirs(os.path.join(dest, "another"))
+            with open(os.path.join(dest, "pungi.conf"), "w") as fd:
+                fd.write("fake pungi conf 1")
+            with open(os.path.join(dest, "another", "pungi.conf"), "w") as fd:
+                fd.write("fake pungi conf 2")
+
+        self.patch_clone_repo = patch("odcs.server.pungi.clone_repo")
+        self.clone_repo = self.patch_clone_repo.start()
+        self.clone_repo.side_effect = mocked_clone_repo
 
         self.compose = MagicMock()
 
     def tearDown(self):
         super(TestPungi, self).tearDown()
 
-        self.patch_download_file.stop()
+        self.patch_clone_repo.stop()
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):
@@ -185,13 +195,48 @@ class TestPungi(unittest.TestCase):
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run_raw_config(self, execute_cmd):
-        pungi_cfg = "http://localhost/pungi.conf#hash"
+        def mocked_execute_cmd(*args, **kwargs):
+            topdir = kwargs["cwd"]
+            with open(os.path.join(topdir, "pungi.conf"), "r") as f:
+                data = f.read()
+                self.assertTrue("fake pungi conf 1" in data)
+        execute_cmd.side_effect = mocked_execute_cmd
+
+        pungi_cfg = {
+            "url": "http://localhost/test.git",
+            "config_filename": "pungi.conf",
+            "commit": "hash",
+        }
         pungi = Pungi(pungi_cfg)
         pungi.run(self.compose)
 
         execute_cmd.assert_called_once()
-        self.download_file.assert_called_once_with(
-            "http://localhost/pungi.conf#hash", AnyStringWith("/raw_config.conf"))
+        self.clone_repo.assert_called_once_with(
+            'http://localhost/test.git', AnyStringWith("/raw_config_repo"),
+            commit='hash')
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_raw_config_subpath(self, execute_cmd):
+        def mocked_execute_cmd(*args, **kwargs):
+            topdir = kwargs["cwd"]
+            with open(os.path.join(topdir, "pungi.conf"), "r") as f:
+                data = f.read()
+                self.assertTrue("fake pungi conf 2" in data)
+        execute_cmd.side_effect = mocked_execute_cmd
+
+        pungi_cfg = {
+            "url": "http://localhost/test.git",
+            "config_filename": "pungi.conf",
+            "commit": "hash",
+            "path": "another",
+        }
+        pungi = Pungi(pungi_cfg)
+        pungi.run(self.compose)
+
+        execute_cmd.assert_called_once()
+        self.clone_repo.assert_called_once_with(
+            'http://localhost/test.git', AnyStringWith("/raw_config_repo"),
+            commit='hash')
 
 
 class TestPungiLogs(ModelsBaseTest):
@@ -276,12 +321,14 @@ class TestPungiRunroot(unittest.TestCase):
         unique_path = self.patch_unique_path.start()
         unique_path.return_value = "odcs/unique_path"
 
-        def mocked_download_file(url, output_path):
-            with open(output_path, "w") as fd:
-                fd.write("fake pungi.conf")
-        self.patch_download_file = patch("odcs.server.pungi.download_file")
-        self.download_file = self.patch_download_file.start()
-        self.download_file.side_effect = mocked_download_file
+        def mocked_clone_repo(url, dest, branch='master', commit=None):
+            makedirs(dest)
+            with open(os.path.join(dest, "pungi.conf"), "w") as fd:
+                fd.write("pungi.conf")
+
+        self.patch_clone_repo = patch("odcs.server.pungi.clone_repo")
+        self.clone_repo = self.patch_clone_repo.start()
+        self.clone_repo.side_effect = mocked_clone_repo
 
         self.compose = MagicMock()
 
@@ -290,7 +337,7 @@ class TestPungiRunroot(unittest.TestCase):
         self.config_patcher.stop()
         self.patch_make_koji_session.stop()
         self.patch_unique_path.stop()
-        self.patch_download_file.stop()
+        self.patch_clone_repo.stop()
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         shutil.rmtree(conf_topdir)
@@ -324,7 +371,11 @@ class TestPungiRunroot(unittest.TestCase):
     def test_pungi_run_runroot_raw_config(self):
         self.koji_session.getTaskInfo.return_value = {"state": koji.TASK_STATES["CLOSED"]}
 
-        pungi_cfg = "http://localhost/pungi.conf#hash"
+        pungi_cfg = {
+            "url": "http://localhost/test.git",
+            "config_filename": "pungi.conf",
+            "commit": "hash",
+        }
         pungi = Pungi(pungi_cfg)
         pungi.run(self.compose)
 

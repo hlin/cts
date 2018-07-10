@@ -35,7 +35,7 @@ import odcs.server.utils
 from odcs.server import conf, log, db
 from odcs.server import comps
 from odcs.common.types import PungiSourceType, COMPOSE_RESULTS
-from odcs.server.utils import makedirs, download_file
+from odcs.server.utils import makedirs, clone_repo, copytree
 
 
 class PungiConfig(object):
@@ -180,20 +180,37 @@ class Pungi(object):
             self._write_cfg(os.path.join(topdir, "pungi.conf"), main_cfg)
             self._write_cfg(os.path.join(topdir, "variants.xml"), variants_cfg)
             self._write_cfg(os.path.join(topdir, "comps.xml"), comps_cfg)
-        else:
+        elif type(self.pungi_cfg) == dict:
             # In case the raw_config wrapper config is set, download the
             # original pungi.conf as "raw_config.conf" and use
             # the raw_config wrapper as real "pungi.conf".
             # The reason is that wrapper config can import raw_config
             # and override some variables.
             if conf.raw_config_wrapper_conf_path:
-                output_path = os.path.join(topdir, "raw_config.conf")
+                main_cfg_path = os.path.join(topdir, "raw_config.conf")
                 shutil.copy2(conf.raw_config_wrapper_conf_path,
                              os.path.join(topdir, "pungi.conf"))
             else:
-                output_path = os.path.join(topdir, "pungi.conf")
+                main_cfg_path = os.path.join(topdir, "pungi.conf")
 
-            download_file(self.pungi_cfg, output_path)
+            # Clone the git repo with raw_config pungi config files.
+            repo_dir = os.path.join(topdir, "raw_config_repo")
+            clone_repo(self.pungi_cfg["url"], repo_dir,
+                       commit=self.pungi_cfg["commit"])
+
+            # If the 'path' is defined, copy only the files form the 'path'
+            # to topdir.
+            if "path" in self.pungi_cfg:
+                repo_dir = os.path.join(repo_dir, self.pungi_cfg["path"])
+
+            copytree(repo_dir, topdir)
+
+            # Create the "pungi.conf" from config_filename.
+            config_path = os.path.join(topdir, self.pungi_cfg["config_filename"])
+            if config_path != main_cfg_path:
+                shutil.copy2(config_path, main_cfg_path)
+        else:
+            raise ValueError("Unexpected pungi_conf type: %r" % self.pungi_cfg)
 
         if conf.pungi_runroot_koji_conf_path:
             shutil.copy2(conf.pungi_runroot_koji_conf_path,

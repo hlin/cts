@@ -137,6 +137,15 @@ class BaseConfiguration(object):
     MESSAGING_TOPIC = ''
     INTERNAL_MESSAGING_TOPIC = ''
 
+    # Definitions of raw Pungi configs for "raw_config" source_type.
+    # RAW_CONFIG_URLS = {
+    #   "my_raw_config": {
+    #       "url": "http://example.com/test.git",
+    #       "config_filename": "pungi.conf",
+    #       "path": "some/git/subpath",  # optional
+    #   }
+    # }
+
 
 class DevConfiguration(BaseConfiguration):
     DEBUG = True

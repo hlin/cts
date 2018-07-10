@@ -516,8 +516,12 @@ def generate_pungi_compose(compose):
     else:
         if compose.source_type == PungiSourceType.RAW_CONFIG:
             source_name, source_hash = compose.source.split("#")
-            url_template = conf.raw_config_urls[source_name]
-            pungi_cfg = str(url_template % (source_hash))
+            url_data = conf.raw_config_urls[source_name]
+            # Do not override commit hash by hash from ODCS client if it is
+            # hardcoded in the config file.
+            if "commit" not in url_data:
+                url_data["commit"] = source_hash
+            pungi_cfg = url_data
         else:
             # Generate PungiConfig and run Pungi
             pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
