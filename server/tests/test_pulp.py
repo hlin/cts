@@ -33,6 +33,45 @@ from .utils import ModelsBaseTest
 @patch("odcs.server.pulp.Pulp._rest_post")
 class TestPulp(ModelsBaseTest):
 
+    def test_pulp_request(self, pulp_rest_post):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        db.session.commit()
+
+        pulp_rest_post.return_value = []
+
+        pulp = Pulp("http://localhost/", "user", "pass", c)
+        pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
+        pulp_rest_post.assert_called_once_with(
+            'repositories/search/',
+            {'criteria': {
+                'fields': ['notes.relative_url', 'notes.content_set',
+                           'notes.arch', 'notes.signatures'],
+                'filters': {
+                    'notes.include_in_download_service': 'True',
+                    'notes.content_set': {'$in': ['foo-1', 'foo-2']}
+                }
+            }})
+
+    def test_pulp_request_include_inpublished(self, pulp_rest_post):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        db.session.commit()
+
+        pulp_rest_post.return_value = []
+
+        pulp = Pulp("http://localhost/", "user", "pass", c)
+        pulp.get_repos_from_content_sets(["foo-1", "foo-2"], True)
+        pulp_rest_post.assert_called_once_with(
+            'repositories/search/',
+            {'criteria': {
+                'fields': ['notes.relative_url', 'notes.content_set',
+                           'notes.arch', 'notes.signatures'],
+                'filters': {
+                    'notes.content_set': {'$in': ['foo-1', 'foo-2']}
+                }
+            }})
+
     def test_generate_pulp_compose_arch_merge(self, pulp_rest_post):
         """
         Tests that multiple repos in single content_set are merged into

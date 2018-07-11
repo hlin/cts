@@ -128,7 +128,8 @@ class Pulp(object):
             "sigkeys": content_set_repos[0]["sigkeys"],
         }
 
-    def get_repos_from_content_sets(self, content_sets):
+    def get_repos_from_content_sets(self, content_sets,
+                                    include_unpublished_repos=False):
         """
         Returns dictionary with URLs of all shipped repositories defined by
         the content_sets.
@@ -151,12 +152,14 @@ class Pulp(object):
             'criteria': {
                 'filters': {
                     'notes.content_set': {'$in': content_sets},
-                    'notes.include_in_download_service': "True",
                 },
                 'fields': ['notes.relative_url', 'notes.content_set',
                            'notes.arch', 'notes.signatures'],
             }
         }
+
+        if not include_unpublished_repos:
+            query_data['criteria']['filters']['notes.include_in_download_service'] = 'True'
         repos = self._rest_post('repositories/search/', query_data)
 
         per_content_set_repos = {}

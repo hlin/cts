@@ -458,7 +458,9 @@ def generate_pulp_compose(compose):
                 compose=compose)
 
     repofile = ""
-    repos = pulp.get_repos_from_content_sets(content_sets)
+    repos = pulp.get_repos_from_content_sets(
+        content_sets,
+        compose.flags & COMPOSE_FLAGS["include_unpublished_pulp_repos"])
     if len(repos) != len(content_sets):
         err = "Failed to find all the content_sets %r in the Pulp, " \
             "found only %r" % (content_sets, repos.keys())

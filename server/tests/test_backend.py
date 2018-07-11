@@ -334,6 +334,44 @@ gpgcheck=0
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
+    def test_generate_pulp_compose_include_inpublished_pulp_repos_passed(
+            self, _write_repo_file, pulp_rest_post):
+        pulp_rest_post.return_value = [
+            {
+                "notes": {
+                    "relative_url": "content/1/x86_64/os",
+                    "content_set": "foo-1",
+                    "arch": "ppc64",
+                    "signatures": "SIG1,SIG2"
+                },
+            },
+        ]
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=COMPOSE_FLAGS["include_unpublished_pulp_repos"])
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.object(odcs.server.backend.conf, 'pulp_server_url',
+                          "https://localhost/"):
+            generate_compose(1)
+
+        expected_query = {
+            "criteria": {
+                "fields": ["notes.relative_url", "notes.content_set",
+                           "notes.arch", "notes.signatures"],
+                "filters": {
+                    "notes.content_set": {"$in": ["foo-1", "foo-2"]},
+                }
+            }
+        }
+        pulp_rest_post.assert_called_once_with('repositories/search/',
+                                               expected_query)
+
+    @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose_content_set_not_found(
             self, _write_repo_file, pulp_rest_post):
         pulp_rest_post.return_value = [
