@@ -33,7 +33,7 @@ from odcs.server.backend import ComposerThread, resolve_compose
 from odcs.server.pungi import PungiSourceType
 
 from .utils import ModelsBaseTest
-from .pdc import mock_pdc
+from .mbs import mock_mbs
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 
@@ -98,7 +98,7 @@ class TestComposerThread(ModelsBaseTest):
         db.session.add(c)
         db.session.commit()
 
-    @mock_pdc
+    @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
     def test_submit_build(self, wrf, execute_cmd):
@@ -116,7 +116,7 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         self.assertEqual(self.composer.currently_generating, [1])
 
-    @mock_pdc
+    @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_module_without_release(
@@ -133,7 +133,7 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.source, "testmodule:master:20170515074419")
 
-    @mock_pdc
+    @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_colon_separator(self, wrf, execute_cmd):
@@ -151,7 +151,7 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         self.assertEqual(self.composer.currently_generating, [1])
 
-    @mock_pdc
+    @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_module_without_release_colon_separator(
@@ -168,10 +168,10 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         self.assertEqual(c.source, "testmodule:master:20170515074419")
 
-    @mock_pdc
+    @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
-    def test_submit_build_module_without_release_not_in_pdc(
+    def test_submit_build_module_without_release_not_in_mbs(
             self, wrf, execute_cmd):
 
         self._add_module_compose("testmodule2-master")
@@ -182,7 +182,7 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(1, COMPOSE_STATES["failed"])
         self.assertEqual(c.state, COMPOSE_STATES["failed"])
 
-    @mock_pdc
+    @mock_mbs
     @patch("odcs.server.backend.validate_pungi_compose")
     def test_submit_build_reuse_repo(self, mock_validate_pungi_compose):
         self._add_repo_composes()
@@ -197,7 +197,7 @@ class TestComposerThread(ModelsBaseTest):
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
         mock_validate_pungi_compose.assert_called_once()
 
-    @mock_pdc
+    @mock_mbs
     def test_submit_build_reuse_module(self):
         self._add_module_compose()
         self._add_module_compose()
@@ -214,7 +214,7 @@ class TestComposerThread(ModelsBaseTest):
                          os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
         self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
 
-    @mock_pdc
+    @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_no_reuse_module(self, wrf, execute_cmd):

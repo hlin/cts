@@ -37,7 +37,7 @@ from odcs.server.cache import KojiTagCache
 from concurrent.futures import ThreadPoolExecutor
 import glob
 import odcs.server.utils
-import odcs.server.pdc
+import odcs.server.mbs
 import defusedxml.ElementTree
 
 
@@ -290,20 +290,19 @@ def resolve_compose(compose):
     elif compose.source_type == PungiSourceType.MODULE:
         # Resolve the latest release of modules which do not have the release
         # string defined in the compose.source.
-        pdc = odcs.server.pdc.PDC(conf)
+        mbs = odcs.server.mbs.MBS(conf)
         modules = compose.source.split(" ")
 
-        specified_modules = []
+        specified_mbs_modules = []
         for module in modules:
-            variant_dict = pdc.variant_dict_from_str(module)
-            specified_modules.append(pdc.get_latest_module(**variant_dict))
+            specified_mbs_modules += mbs.get_latest_modules(module)
 
         expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
-        new_modules = pdc.validate_module_list(specified_modules, expand=expand)
+        new_mbs_modules = mbs.validate_module_list(specified_mbs_modules, expand=expand)
 
         uids = sorted(
-            "{variant_id}:{variant_version}:{variant_release}".format(**m)
-            for m in new_modules)
+            "{name}:{stream}:{version}:{context}".format(**m)
+            for m in new_mbs_modules)
         compose.source = ' '.join(uids)
 
 

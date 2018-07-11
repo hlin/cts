@@ -45,9 +45,6 @@ class PungiConfig(object):
         self.release_version = release_version
         self.bootable = False
         self.sigkeys = sigkeys.split(" ") if sigkeys else []
-        self.pdc_url = conf.pdc_url
-        self.pdc_insecure = conf.pdc_insecure
-        self.pdc_develop = conf.pdc_develop
         self.source_type = source_type
         self.source = source
         self.koji_profile = conf.koji_profile

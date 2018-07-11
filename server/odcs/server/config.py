@@ -114,18 +114,6 @@ class Config(object):
             'type': int,
             'default': 30,
             'desc': 'Global network retry interval for read/write operations, in seconds.'},
-        'pdc_url': {
-            'type': str,
-            'default': '',
-            'desc': 'PDC URL.'},
-        'pdc_insecure': {
-            'type': bool,
-            'default': False,
-            'desc': 'Allow insecure connection to PDC.'},
-        'pdc_develop': {
-            'type': bool,
-            'default': False,
-            'desc': 'PDC Development mode, basically noauth.'},
         'arches': {
             'type': list,
             'default': ["x86_64"],
@@ -201,6 +189,10 @@ class Config(object):
             'type': int,
             'default': 72 * 60 * 60,
             'desc': 'Max number of seconds for which the compose is available.'},
+        'mbs_url': {
+            'type': str,
+            'default': "http://localhost/module-build-service",
+            'desc': 'URL to MSB API.'},
         'num_concurrent_pungi': {
             'type': int,
             'default': 2,
