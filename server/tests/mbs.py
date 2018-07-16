@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# Written by Owen Taylor <otaylor@redhat.com>
+# Written by Jan Kaluza <jkaluza@redhat.com>
 
 from functools import wraps
 import json
@@ -54,15 +54,15 @@ def make_module(name, stream, version, requires={}, mdversion=1):
         mmd.set_dependencies((deps, ))
 
     return {
-        'variant_id': name,
-        'variant_version': stream,
-        'variant_release': str(version),
-        'variant_uid': name + '-' + stream + '-' + str(version),
+        'name': name,
+        'stream': stream,
+        'version': str(version),
+        'context': '00000000',
         'modulemd': mmd.dumps()
     }
 
 
-TEST_PDC_MODULES_MMDv1 = [
+TEST_MBS_MODULES_MMDv1 = [
     # test_backend.py
     make_module('moduleA', 'f26', 20170809000000,
                 {'moduleB': 'f26'}),
@@ -85,7 +85,7 @@ TEST_PDC_MODULES_MMDv1 = [
 ]
 
 
-TEST_PDC_MODULES_MMDv2 = [
+TEST_MBS_MODULES_MMDv2 = [
     # test_backend.py
     make_module('moduleA', 'f26', 20170809000000,
                 {'moduleB': 'f26'}, 2),
@@ -108,7 +108,7 @@ TEST_PDC_MODULES_MMDv2 = [
 ]
 
 
-def mock_pdc(mdversion=2):
+def mock_mbs(mdversion=2):
     """
     Decorator that sets up a test environment so that calls to the PDC to look up
     modules are redirected to return results from the TEST_MODULES array above.
@@ -116,43 +116,38 @@ def mock_pdc(mdversion=2):
     def wrapper(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            def handle_unreleasedvariants(request):
+            def handle_module_builds(request):
                 query = parse_qs(urlparse(request.url).query)
-                variant_id = query['variant_id']
-                variant_version = query['variant_version']
-                variant_release = query.get('variant_release', None)
+                nsvc = query['nsvc'][0]
+                nsvc_parts = nsvc.split(":")
+                nsvc_keys = ["name", "stream", "version", "context"]
+                nsvc_dict = {}
+                for key, part in zip(nsvc_keys, nsvc_parts):
+                    nsvc_dict[key] = part
 
                 if mdversion == 1:
-                    modules = TEST_PDC_MODULES_MMDv1
+                    modules = TEST_MBS_MODULES_MMDv1
                 else:
-                    modules = TEST_PDC_MODULES_MMDv2
+                    modules = TEST_MBS_MODULES_MMDv2
 
-                body = []
+                body = {"items": [], "meta": {"total": 0}}
                 for module in modules:
-                    if module['variant_id'] not in variant_id:
+                    skip = False
+                    for key in nsvc_keys:
+                        if key in nsvc_dict and nsvc_dict[key] != module[key]:
+                            skip = True
+                            break
+                    if skip:
                         continue
-                    if module['variant_version'] not in variant_version:
-                        continue
-                    if variant_release is not None:
-                        if module['variant_release'] not in variant_release:
-                            continue
+                    body["items"].append(module)
 
-                    fields = query.get('fields', None)
-                    if fields is not None:
-                        return_module = {}
-                        for field in fields:
-                            return_module[field] = module[field]
-                    else:
-                        return_module = module
-
-                    body.append(return_module)
-
+                body["meta"]["total"] = len(body["items"])
                 return (200, {}, json.dumps(body))
 
             responses.add_callback(
-                responses.GET, conf.pdc_url + '/unreleasedvariants/',
+                responses.GET, conf.mbs_url + '/1/module-builds/',
                 content_type='application/json',
-                callback=handle_unreleasedvariants)
+                callback=handle_module_builds)
 
             return f(*args, **kwargs)
 

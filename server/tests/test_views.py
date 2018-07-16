@@ -243,7 +243,7 @@ class TestViews(ViewBaseTest):
                                          hour=0, minute=0, second=0)
         with freeze_time(self.initial_datetime):
             self.c1 = Compose.create(
-                db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+                db.session, "unknown", PungiSourceType.MODULE, "testmodule:master",
                 COMPOSE_RESULTS["repository"], 60)
             self.c2 = Compose.create(
                 db.session, "me", PungiSourceType.KOJI_TAG, "f26",
@@ -279,13 +279,13 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}}))
             data = json.loads(rv.get_data(as_text=True))
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait',
                          'state_reason': None,
-                         'source': u'testmodule-master',
+                         'source': u'testmodule:master',
                          'owner': u'dev',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
@@ -444,7 +444,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(data['id'], 3)
         self.assertEqual(data['state_name'], 'wait')
-        self.assertEqual(data['source'], 'testmodule-master')
+        self.assertEqual(data['source'], 'testmodule:master')
         self.assertEqual(data['time_removed'], None)
 
         c = db.session.query(Compose).filter(Compose.id == 3).one()
@@ -465,7 +465,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(data['id'], 3)
         self.assertEqual(data['state_name'], 'wait')
-        self.assertEqual(data['source'], 'testmodule-master')
+        self.assertEqual(data['source'], 'testmodule:master')
         self.assertEqual(data['time_removed'], None)
 
         c = db.session.query(Compose).filter(Compose.id == 3).one()
@@ -520,6 +520,20 @@ class TestViews(ViewBaseTest):
         self.assertEqual(
             data['message'], 'Unknown source type "unknown"')
 
+    def test_submit_module_build_wrong_source(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule:master x'}}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(
+            data["message"], 'Module definition must be in "n:s", "n:s:v" or '
+            '"n:s:v:c" format, but got x')
+
     def test_submit_build_per_user_source_type_allowed(self):
         with self.test_request_context(user='dev2'):
             flask.g.oidc_scopes = [
@@ -527,7 +541,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': '/path'}}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}}))
             data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["state_name"], "wait")
@@ -554,7 +568,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': '/path'}}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}}))
             data = json.loads(rv.get_data(as_text=True))
 
         self.assertEqual(data["state_name"], "wait")
@@ -578,7 +592,7 @@ class TestViews(ViewBaseTest):
         resp = self.client.get('/api/1/composes/1')
         data = json.loads(resp.get_data(as_text=True))
         self.assertEqual(data['id'], 1)
-        self.assertEqual(data['source'], "testmodule-master")
+        self.assertEqual(data['source'], "testmodule:master")
 
     def test_query_composes(self):
         resp = self.client.get('/api/1/composes/')
@@ -641,7 +655,7 @@ class TestViews(ViewBaseTest):
     def test_delete_compose(self):
         with freeze_time(self.initial_datetime) as frozen_datetime:
             c3 = Compose.create(
-                db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+                db.session, "unknown", PungiSourceType.MODULE, "testmodule:master",
                 COMPOSE_RESULTS["repository"], 60)
             c3.state = COMPOSE_STATES['done']
             db.session.add(c3)
@@ -675,7 +689,7 @@ class TestViews(ViewBaseTest):
         for state in COMPOSE_STATES.keys():
             if state not in ['done', 'failed']:
                 new_c = Compose.create(
-                    db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
+                    db.session, "unknown", PungiSourceType.MODULE, "testmodule:master",
                     COMPOSE_RESULTS["repository"], 60)
                 new_c.state = COMPOSE_STATES[state]
                 db.session.add(new_c)
@@ -731,7 +745,7 @@ class TestViews(ViewBaseTest):
             ]
 
             resp = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}}))
             data = json.loads(resp.get_data(as_text=True))
 
         self.assertEqual(resp.status, '403 FORBIDDEN')
@@ -746,17 +760,17 @@ class TestViews(ViewBaseTest):
             ]
 
             resp = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule-rawhide'}}))
+                {'source': {'type': 'module', 'source': 'testmodule:rawhide'}}))
         db.session.expire_all()
 
         self.assertEqual(resp.status, '200 OK')
         self.assertEqual(resp.status_code, 200)
-        c = db.session.query(Compose).filter(Compose.source == 'testmodule-rawhide').one()
+        c = db.session.query(Compose).filter(Compose.source == 'testmodule:rawhide').one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
     def test_can_delete_compose_with_user_in_configured_groups(self):
         c3 = Compose.create(
-            db.session, "unknown", PungiSourceType.MODULE, "testmodule-testbranch",
+            db.session, "unknown", PungiSourceType.MODULE, "testmodule:testbranch",
             COMPOSE_RESULTS["repository"], 60)
         c3.state = COMPOSE_STATES['done']
         db.session.add(c3)
@@ -790,7 +804,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 12}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}, 'seconds-to-live': 60 * 60 * 12}))
             data = json.loads(rv.get_data(as_text=True))
 
         time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
@@ -812,7 +826,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule-master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
             data = json.loads(rv.get_data(as_text=True))
 
         time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
@@ -833,7 +847,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}}))
             data = json.loads(rv.get_data(as_text=True))
 
         time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
@@ -847,13 +861,13 @@ class TestViews(ViewBaseTest):
 
         with self.test_request_context():
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule-master'}}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}}))
             data = json.loads(rv.get_data(as_text=True))
 
         expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
                          'state_name': 'wait',
                          'state_reason': None,
-                         'source': u'testmodule-master',
+                         'source': u'testmodule:master',
                          'owner': u'unknown',
                          'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
                          'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
