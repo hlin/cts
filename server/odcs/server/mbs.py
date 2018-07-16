@@ -36,7 +36,6 @@ class ModuleLookupError(Exception):
 
 class MBS(object):
     def __init__(self, config):
-        # pdc_url, pdc_develop and pdc_insecure should be avaiable in config
         self.mbs_url = config.mbs_url.rstrip("/")
 
     @odcs.server.utils.retry(wait_on=(requests.ConnectionError, ), logger=log)
@@ -62,7 +61,7 @@ class MBS(object):
         }
         modules = self.get_modules(**params)
 
-        if modules["meta"]["total"] == 0:
+        if not modules["meta"]["total"]:
             raise ModuleLookupError(
                 "Failed to find module %s in the MBS." % nsvc)
 
