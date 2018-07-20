@@ -215,7 +215,8 @@ class ODCSAPI(MethodView):
 
         source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
 
-        source = source_data["source"].split(" ")
+        # Use list(set()) here to remove duplicate sources.
+        source = list(set(source_data["source"].split(" ")))
         if not source:
             err = "No source provided for %s" % source_type
             log.error(err)

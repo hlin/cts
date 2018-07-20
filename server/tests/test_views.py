@@ -429,6 +429,23 @@ class TestViews(ViewBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
 
+    def test_submit_build_duplicate_sources(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'foo:x foo:x foo:y'}}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['source'].count("foo:x"), 1)
+        self.assertEqual(data['source'].count("foo:y"), 1)
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
     def test_submit_build_resurrection_removed(self):
         self.c1.state = COMPOSE_STATES["removed"]
         self.c1.reused_id = 1
