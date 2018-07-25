@@ -64,7 +64,7 @@ BuildRequires:    python-flask
 BuildRequires:    systemd-python
 BuildRequires:    python-defusedxml
 BuildRequires:    koji
-BuildRequire:     python-flufl-lock
+BuildRequires:    python-flufl-lock
 %else
 BuildRequires:    python2-setuptools
 BuildRequires:    python2-flask-sqlalchemy
