@@ -24,7 +24,7 @@ from mock import patch
 
 from odcs.server.pulp import Pulp
 from odcs.server.pungi import PungiSourceType
-from odcs.server import db
+from odcs.server import db, conf
 from odcs.server.models import Compose
 
 from .utils import ModelsBaseTest
@@ -127,7 +127,11 @@ class TestPulp(ModelsBaseTest):
 
     @patch("odcs.server.mergerepo.execute_cmd")
     @patch("odcs.server.mergerepo.makedirs")
-    def test_pulp_compose_merge_repos(self, makedirs, execute_cmd, pulp_rest_post):
+    @patch("odcs.server.mergerepo.Lock")
+    @patch("odcs.server.mergerepo.MergeRepo._download_repodata")
+    def test_pulp_compose_merge_repos(
+            self, download_repodata, lock, makedirs, execute_cmd,
+            pulp_rest_post):
         c = Compose.create(
             db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
         db.session.commit()
@@ -175,12 +179,23 @@ class TestPulp(ModelsBaseTest):
         makedirs.assert_any_call(c.result_repo_dir + "/x86_64")
         makedirs.assert_any_call(c.result_repo_dir + "/ppc64le")
 
+        repo_prefix = "file://%s/pulp_repo_cache/" % conf.target_dir
         execute_cmd.assert_any_call(
-            ['/usr/bin/mergerepo_c', '-v', '-o',
-             c.result_repo_dir + '/ppc64le',
-             '-r', 'http://localhost/content/1.0/ppc64le/os'])
-        execute_cmd.assert_any_call(
-            ['/usr/bin/mergerepo_c', '-v', '-o',
+            ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
              c.result_repo_dir + '/x86_64',
-             '-r', 'http://localhost/content/1.0/x86_64/os',
-             '-r', 'http://localhost/content/1.1/x86_64/os'])
+             '-r', repo_prefix + "http:__localhost_content_1.0_x86_64_os",
+             '-r', repo_prefix + "http:__localhost_content_1.1_x86_64_os"])
+        execute_cmd.assert_any_call(
+            ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
+             c.result_repo_dir + '/ppc64le',
+             '-r', repo_prefix + "http:__localhost_content_1.0_ppc64le_os"])
+
+        download_repodata.assert_any_call(
+            repo_prefix[len("file://"):] + "http:__localhost_content_1.0_x86_64_os",
+            "http://localhost/content/1.0/x86_64/os")
+        download_repodata.assert_any_call(
+            repo_prefix[len("file://"):] + "http:__localhost_content_1.1_x86_64_os",
+            "http://localhost/content/1.1/x86_64/os")
+        download_repodata.assert_any_call(
+            repo_prefix[len("file://"):] + "http:__localhost_content_1.0_ppc64le_os",
+            "http://localhost/content/1.0/ppc64le/os")

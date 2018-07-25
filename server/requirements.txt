@@ -1,3 +1,4 @@
+flufl.lock
 fedmsg
 moksha.hub
 funcsigs  # Python2 only

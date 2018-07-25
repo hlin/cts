@@ -316,9 +316,9 @@ class Compose(ODCSBase):
             Compose.time_to_expire < now).all()
 
     def __repr__(self):
-        return "<Compose %s, type %r, state %s, owner %s>" % (
-            self.source, self.source_type,
-            INVERSE_COMPOSE_STATES[self.state], self.owner)
+        return "<Compose %r, type %r, state %s>" % (
+            self.id, self.source_type,
+            INVERSE_COMPOSE_STATES[self.state])
 
     def get_reused_compose(self):
         """Get compose this compose reuses"""
