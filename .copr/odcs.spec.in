@@ -64,6 +64,7 @@ BuildRequires:    python-flask
 BuildRequires:    systemd-python
 BuildRequires:    python-defusedxml
 BuildRequires:    koji
+BuildRequire:     python-flufl-lock
 %else
 BuildRequires:    python2-setuptools
 BuildRequires:    python2-flask-sqlalchemy
@@ -77,6 +78,7 @@ BuildRequires:    python2-flask
 BuildRequires:    python2-systemd
 BuildRequires:    python2-defusedxml
 BuildRequires:    python-koji
+BuildRequires:    python2-flufl-lock
 
 %if (0%{?fedora} && 0%{?fedora} <= 25) || (0%{?rhel} && 0%{?rhel} <= 7)
 BuildRequires:    pyOpenSSL
@@ -123,6 +125,7 @@ Requires:    python-sqlalchemy
 Requires:    python-futures
 Requires:    python-flask
 Requires:    python-defusedxml
+Requires:    python-flufl-lock
 Requires:    koji
 
 Requires:    systemd-python
@@ -135,6 +138,7 @@ Requires:    python2-six
 Requires:    python2-futures
 Requires:    python2-flask
 Requires:    python2-defusedxml
+Requires:    python2-flufl-lock
 Requires:    python-koji
 
 
