@@ -179,23 +179,27 @@ class TestPulp(ModelsBaseTest):
         makedirs.assert_any_call(c.result_repo_dir + "/x86_64")
         makedirs.assert_any_call(c.result_repo_dir + "/ppc64le")
 
-        repo_prefix = "file://%s/pulp_repo_cache/" % conf.target_dir
+        repo_prefix = "%s/pulp_repo_cache/content/" % conf.target_dir
         execute_cmd.assert_any_call(
             ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
              c.result_repo_dir + '/x86_64',
-             '-r', repo_prefix + "http:__localhost_content_1.0_x86_64_os",
-             '-r', repo_prefix + "http:__localhost_content_1.1_x86_64_os"])
+             '--repo-prefix', '%s/pulp_repo_cache' % conf.target_dir,
+             '--repo-prefix-url', 'http://localhost/',
+             '-r', repo_prefix + "1.0/x86_64/os",
+             '-r', repo_prefix + "1.1/x86_64/os"])
         execute_cmd.assert_any_call(
             ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
              c.result_repo_dir + '/ppc64le',
-             '-r', repo_prefix + "http:__localhost_content_1.0_ppc64le_os"])
+             '--repo-prefix', '%s/pulp_repo_cache' % conf.target_dir,
+             '--repo-prefix-url', 'http://localhost/',
+             '-r', repo_prefix + "1.0/ppc64le/os"])
 
         download_repodata.assert_any_call(
-            repo_prefix[len("file://"):] + "http:__localhost_content_1.0_x86_64_os",
+            repo_prefix + "1.0/x86_64/os",
             "http://localhost/content/1.0/x86_64/os")
         download_repodata.assert_any_call(
-            repo_prefix[len("file://"):] + "http:__localhost_content_1.1_x86_64_os",
+            repo_prefix + "1.1/x86_64/os",
             "http://localhost/content/1.1/x86_64/os")
         download_repodata.assert_any_call(
-            repo_prefix[len("file://"):] + "http:__localhost_content_1.0_ppc64le_os",
+            repo_prefix + "1.0/ppc64le/os",
             "http://localhost/content/1.0/ppc64le/os")

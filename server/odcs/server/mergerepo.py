@@ -26,6 +26,7 @@ import requests
 from xml.etree import ElementTree
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from six.moves.urllib.parse import urlparse
 
 from flufl.lock import Lock
 
@@ -53,7 +54,7 @@ class MergeRepo(object):
 
         filename = os.path.basename(url)
         makedirs(os.path.join(path, "repodata"))
-        with open(os.path.join(path, "repodata", filename), "w") as f:
+        with open(os.path.join(path, "repodata", filename), "wb") as f:
             f.write(r.content)
         return r.content
 
@@ -122,10 +123,14 @@ class MergeRepo(object):
         # Contains paths to per pulp repo pulp_repo_cache sub-directories.
         repo_paths = []
 
+        parsed_url = urlparse(repos[0])
+        repo_prefix = "%s://%s" % (parsed_url.scheme, parsed_url.hostname)
+        repo_prefix = repo_prefix.strip("/") + "/"
+
         # Generate the pulp_repo_cache structure and locks for each repo.
         for repo in repos:
             repo_path = os.path.join(
-                conf.target_dir, "pulp_repo_cache", repo.replace("/", "_"))
+                conf.target_dir, "pulp_repo_cache", repo.replace(repo_prefix, ""))
             repo_paths.append(repo_path)
             makedirs(repo_path)
 
@@ -149,9 +154,11 @@ class MergeRepo(object):
 
             args = [mergerepo_exe, "--method", "nvr", "-o",
                     result_repo_dir]
+            args += ["--repo-prefix", os.path.join(conf.target_dir, "pulp_repo_cache")]
+            args += ["--repo-prefix-url", repo_prefix]
             for repo in repo_paths:
                 args.append("-r")
-                args.append("file://" + repo)
+                args.append(repo)
 
             execute_cmd(args)
         finally:
