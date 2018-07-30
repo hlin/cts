@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.9
+  - Release date: 2018-07-30
+  - Cache Pulp repos and fix the mergerepo_c call used in some corner cases
+    when repositories for multiple architectures are in single Pulp
+    content set.
+
+## 0.2.8
+  - Release date: 2018-07-17
+  - ODCS now uses MBS instead of PDC to lookup modules. All "PDC_*" config
+    options have been removed and new MBS_URL config option has been added.
+  - Only modules in n:s, n:s:v or n:s:v:c format are allowed as input.
+  - Raw config is now downloaded using the "git clone".
+  - The RAW_CONFIG syntax has changed, see the default config for more info.
+  - Add 'include_unpublished_pulp_repos' compose flag for "pulp" source type.
+
 ## 0.2.7
   - Release date: 2018-06-20
   - OIDC: service tokens are treated as having "no groups".
