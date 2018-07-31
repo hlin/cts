@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.10:
+  - Release date: 2018-07-31
+  - Fix the mergerepo_c call once again to use the right argument names
+    after mergerepo_c upstream changed the arguments before the official
+    mergerepo_c release.
+
 ## 0.2.9
   - Release date: 2018-07-30
   - Cache Pulp repos and fix the mergerepo_c call used in some corner cases
