@@ -154,8 +154,8 @@ class MergeRepo(object):
 
             args = [mergerepo_exe, "--method", "nvr", "-o",
                     result_repo_dir]
-            args += ["--repo-prefix", os.path.join(conf.target_dir, "pulp_repo_cache")]
-            args += ["--repo-prefix-url", repo_prefix]
+            args += ["--repo-prefix-search", os.path.join(conf.target_dir, "pulp_repo_cache")]
+            args += ["--repo-prefix-replace", repo_prefix]
             for repo in repo_paths:
                 args.append("-r")
                 args.append(repo)

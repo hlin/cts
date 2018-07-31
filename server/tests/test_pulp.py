@@ -183,15 +183,15 @@ class TestPulp(ModelsBaseTest):
         execute_cmd.assert_any_call(
             ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
              c.result_repo_dir + '/x86_64',
-             '--repo-prefix', '%s/pulp_repo_cache' % conf.target_dir,
-             '--repo-prefix-url', 'http://localhost/',
+             '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
+             '--repo-prefix-replace', 'http://localhost/',
              '-r', repo_prefix + "1.0/x86_64/os",
              '-r', repo_prefix + "1.1/x86_64/os"])
         execute_cmd.assert_any_call(
             ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
              c.result_repo_dir + '/ppc64le',
-             '--repo-prefix', '%s/pulp_repo_cache' % conf.target_dir,
-             '--repo-prefix-url', 'http://localhost/',
+             '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
+             '--repo-prefix-replace', 'http://localhost/',
              '-r', repo_prefix + "1.0/ppc64le/os"])
 
         download_repodata.assert_any_call(
