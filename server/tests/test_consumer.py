@@ -106,7 +106,10 @@ class ConsumerTest(ConsumerBaseTest):
             generate_new_compose.assert_not_called()
 
     @mock.patch("odcs.server.backend.RemoveExpiredComposesThread.do_work")
-    def test_consumer_processing_internal_cleaup(self, remove_expired):
+    @mock.patch("odcs.server.backend.ComposerThread.pickup_waiting_composes")
+    def test_consumer_processing_internal_cleaup(
+            self, pickup_waiting_composes, remove_expired):
         msg = self._internal_clean_composes_msg()
         self.consumer.consume(msg)
         remove_expired.assert_called_once()
+        pickup_waiting_composes.assert_called_once()
