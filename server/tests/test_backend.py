@@ -463,6 +463,9 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.patch_update_cache = patch("odcs.server.backend.KojiTagCache.update_cache")
         self.update_cache = self.patch_update_cache.start()
 
+        self.patch_validate_pungi_compose = patch("odcs.server.backend.validate_pungi_compose")
+        self.validate_pungi_compose = self.patch_validate_pungi_compose.start()
+
         # Mocked method to store Pungi.pungi_cfg to self.pungi_cfg, so we can
         # run asserts against it.
         self.pungi_config = None
@@ -482,6 +485,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.patch_pungi_run.stop()
         self.patch_reuse_cached.stop()
         self.patch_update_cache.stop()
+        self.validate_pungi_compose.stop()
         self.patch_is_cached.stop()
         self.pungi_config = None
 
@@ -500,6 +504,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.is_cached.assert_called_once_with(c)
         self.reuse_cached.assert_called_once_with(c)
         self.update_cache.assert_called_once_with(c)
+        self.validate_pungi_compose.assert_called_once_with(c)
 
         self.assertEqual(self.pungi_config.gather_method, "deps")
         self.assertEqual(self.pungi_config.pkgset_koji_inherit, True)
