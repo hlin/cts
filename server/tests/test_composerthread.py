@@ -22,8 +22,9 @@
 
 import os
 import time
+from datetime import datetime, timedelta
 
-from mock import patch, MagicMock
+from mock import patch, MagicMock, call
 
 import odcs.server
 from odcs.server import db, app
@@ -354,3 +355,60 @@ class TestComposerThreadLostComposes(ModelsBaseTest):
         self.composer.currently_generating += [done.id, generating.id]
         self.composer.do_work()
         self.assertEqual(self.composer.currently_generating, [generating.id])
+
+
+class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
+    maxDiff = None
+
+    def setUp(self):
+        self.client = app.test_client()
+        super(TestComposerThreadStuckWaitComposes, self).setUp()
+        self.composer = ComposerThread()
+
+        self.patch_generate_new_compose = patch(
+            "odcs.server.backend.ComposerThread.generate_new_compose")
+        self.generate_new_compose = self.patch_generate_new_compose.start()
+
+    def tearDown(self):
+        super(TestComposerThreadStuckWaitComposes, self).tearDown()
+        self.patch_generate_new_compose.stop()
+
+    def _add_test_compose(self, state, time_submitted=None):
+        compose = Compose.create(
+            db.session, "unknown", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, "", 0)
+        compose.state = state
+        if time_submitted:
+            compose.time_submitted = time_submitted
+        db.session.add(compose)
+        db.session.commit()
+        return compose
+
+    def test_pickup_waiting_composes_generating_state(self):
+        time_submitted = datetime.utcnow() - timedelta(minutes=5)
+        composes = []
+        for i in range(10):
+            composes.append(self._add_test_compose(
+                COMPOSE_STATES["wait"], time_submitted=time_submitted))
+        composes = sorted(composes, key=lambda c: c.id)
+        self.composer.pickup_waiting_composes()
+        self.generate_new_compose.assert_has_calls([
+            call(composes[0]), call(composes[1]), call(composes[2]),
+            call(composes[3])])
+
+    def test_pickup_waiting_composes_generating_state_not_old_enough(self):
+        composes = []
+        for i in range(10):
+            composes.append(self._add_test_compose(
+                COMPOSE_STATES["wait"]))
+        composes = sorted(composes, key=lambda c: c.id)
+        self.composer.pickup_waiting_composes()
+        self.generate_new_compose.assert_not_called()
+
+    def test_generate_lost_composes_generating_state(self):
+        composes = []
+        for i in range(10):
+            composes.append(self._add_test_compose(COMPOSE_STATES["generating"]))
+        composes = sorted(composes, key=lambda c: c.id)
+        self.composer.pickup_waiting_composes()
+        self.generate_new_compose.assert_not_called()

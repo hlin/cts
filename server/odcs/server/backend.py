@@ -28,7 +28,7 @@ import shutil
 import six
 import productmd.compose
 import productmd.common
-from datetime import datetime
+from datetime import datetime, timedelta
 from odcs.server import log, conf, app, db
 from odcs.server.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
 from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType, PungiLogs
@@ -690,6 +690,32 @@ class ComposerThread(BackendThread):
 
         for compose in composes:
             log.info("%r: Going to start compose generation.", compose)
+            self.generate_new_compose(compose)
+
+    def pickup_waiting_composes(self):
+        """
+        Gets all the composes in "wait" state and starts generating them.
+
+        This method exists to pro-actively generate "wait" composes in case
+        the UMB message from frontend to backend is lost from whatever reason.
+        """
+        # Composes transition from 'wait' to 'generating' quite fast.
+        # The frontend changes the state of compose to 'wait', sends a message
+        # to the bus and once some backend receives it, it moves it to
+        # 'generating'. This should not take more than 3 minutes, so that's
+        # the limit we will use to find out the stuck composes.
+        limit = datetime.utcnow() - timedelta(minutes=3)
+        # We don't want to be to greedy here, because there are other backends
+        # which can handle the lost composes too later, so just take few of
+        # them in each run in each backend to balance the load.
+        composes = Compose.query.filter(
+            Compose.state == COMPOSE_STATES["wait"],
+            Compose.time_submitted < limit).order_by(
+                Compose.id).limit(4).all()
+
+        for compose in composes:
+            log.info("%r: Going to regenerate compose stuck in 'wait' "
+                     "state.", compose)
             self.generate_new_compose(compose)
 
     def generate_lost_composes(self):
