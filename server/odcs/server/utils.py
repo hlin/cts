@@ -142,21 +142,3 @@ def copytree(src, dst, symlinks=False, ignore=None):
             shutil.copytree(s, d, symlinks, ignore)
         else:
             shutil.copy2(s, d)
-
-
-def hardlink(dirs, verbose=False):
-    """Run hardlink to consolidates duplicate files in dirs"""
-    hardlink_exe = find_executable('hardlink')
-    if not hardlink_exe:
-        raise RuntimeError("hardlink is not available on system")
-
-    args = [hardlink_exe]
-    if verbose:
-        args.append('-vv')
-
-    if isinstance(dirs, list):
-        args.extend(dirs)
-    else:
-        args.append(dirs)
-
-    execute_cmd(args)

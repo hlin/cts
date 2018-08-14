@@ -634,14 +634,6 @@ def generate_compose(compose_id, lost_compose=False):
 
         koji_tag_cache = KojiTagCache()
         koji_tag_cache.cleanup_reused(compose)
-        # consolidate duplicate files in compose target dir
-        if compose and compose.reused_id is None and compose.source_type != PungiSourceType.PULP:
-            try:
-                log.info("Running hardlink to consolidate duplicate files in compose target dir")
-                odcs.server.utils.hardlink(conf.target_dir)
-            except Exception as ex:
-                # not fail, just show warning message
-                log.warn("Error while running hardlink on system: %s" % str(ex), exc_info=True)
 
 
 class ComposerThread(BackendThread):
