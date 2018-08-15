@@ -27,7 +27,6 @@ import signal
 import time
 import subprocess
 import shutil
-from distutils.spawn import find_executable
 from threading import Timer
 
 from odcs.server import conf, log

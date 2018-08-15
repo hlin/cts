@@ -405,6 +405,16 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
         self.composer.pickup_waiting_composes()
         self.generate_new_compose.assert_not_called()
 
+    def test_pickup_waiting_composes_generating_state_old(self):
+        time_submitted = datetime.utcnow() - timedelta(days=5)
+        composes = []
+        for i in range(10):
+            composes.append(self._add_test_compose(
+                COMPOSE_STATES["wait"], time_submitted=time_submitted))
+        composes = sorted(composes, key=lambda c: c.id)
+        self.composer.pickup_waiting_composes()
+        self.generate_new_compose.assert_not_called()
+
     def test_generate_lost_composes_generating_state(self):
         composes = []
         for i in range(10):

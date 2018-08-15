@@ -696,19 +696,30 @@ class ComposerThread(BackendThread):
         # to the bus and once some backend receives it, it moves it to
         # 'generating'. This should not take more than 3 minutes, so that's
         # the limit we will use to find out the stuck composes.
-        limit = datetime.utcnow() - timedelta(minutes=3)
+        # On the other hand, we don't want to regenerate composes older than
+        # 3 days, because nobody is probably waiting for them. Just mark
+        # them as "failed".
+        now = datetime.utcnow()
+        from_time = now - timedelta(days=3)
+        to_time = now - timedelta(minutes=3)
         # We don't want to be to greedy here, because there are other backends
         # which can handle the lost composes too later, so just take few of
         # them in each run in each backend to balance the load.
         composes = Compose.query.filter(
             Compose.state == COMPOSE_STATES["wait"],
-            Compose.time_submitted < limit).order_by(
+            Compose.time_submitted < to_time).order_by(
                 Compose.id).limit(4).all()
 
         for compose in composes:
-            log.info("%r: Going to regenerate compose stuck in 'wait' "
-                     "state.", compose)
-            self.generate_new_compose(compose)
+            if compose.time_submitted < from_time:
+                compose.state = COMPOSE_STATES["failed"]
+                compose.state_reason = "Compose stuck in 'wait' state for longer than 3 days."
+                db.session.add(compose)
+            else:
+                log.info("%r: Going to regenerate compose stuck in 'wait' "
+                         "state.", compose)
+                self.generate_new_compose(compose)
+        db.session.commit()
 
     def generate_lost_composes(self):
         """

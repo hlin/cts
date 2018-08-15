@@ -27,11 +27,12 @@ from xml.etree import ElementTree
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
+from distutils.spawn import find_executable
 
 from flufl.lock import Lock
 
 from odcs.server import log, conf
-from odcs.server.utils import makedirs, find_executable, execute_cmd
+from odcs.server.utils import makedirs, execute_cmd
 
 
 class MergeRepo(object):
