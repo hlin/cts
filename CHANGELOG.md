@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.11:
+  - Release date: 2018-08-16
+  - Regenerate the composes stuck in the 'wait' state automatically.
+  - Fix the caching code so parts of the older composes are reused by newer
+    Pungi versions.
+  - Validate the Pungi compose before marking it as "complete", so it cannot
+    go from "complete" to "failed" state in case validation fails.
+  - Keep the original state_reason when removing the compose.
+
 ## 0.2.10:
   - Release date: 2018-07-31
   - Fix the mergerepo_c call once again to use the right argument names
