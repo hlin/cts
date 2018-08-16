@@ -95,7 +95,7 @@ class TestKojiTagCache(ModelsBaseTest):
         self.cache.reuse_cached(c)
         copytree.assert_called_once_with(
             os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64"),
-            os.path.join(conf.target_dir, "koji_tag_cache/odcs-1-1-cached.n.0"),
+            os.path.join(conf.target_dir, "koji_tag_cache/odcs-1-1-19700101.n.0"),
             symlinks=True)
 
     @patch("shutil.copytree")

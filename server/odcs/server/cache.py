@@ -103,7 +103,7 @@ class KojiTagCache(object):
             log.info("Reusing repodata from old cached compose %s",
                      cached_compose_dir)
 
-            compose_dir_name = "odcs-%d-1-cached.n.0" % compose.id
+            compose_dir_name = "odcs-%d-1-19700101.n.0" % compose.id
             compose_dir = os.path.join(self.cache_dir, compose_dir_name)
 
             if os.path.exists(compose_dir):
@@ -115,7 +115,7 @@ class KojiTagCache(object):
         Cleans-up the configuration done by `reuse_cached`. Should be called
         once the image depending on cached image is built.
         """
-        compose_dir_name = "odcs-%d-1-cached.n.0" % compose.id
+        compose_dir_name = "odcs-%d-1-19700101.n.0" % compose.id
         compose_dir = os.path.join(self.cache_dir, compose_dir_name)
 
         if os.path.exists(compose_dir):
