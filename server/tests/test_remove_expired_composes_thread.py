@@ -80,7 +80,23 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         db.session.expunge_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["removed"])
-        self.assertEqual(c.state_reason, 'Compose is expired')
+        self.assertEqual(c.state_reason, 'Compose is expired.')
+
+    def test_a_compose_which_state_is_done_is_removed_keep_state_reason(self):
+        """
+        Test that we do remove a compose in done state.
+        """
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        c.time_to_expire = datetime.utcnow() - timedelta(seconds=120)
+        c.state = COMPOSE_STATES["done"]
+        c.state_reason = "Generated successfully."
+        db.session.add(c)
+        db.session.commit()
+        self.thread.do_work()
+        db.session.expunge_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["removed"])
+        self.assertEqual(c.state_reason, 'Generated successfully.\nCompose is expired.')
 
     def test_does_not_remove_a_compose_which_is_not_expired(self):
         """

@@ -172,9 +172,13 @@ class RemoveExpiredComposesThread(BackendThread):
             log.info("%r: Removing compose", compose)
             compose.state = COMPOSE_STATES["removed"]
             if compose.removed_by:
-                compose.state_reason = "Removed by {}".format(compose.removed_by)
+                state_reason = "Removed by {}.".format(compose.removed_by)
             else:
-                compose.state_reason = "Compose is expired"
+                state_reason = "Compose is expired."
+            if compose.state_reason:
+                compose.state_reason += "\n%s" % state_reason
+            else:
+                compose.state_reason = state_reason
             compose.time_removed = datetime.utcnow()
             db.session.commit()
             if not compose.reused_id:
