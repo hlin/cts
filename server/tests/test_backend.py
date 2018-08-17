@@ -26,7 +26,7 @@ import shutil
 from mock import patch, MagicMock
 from productmd.rpms import Rpms
 
-from odcs.server import db
+from odcs.server import conf, db
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_FLAGS, COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.mbs import ModuleLookupError
@@ -544,12 +544,20 @@ class TestGeneratePungiCompose(ModelsBaseTest):
             COMPOSE_RESULTS["repository"], 60)
         c.id = 1
 
-        generate_pungi_compose(c)
-        self.assertEqual(
-            self.pungi_config,
-            {'url': 'git://localhost/test.git',
-             'commit': 'hash',
-             'config_filename': 'pungi.conf'})
+        fake_raw_config_urls = {
+            'pungi_cfg': {
+                'url': 'git://localhost/test.git',
+                'config_filename': 'pungi.conf'
+            }
+        }
+        with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+            generate_pungi_compose(c)
+
+        self.assertEqual(self.pungi_config.pungi_cfg, {
+            'url': 'git://localhost/test.git',
+            'config_filename': 'pungi.conf',
+            'commit': 'hash'
+        })
 
 
 class TestValidatePungiCompose(ModelsBaseTest):

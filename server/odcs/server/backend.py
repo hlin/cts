@@ -31,7 +31,7 @@ import productmd.common
 from datetime import datetime, timedelta
 from odcs.server import log, conf, app, db
 from odcs.server.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
-from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType, PungiLogs
+from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType, PungiLogs, RawPungiConfig
 from odcs.server.pulp import Pulp
 from odcs.server.cache import KojiTagCache
 from concurrent.futures import ThreadPoolExecutor
@@ -520,13 +520,7 @@ def generate_pungi_compose(compose):
         reuse_compose(compose, compose_to_reuse)
     else:
         if compose.source_type == PungiSourceType.RAW_CONFIG:
-            source_name, source_hash = compose.source.split("#")
-            url_data = conf.raw_config_urls[source_name]
-            # Do not override commit hash by hash from ODCS client if it is
-            # hardcoded in the config file.
-            if "commit" not in url_data:
-                url_data["commit"] = source_hash
-            pungi_cfg = url_data
+            pungi_cfg = RawPungiConfig(compose.source)
         else:
             # Generate PungiConfig and run Pungi
             pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
