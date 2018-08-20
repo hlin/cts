@@ -28,7 +28,7 @@ from sqlalchemy import event
 from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
 
-from flask.ext.sqlalchemy import SignallingSession
+from flask_sqlalchemy import SignallingSession
 from mock import patch
 
 
