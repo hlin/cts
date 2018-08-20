@@ -69,6 +69,8 @@ class RawPungiConfig(BasePungiConfig):
             url_data["commit"] = source_hash
 
         self.pungi_cfg = url_data
+        self.pungi_koji_args = conf.raw_config_pungi_koji_args.get(
+            source_name, [])
 
     def write_config_files(self, topdir):
         """Write raw config files
@@ -298,8 +300,17 @@ class Pungi(object):
         :return: List of pungi command line arguments.
         """
         pungi_cmd = [
-            conf.pungi_koji, "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
-            "--target-dir=%s" % targetdir, "--nightly"]
+            conf.pungi_koji,
+            "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
+            "--target-dir=%s" % targetdir,
+        ]
+
+        if isinstance(self.pungi_cfg, RawPungiConfig):
+            pungi_cmd += self.pungi_cfg.pungi_koji_args
+        elif isinstance(self.pungi_cfg, PungiConfig):
+            pungi_cmd += conf.pungi_koji_args
+        else:
+            raise RuntimeError('Unknown pungi config type to handle.')
 
         if self.koji_event:
             pungi_cmd += ["--koji-event", str(self.koji_event)]

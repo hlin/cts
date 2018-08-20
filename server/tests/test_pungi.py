@@ -381,9 +381,14 @@ class TestPungiRunroot(unittest.TestCase):
                 "config_filename": "pungi.conf",
             }
         }
+        fake_raw_config_pungi_koji_args = {
+            'pungi.conf': ['--nightly']
+        }
         with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
-            pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
-            pungi.run(self.compose)
+            with patch.object(conf, 'raw_config_pungi_koji_args',
+                              new=fake_raw_config_pungi_koji_args):
+                pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
+                pungi.run(self.compose)
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         self.koji_session.uploadWrapper.assert_has_calls(
