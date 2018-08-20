@@ -335,6 +335,18 @@ class Config(object):
                     'file. This file holds Pungi configuration which should '
                     'import real pungi configuration from raw_config.conf '
                     'in order to override some variables.'},
+        'pungi_koji_args': {
+            'type': list,
+            'default': [],
+            'desc': 'Command line arguments used to construct pungi-koji '
+                    'command.'
+        },
+        'raw_config_pungi_koji_args': {
+            'type': dict,
+            'default': {},
+            'desc': 'Command line argument for raw_config source type, which '
+                    'overwrite arguments listed PUNGI_KOJI_ARGS.'
+        }
     }
 
     def __init__(self, conf_section_obj):

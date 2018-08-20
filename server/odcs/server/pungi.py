@@ -38,7 +38,76 @@ from odcs.common.types import PungiSourceType, COMPOSE_RESULTS
 from odcs.server.utils import makedirs, clone_repo, copytree
 
 
-class PungiConfig(object):
+class BasePungiConfig(object):
+
+    def _write(self, path, cfg):
+        """
+        Writes configuration string `cfg` to file defined by `path`.
+
+        :param str path: Full path to file to write to.
+        :param str cfg: Configuration to write.
+        """
+        with open(path, "w") as f:
+            log.info("Writing %s configuration to %s.",
+                     os.path.basename(path), path)
+            f.write(cfg)
+
+    def write_config_files(self, topdir):
+        """Write configuration into files"""
+        raise NotImplementedError('Concrete config object must implement.')
+
+
+class RawPungiConfig(BasePungiConfig):
+
+    def __init__(self, compose_source):
+        source_name, source_hash = compose_source.split("#")
+
+        url_data = conf.raw_config_urls[source_name]
+        # Do not override commit hash by hash from ODCS client if it is
+        # hardcoded in the config file.
+        if "commit" not in url_data:
+            url_data["commit"] = source_hash
+
+        self.pungi_cfg = url_data
+        self.pungi_koji_args = conf.raw_config_pungi_koji_args.get(
+            source_name, [])
+
+    def write_config_files(self, topdir):
+        """Write raw config files
+
+        :param str topdir: Directory to write the files to.
+        """
+        # In case the raw_config wrapper config is set, download the
+        # original pungi.conf as "raw_config.conf" and use
+        # the raw_config wrapper as real "pungi.conf".
+        # The reason is that wrapper config can import raw_config
+        # and override some variables.
+        if conf.raw_config_wrapper_conf_path:
+            main_cfg_path = os.path.join(topdir, "raw_config.conf")
+            shutil.copy2(conf.raw_config_wrapper_conf_path,
+                         os.path.join(topdir, "pungi.conf"))
+        else:
+            main_cfg_path = os.path.join(topdir, "pungi.conf")
+
+        # Clone the git repo with raw_config pungi config files.
+        repo_dir = os.path.join(topdir, "raw_config_repo")
+        clone_repo(self.pungi_cfg["url"], repo_dir,
+                   commit=self.pungi_cfg["commit"])
+
+        # If the 'path' is defined, copy only the files form the 'path'
+        # to topdir.
+        if "path" in self.pungi_cfg:
+            repo_dir = os.path.join(repo_dir, self.pungi_cfg["path"])
+
+        copytree(repo_dir, topdir)
+
+        # Create the "pungi.conf" from config_filename.
+        config_path = os.path.join(topdir, self.pungi_cfg["config_filename"])
+        if config_path != main_cfg_path:
+            shutil.copy2(config_path, main_cfg_path)
+
+
+class PungiConfig(BasePungiConfig):
     def __init__(self, release_name, release_version, source_type, source,
                  packages=None, arches=None, sigkeys=None, results=0):
         self.release_name = release_name
@@ -140,6 +209,27 @@ class PungiConfig(object):
                 "Failed to render pungi conf template {!r}: {}".format(conf.pungi_conf_path,
                                                                        str(e)))
 
+    def write_config_files(self, topdir):
+        """
+        Writes "pungi.conf", "variants.xml" and "comps.xml" defined in
+        `self.pungi_cfg` to `topdir` directory.
+
+        :param str topdir: Directory to write the files to.
+        """
+        main_cfg = self.get_pungi_config()
+        variants_cfg = self.get_variants_config()
+        comps_cfg = self.get_comps_config()
+        log.debug("Main Pungi config:")
+        log.debug("%s", main_cfg)
+        log.debug("Variants.xml:")
+        log.debug("%s", variants_cfg)
+        log.debug("Comps.xml:")
+        log.debug("%s", comps_cfg)
+
+        self._write(os.path.join(topdir, "pungi.conf"), main_cfg)
+        self._write(os.path.join(topdir, "variants.xml"), variants_cfg)
+        self._write(os.path.join(topdir, "comps.xml"), comps_cfg)
+
 
 class Pungi(object):
     def __init__(self, pungi_cfg, koji_event=None, old_compose=None):
@@ -147,68 +237,12 @@ class Pungi(object):
         self.koji_event = koji_event
         self.old_compose = old_compose
 
-    def _write_cfg(self, path, cfg):
-        """
-        Writes configuration string `cfg` to file defined by `path`.
-        :param str path: Full path to file to write to.
-        :param str cfg: Configuration to write.
-        """
-        with open(path, "w") as f:
-            log.info("Writing %s configuration to %s.", os.path.basename(path), path)
-            f.write(cfg)
-
     def _write_cfgs(self, topdir):
-        """
-        Writes "pungi.conf", "variants.xml" and "comps.xml" defined in
-        `self.pungi_cfg` to `topdir` directory.
+        """Wrtie pungi config
+
         :param str topdir: Directory to write the files to.
         """
-        if type(self.pungi_cfg) == PungiConfig:
-            main_cfg = self.pungi_cfg.get_pungi_config()
-            variants_cfg = self.pungi_cfg.get_variants_config()
-            comps_cfg = self.pungi_cfg.get_comps_config()
-            log.debug("Main Pungi config:")
-            log.debug("%s", main_cfg)
-            log.debug("Variants.xml:")
-            log.debug("%s", variants_cfg)
-            log.debug("Comps.xml:")
-            log.debug("%s", comps_cfg)
-
-            self._write_cfg(os.path.join(topdir, "pungi.conf"), main_cfg)
-            self._write_cfg(os.path.join(topdir, "variants.xml"), variants_cfg)
-            self._write_cfg(os.path.join(topdir, "comps.xml"), comps_cfg)
-        elif type(self.pungi_cfg) == dict:
-            # In case the raw_config wrapper config is set, download the
-            # original pungi.conf as "raw_config.conf" and use
-            # the raw_config wrapper as real "pungi.conf".
-            # The reason is that wrapper config can import raw_config
-            # and override some variables.
-            if conf.raw_config_wrapper_conf_path:
-                main_cfg_path = os.path.join(topdir, "raw_config.conf")
-                shutil.copy2(conf.raw_config_wrapper_conf_path,
-                             os.path.join(topdir, "pungi.conf"))
-            else:
-                main_cfg_path = os.path.join(topdir, "pungi.conf")
-
-            # Clone the git repo with raw_config pungi config files.
-            repo_dir = os.path.join(topdir, "raw_config_repo")
-            clone_repo(self.pungi_cfg["url"], repo_dir,
-                       commit=self.pungi_cfg["commit"])
-
-            # If the 'path' is defined, copy only the files form the 'path'
-            # to topdir.
-            if "path" in self.pungi_cfg:
-                repo_dir = os.path.join(repo_dir, self.pungi_cfg["path"])
-
-            copytree(repo_dir, topdir)
-
-            # Create the "pungi.conf" from config_filename.
-            config_path = os.path.join(topdir, self.pungi_cfg["config_filename"])
-            if config_path != main_cfg_path:
-                shutil.copy2(config_path, main_cfg_path)
-        else:
-            raise ValueError("Unexpected pungi_conf type: %r" % self.pungi_cfg)
-
+        self.pungi_cfg.write_config_files(topdir)
         if conf.pungi_runroot_koji_conf_path:
             shutil.copy2(conf.pungi_runroot_koji_conf_path,
                          os.path.join(topdir, "odcs_koji.conf"))
@@ -266,8 +300,17 @@ class Pungi(object):
         :return: List of pungi command line arguments.
         """
         pungi_cmd = [
-            conf.pungi_koji, "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
-            "--target-dir=%s" % targetdir, "--nightly"]
+            conf.pungi_koji,
+            "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
+            "--target-dir=%s" % targetdir,
+        ]
+
+        if isinstance(self.pungi_cfg, RawPungiConfig):
+            pungi_cmd += self.pungi_cfg.pungi_koji_args
+        elif isinstance(self.pungi_cfg, PungiConfig):
+            pungi_cmd += conf.pungi_koji_args
+        else:
+            raise RuntimeError('Unknown pungi config type to handle.')
 
         if self.koji_event:
             pungi_cmd += ["--koji-event", str(self.koji_event)]

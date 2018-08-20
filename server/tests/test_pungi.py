@@ -30,7 +30,7 @@ from mock import patch, MagicMock, call, mock_open
 from kobo.conf import PyConfigParser
 
 from odcs.server.pungi import (
-    Pungi, PungiConfig, PungiSourceType, PungiLogs)
+    Pungi, PungiConfig, PungiSourceType, PungiLogs, RawPungiConfig)
 import odcs.server.pungi
 from odcs.server import conf, db
 from odcs.server.models import Compose
@@ -202,13 +202,15 @@ class TestPungi(unittest.TestCase):
                 self.assertTrue("fake pungi conf 1" in data)
         execute_cmd.side_effect = mocked_execute_cmd
 
-        pungi_cfg = {
-            "url": "http://localhost/test.git",
-            "config_filename": "pungi.conf",
-            "commit": "hash",
+        fake_raw_config_urls = {
+            'pungi.conf': {
+                "url": "http://localhost/test.git",
+                "config_filename": "pungi.conf",
+            }
         }
-        pungi = Pungi(pungi_cfg)
-        pungi.run(self.compose)
+        with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+            pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
+            pungi.run(self.compose)
 
         execute_cmd.assert_called_once()
         self.clone_repo.assert_called_once_with(
@@ -224,14 +226,16 @@ class TestPungi(unittest.TestCase):
                 self.assertTrue("fake pungi conf 2" in data)
         execute_cmd.side_effect = mocked_execute_cmd
 
-        pungi_cfg = {
-            "url": "http://localhost/test.git",
-            "config_filename": "pungi.conf",
-            "commit": "hash",
-            "path": "another",
+        fake_raw_config_urls = {
+            'pungi.conf': {
+                "url": "http://localhost/test.git",
+                "config_filename": "pungi.conf",
+                "path": "another",
+            }
         }
-        pungi = Pungi(pungi_cfg)
-        pungi.run(self.compose)
+        with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+            pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
+            pungi.run(self.compose)
 
         execute_cmd.assert_called_once()
         self.clone_repo.assert_called_once_with(
@@ -371,13 +375,20 @@ class TestPungiRunroot(unittest.TestCase):
     def test_pungi_run_runroot_raw_config(self):
         self.koji_session.getTaskInfo.return_value = {"state": koji.TASK_STATES["CLOSED"]}
 
-        pungi_cfg = {
-            "url": "http://localhost/test.git",
-            "config_filename": "pungi.conf",
-            "commit": "hash",
+        fake_raw_config_urls = {
+            'pungi.conf': {
+                "url": "http://localhost/test.git",
+                "config_filename": "pungi.conf",
+            }
         }
-        pungi = Pungi(pungi_cfg)
-        pungi.run(self.compose)
+        fake_raw_config_pungi_koji_args = {
+            'pungi.conf': ['--nightly']
+        }
+        with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+            with patch.object(conf, 'raw_config_pungi_koji_args',
+                              new=fake_raw_config_pungi_koji_args):
+                pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
+                pungi.run(self.compose)
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         self.koji_session.uploadWrapper.assert_has_calls(

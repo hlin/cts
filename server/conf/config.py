@@ -146,6 +146,21 @@ class BaseConfiguration(object):
     #   }
     # }
 
+    # Command line arguments used to construct pungi-koji command.
+    PUNGI_KOJI_ARGS = ['--nightly']
+
+    # Command line argument for raw_config source type, which overwrite
+    # arguments listed PUNGI_KOJI_ARGS.
+    # If a particular raw config should have specific pungi-koji arguments, add
+    # a key/value into this option, where key should exist in the
+    # RAW_CONFIG_URLS, and value lists each arguments.
+    # If no argument is required, just omit it, or add a key/value just as
+    # mentioned, but keep value as a empty list.
+    # RAW_CONFIG_PUNGI_KOJI_ARGS = {
+    #     'my_raw_config': ['arg1', ...],
+    #     'another_raw_config': ['arg1', ...],
+    # }
+
 
 class DevConfiguration(BaseConfiguration):
     DEBUG = True
@@ -165,6 +180,11 @@ class DevConfiguration(BaseConfiguration):
     PUNGI_CONF_PATH = path.join(confdir, 'pungi.conf')
     AUTH_BACKEND = 'noauth'
     AUTH_OPENIDC_USERINFO_URI = 'https://iddev.fedorainfracloud.org/openidc/UserInfo'
+
+    KOJI_PROFILE = 'stg'
+
+    PUNGI_RUNROOT_KOJI_CONF_PATH = path.join(confdir, 'runroot_koji.conf')
+    RAW_CONFIG_WRAPPER_CONF_PATH = path.join(confdir, 'raw_config_wrapper.conf')
 
 
 class TestConfiguration(BaseConfiguration):
