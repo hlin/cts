@@ -373,9 +373,10 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
         super(TestComposerThreadStuckWaitComposes, self).tearDown()
         self.patch_generate_new_compose.stop()
 
-    def _add_test_compose(self, state, time_submitted=None):
+    def _add_test_compose(self, state, time_submitted=None,
+                          source_type=PungiSourceType.KOJI_TAG):
         compose = Compose.create(
-            db.session, "unknown", PungiSourceType.KOJI_TAG, "f26",
+            db.session, "unknown", source_type, "f26",
             COMPOSE_RESULTS["repository"], 60, "", 0)
         compose.state = state
         if time_submitted:
@@ -422,3 +423,22 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
         composes = sorted(composes, key=lambda c: c.id)
         self.composer.pickup_waiting_composes()
         self.generate_new_compose.assert_not_called()
+
+    def test_pickup_waiting_composes_no_limit_for_pulp(self):
+        time_submitted = datetime.utcnow() - timedelta(minutes=5)
+        composes = []
+        for i in range(10):
+            composes.append(self._add_test_compose(
+                COMPOSE_STATES["wait"], time_submitted=time_submitted))
+        for i in range(10):
+            composes.append(self._add_test_compose(
+                COMPOSE_STATES["wait"], time_submitted=time_submitted,
+                source_type=PungiSourceType.PULP))
+        composes = sorted(composes, key=lambda c: c.id)
+        self.composer.pickup_waiting_composes()
+        self.generate_new_compose.assert_has_calls([
+            call(composes[0]), call(composes[1]), call(composes[2]),
+            call(composes[3]), call(composes[10]), call(composes[11]),
+            call(composes[12]), call(composes[13]), call(composes[14]),
+            call(composes[15]), call(composes[16]), call(composes[17]),
+            call(composes[18]), call(composes[19])])
