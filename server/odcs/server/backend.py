@@ -812,5 +812,3 @@ def run_backend():
             composer_thread.stop()
             remove_expired_composes_thread.join()
             composer_thread.join()
-
-    return 0
