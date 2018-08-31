@@ -337,5 +337,21 @@ class Compose(ODCSBase):
         if new_expiration != self.time_to_expire:
             self.time_to_expire = new_expiration
 
+    def transition(self, to_state, reason, happen_on=None):
+        """Transit compose state to a new state
+
+        :param str to_state: transit this compose state to this state.
+        :param str reason: the reason of this transition.
+        :param happen_on: when this transition happens. Default is utcnow.
+        :type happen_on: DateTime
+        """
+        self.state = to_state
+        self.state_reason = reason
+        if to_state == COMPOSE_STATES['removed']:
+            self.time_removed = happen_on or datetime.utcnow()
+        elif to_state == COMPOSE_STATES['done']:
+            self.time_done = happen_on or datetime.utcnow()
+        db.session.commit()
+
 
 Index('idx_source_type__state', Compose.source_type, Compose.state)
