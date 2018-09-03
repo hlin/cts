@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.12:
+  - Release date: 2018-09-03
+  - When renewing old compose, do not reuse newer compose, but always
+    renegerate the compose instead.
+  - Remove limit of number of Pulp composes picked up in
+    the pickup_waiting_composes().
+
 ## 0.2.11:
   - Release date: 2018-08-16
   - Regenerate the composes stuck in the 'wait' state automatically.
