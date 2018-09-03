@@ -316,14 +316,17 @@ class TestBackend(ModelsBaseTest):
         attrs["koji_event"] = 123456
         attrs["source"] = "123"
         attrs["arches"] = "ppc64 x86_64"
+        attrs["multilib_arches"] = "x86_64 i686"
+        attrs["multilib_method"] = 1
         for attr, value in attrs.items():
             c = Compose.create(
                 db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
-                COMPOSE_RESULTS["repository"], 3600, packages="ed")
+                COMPOSE_RESULTS["repository"], 3600, packages="ed", sigkeys="123")
             setattr(c, attr, value)
 
-            # Do not resolve compose for non-existing source...
-            if attr != "source":
+            # Do not resolve compose for non-existing source and in case we
+            # change koji_event, because it would be overwriten.
+            if attr not in ["source", "koji_event"]:
                 resolve_compose(c)
 
             db.session.add(c)
@@ -571,7 +574,8 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         c = Compose.create(
             db.session, "me", PungiSourceType.KOJI_TAG, "f26",
             COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3',
-            arches="x86_64 s390")
+            arches="x86_64 s390", multilib_arches="i686 x86_64",
+            multilib_method=1)
         c.id = 1
 
         generate_pungi_compose(c)
@@ -587,6 +591,8 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.assertEqual(self.pungi_config.gather_method, "deps")
         self.assertEqual(self.pungi_config.pkgset_koji_inherit, True)
         self.assertEqual(set(self.pungi_config.arches), set(["x86_64", "s390"]))
+        self.assertEqual(set(self.pungi_config.multilib_arches), set(["i686", "x86_64"]))
+        self.assertEqual(self.pungi_config.multilib_method, ["runtime"])
 
     def test_generate_pungi_compose_nodeps(self):
         c = Compose.create(

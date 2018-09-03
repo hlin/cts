@@ -32,7 +32,7 @@ from odcs.server.errors import NotFound
 from odcs.server.models import Compose
 from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES,
-    PungiSourceType)
+    PungiSourceType, MULTILIB_METHODS)
 from odcs.server.api_utils import (
     pagination_metadata, filter_composes, validate_json_data,
     raise_if_input_not_allowed)
@@ -284,6 +284,17 @@ class ODCSAPI(MethodView):
         else:
             arches = " ".join(conf.arches)
 
+        multilib_arches = ""
+        if "multilib_arches" in data:
+            multilib_arches = " ".join(data["multilib_arches"])
+
+        multilib_method = MULTILIB_METHODS["none"]
+        if "multilib_method" in data:
+            for name in data["multilib_method"]:
+                if name not in MULTILIB_METHODS:
+                    raise ValueError("Unknown multilib method \"%s\"" % name)
+                multilib_method |= MULTILIB_METHODS[name]
+
         raise_if_input_not_allowed(
             source_types=source_type, sources=source, results=results,
             flags=flags, arches=arches)
@@ -291,7 +302,8 @@ class ODCSAPI(MethodView):
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
             results, seconds_to_live,
-            packages, flags, sigkeys, arches)
+            packages, flags, sigkeys, arches, multilib_arches=multilib_arches,
+            multilib_method=multilib_method)
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to
         # send message and before_commit can be called before flush and

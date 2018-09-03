@@ -66,7 +66,9 @@ class TestModels(ModelsBaseTest):
                          'koji_event': None,
                          'koji_task_id': None,
                          'packages': None,
-                         'arches': 'x86_64'}
+                         'arches': 'x86_64',
+                         'multilib_arches': '',
+                         'multilib_method': 0}
         self.assertEqual(c.json(), expected_json)
 
 

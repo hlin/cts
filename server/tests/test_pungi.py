@@ -156,6 +156,24 @@ class TestPungiConfig(unittest.TestCase):
             cfg = self._load_pungi_cfg(template)
             self.assertTrue(cfg["pkgset_koji_inherit"])
 
+    def test_get_pungi_conf_multilib(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
+                                    "f26", multilib_arches=["x86_64", "s390x"],
+                                    multilib_method=3)
+
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertEqual(set(cfg["multilib"][0][1].keys()), set(["s390x", "x86_64"]))
+            for variant, arch_method_dict in cfg["multilib"]:
+                for method in arch_method_dict.values():
+                    self.assertEqual(set(method), set(['runtime', 'devel']))
+
 
 class TestPungi(unittest.TestCase):
 

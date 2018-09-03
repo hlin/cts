@@ -61,6 +61,20 @@ COMPOSE_STATES = {
 
 INVERSE_COMPOSE_STATES = {v: k for k, v in COMPOSE_STATES.items()}
 
+MULTILIB_METHODS = {
+    "none": 0,
+    # Packages whose name ends with "-devel" or "-static" suffix will
+    # be considered as multilib.
+    "runtime": 1,
+    # Packages that install some shared object file "*.so.*" will be
+    # considered as multilib.
+    "devel": 2,
+    # All pakages will be considered as multilib.
+    "all": 4,
+}
+
+INVERSE_MULTILIB_METHODS = {v: k for k, v in MULTILIB_METHODS.items()}
+
 COMPOSE_RESULTS = {
     "repository": 1,
     "iso": 2,

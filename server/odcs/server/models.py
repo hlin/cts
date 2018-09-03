@@ -130,11 +130,15 @@ class Compose(ODCSBase):
     koji_task_id = db.Column(db.Integer, index=True)
     # White-space separated list of arches to build for.
     arches = db.Column(db.String)
+    # White-space separated list of arches to enable multilib for.
+    multilib_arches = db.Column(db.String)
+    # Method to generate multilib compose as defined by python-multilib.
+    multilib_method = db.Column(db.Integer)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
                seconds_to_live, packages=None, flags=0, sigkeys=None,
-               arches=None):
+               arches=None, multilib_arches=None, multilib_method=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -147,7 +151,9 @@ class Compose(ODCSBase):
             time_to_expire=now + timedelta(seconds=seconds_to_live),
             packages=packages,
             flags=flags,
-            arches=arches if arches else " ".join(conf.arches)
+            arches=arches if arches else " ".join(conf.arches),
+            multilib_arches=multilib_arches if multilib_arches else "",
+            multilib_method=multilib_method if multilib_method else 0
         )
         session.add(compose)
         return compose
@@ -175,6 +181,8 @@ class Compose(ODCSBase):
             flags=compose.flags,
             koji_event=compose.koji_event,
             arches=compose.arches,
+            multilib_arches=compose.multilib_arches,
+            multilib_method=compose.multilib_method,
         )
         session.add(compose)
         return compose
@@ -292,6 +300,8 @@ class Compose(ODCSBase):
             'koji_task_id': self.koji_task_id,
             'packages': self.packages,
             'arches': self.arches,
+            'multilib_arches': self.multilib_arches,
+            'multilib_method': self.multilib_method,
         }
 
     @staticmethod
