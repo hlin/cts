@@ -516,6 +516,63 @@ gpgcheck=0
             r'Error while generating compose: Expected exception\n'
             'Compose failed for unknown reason*')
 
+    @patch('odcs.server.backend.tag_changed', return_value=True)
+    @patch('odcs.server.backend.create_koji_session')
+    def test_resolve_compose_from_koji_tag_get_last_event_if_tag_changed(
+            self, create_koji_session, tag_changed):
+        session = create_koji_session.return_value
+        fake_koji_event = {'id': 234567}
+        session.getLastEvent.return_value = fake_koji_event
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "foo-1",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.dict('odcs.server.backend.LAST_EVENTS_CACHE', {'foo-1': 123456}):
+            resolve_compose(c)
+            c.koji_event = fake_koji_event['id']
+
+    @patch('odcs.server.backend.tag_changed')
+    @patch('odcs.server.backend.create_koji_session')
+    def test_resolve_compose_from_koji_tag_reuse_koji_event_if_tag_not_changed(
+            self, create_koji_session, tag_changed):
+        tag_changed.return_value = False
+        session = create_koji_session.return_value
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "foo-1",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.dict('odcs.server.backend.LAST_EVENTS_CACHE', {'foo-1': 123456}):
+            resolve_compose(c)
+            c.koji_event = 123456
+
+            session.getLastEvent.assert_not_called()
+
+    @patch('odcs.server.backend.tag_changed')
+    @patch('odcs.server.backend.create_koji_session')
+    def test_resolve_compose_from_koji_tag_get_last_koji_event_if_tag_not_cached(
+            self, create_koji_session, tag_changed):
+        fake_koji_event = {'id': 789065}
+        session = create_koji_session.return_value
+        session.getLastEvent.return_value = fake_koji_event
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "foo-1",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.dict('odcs.server.backend.LAST_EVENTS_CACHE', {'bar-2': 123456}):
+            resolve_compose(c)
+            c.koji_event = fake_koji_event['id']
+
+            tag_changed.assert_not_called()
+
 
 class TestGeneratePungiCompose(ModelsBaseTest):
 

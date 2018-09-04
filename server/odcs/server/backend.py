@@ -40,6 +40,15 @@ import odcs.server.utils
 import odcs.server.mbs
 import defusedxml.ElementTree
 
+# Cache last event for each tag since that a compose was generated from that
+# tag.
+# This is a mapping from tag name to koji event id. For example,
+# {
+#     'tag1': 123456,
+#     'tag2': 123476,
+# }
+LAST_EVENTS_CACHE = {}
+
 
 class BackendThread(object):
     """
@@ -269,6 +278,21 @@ def koji_get_inherited_tags(koji_session, tag, tags=None):
     return ids
 
 
+def tag_changed(koji_session, tag, koji_event):
+    """
+    Check if tag and its parents in the inheritance have changed since a
+    particular koji event
+
+    :param koji_session: instance of :class:`ClientSession`.
+    :param str tag: tag name.
+    :param int koji_event: the koji event id.
+    :return: True if changed, otherwise False.
+    :rtype: bool
+    """
+    tags = koji_get_inherited_tags(koji_session, tag)
+    return koji_session.tagChangedSinceEvent(koji_event, tags)
+
+
 def resolve_compose(compose):
     """
     Resolves various general compose values to the real ones. For example:
@@ -285,13 +309,28 @@ def resolve_compose(compose):
         revision = e.find("{http://linux.duke.edu/metadata/repo}revision").text
         compose.koji_event = int(revision)
     elif compose.source_type == PungiSourceType.KOJI_TAG:
+        global LAST_EVENTS_CACHE
+        koji_session = create_koji_session()
         # If compose.koji_event is set, it means that we are regenerating
         # previous compose and we have to respect the previous koji_event to
         # get the same results.
         if not compose.koji_event:
-            koji_session = create_koji_session()
-            compose.koji_event = int(koji_session.getLastEvent()['id'])
+            if compose.source not in LAST_EVENTS_CACHE:
+                event_id = int(koji_session.getLastEvent()['id'])
+            elif tag_changed(koji_session,
+                             compose.source,
+                             LAST_EVENTS_CACHE[compose.source]):
+                event_id = int(koji_session.getLastEvent()['id'])
+            else:
+                event_id = LAST_EVENTS_CACHE[compose.source]
+                log.info('Reuse koji event %s to generate compose %s from source %s',
+                         event_id, compose.id, compose.source)
+            compose.koji_event = event_id
+            # event_id could be a new koji event ID. Cache it for next potential
+            # reuse for same tag.
+            LAST_EVENTS_CACHE[compose.source] = event_id
     elif compose.source_type == PungiSourceType.MODULE:
+
         # Resolve the latest release of modules which do not have the release
         # string defined in the compose.source.
         mbs = odcs.server.mbs.MBS(conf)
@@ -396,15 +435,9 @@ def get_reusable_compose(compose):
             # For KOJI_TAG compose, check that all the inherited tags by our
             # Koji tag have not changed since previous old_compose.
             koji_session = create_koji_session()
-            tags = koji_get_inherited_tags(koji_session, compose.source)
-            if not tags:
-                continue
-            changed = koji_session.tagChangedSinceEvent(
-                old_compose.koji_event, tags)
-            if changed:
+            if tag_changed(koji_session, compose.source, old_compose.koji_event):
                 log.debug("%r: Cannot reuse %r - one of the tags changed "
-                          "since previous compose: %r", compose, old_compose,
-                          tags)
+                          "since previous compose.", compose, old_compose)
                 continue
         elif compose.koji_event != old_compose.koji_event:
             log.debug("%r: Cannot reuse %r - koji_events not same, %d != %d",
