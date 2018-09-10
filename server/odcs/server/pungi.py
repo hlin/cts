@@ -34,7 +34,7 @@ import string
 import odcs.server.utils
 from odcs.server import conf, log, db
 from odcs.server import comps
-from odcs.common.types import PungiSourceType, COMPOSE_RESULTS
+from odcs.common.types import PungiSourceType, COMPOSE_RESULTS, MULTILIB_METHODS
 from odcs.server.utils import makedirs, clone_repo, copytree
 
 
@@ -109,7 +109,8 @@ class RawPungiConfig(BasePungiConfig):
 
 class PungiConfig(BasePungiConfig):
     def __init__(self, release_name, release_version, source_type, source,
-                 packages=None, arches=None, sigkeys=None, results=0):
+                 packages=None, arches=None, sigkeys=None, results=0,
+                 multilib_arches=None, multilib_method=0):
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
@@ -130,6 +131,12 @@ class PungiConfig(BasePungiConfig):
         for k, v in COMPOSE_RESULTS.items():
             if results & v:
                 self.results.append(k)
+
+        self.multilib_arches = multilib_arches if multilib_arches else []
+        self.multilib_method = []
+        for k, v in MULTILIB_METHODS.items():
+            if multilib_method & v:
+                self.multilib_method.append(k)
 
         if "boot.iso" in self.results:
             self.bootable = True

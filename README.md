@@ -138,6 +138,12 @@ There are also additional optional attributes you can pass to `new_compose(...)`
     - `iso` - Generates non-installable ISO files with RPMs from a compose.
     - `boot.iso` - Generates `images/boot.iso` file which is needed to build base container images from resulting compose.
 - `arches` - List of additional Koji arches to build this compose for. By default, the compose is built only for "x86_64" arch.
+- `multilib_arches` - Subset of `arches` for which the multilib should be enabled. For each architecture in the `multilib_arches` list, ODCS will include also packages from other compatible architectures in a compose. For example when "x86_64" is included `multilib_arches`, ODCS will include also "i686" packages in a compose. The set of packages included in a composes is influenced by `multilib_method` list.
+- `multilib_method` - List defining the method used to determine whether consider package as multilib. Defaults to empty list. The list can have following values:
+    - `iso` - Generates non-installable ISO files with RPMs from a compose.
+    - `runtime` - Packages whose name ends with "-devel" or "-static" suffix will be considered as multilib. 
+    - `devel` - Packages that install some shared object file "*.so.*" will be considered as multilib. 
+    - `all` - All pakages will be considered as multilib.
 
 The `new_compose` method returns `dict` object describing the compose, for example:
 

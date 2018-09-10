@@ -417,6 +417,22 @@ def get_reusable_compose(compose):
                       old_compose)
             continue
 
+        multilib_arches = set(compose.multilib_arches.split(" ")) \
+            if compose.multilib_arches else set()
+        old_multilib_arches = set(old_compose.multilib_arches.split(" ")) \
+            if old_compose.multilib_arches else set()
+        if multilib_arches != old_multilib_arches:
+            log.debug("%r: Cannot reuse %r - multilib_arches not same", compose,
+                      old_compose)
+            continue
+
+        multilib_method = compose.multilib_method
+        old_multilib_method = old_compose.multilib_method
+        if multilib_method != old_multilib_method:
+            log.debug("%r: Cannot reuse %r - multilib_method not same", compose,
+                      old_compose)
+            continue
+
         # In case of compose renewal, the compose.koji_event will be actually
         # lower than the "old_compose"'s one - the `compose` might have been for
         # example submitted 1 year ago, so koji_event will be one year old.
@@ -569,7 +585,9 @@ def generate_pungi_compose(compose):
                                     compose.source, packages=packages,
                                     sigkeys=compose.sigkeys,
                                     results=compose.results,
-                                    arches=compose.arches.split(" "))
+                                    arches=compose.arches.split(" "),
+                                    multilib_arches=compose.multilib_arches.split(" "),
+                                    multilib_method=compose.multilib_method)
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:

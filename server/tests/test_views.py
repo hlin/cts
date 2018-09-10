@@ -35,7 +35,8 @@ import odcs.server.auth
 
 from odcs.server import conf, db, app, login_manager, version
 from odcs.server.models import Compose, User
-from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
+from odcs.common.types import (COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS,
+                               MULTILIB_METHODS)
 from odcs.server.pungi import PungiSourceType
 from .utils import ModelsBaseTest
 from odcs.server.api_utils import validate_json_data
@@ -299,7 +300,9 @@ class TestViews(ViewBaseTest):
                          'koji_event': None,
                          'koji_task_id': None,
                          'packages': None,
-                         'arches': 'x86_64'}
+                         'arches': 'x86_64',
+                         'multilib_arches': '',
+                         'multilib_method': 0}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -428,6 +431,55 @@ class TestViews(ViewBaseTest):
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_multilib_arches(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
+                 'arches': ["ppc64", "s390"], 'multilib_arches': ["x86_64", "ppc64le"]}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['multilib_arches'], 'x86_64 ppc64le')
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_multilib_method(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
+                 'arches': ["ppc64", "s390"], 'multilib_method': ["runtime", "devel"]}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['multilib_method'],
+                         MULTILIB_METHODS["runtime"] | MULTILIB_METHODS["devel"])
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_multilib_method_unknown(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed']},
+                 'arches': ["ppc64", "s390"], 'multilib_method': ["foo", "devel"]}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(
+            data['message'], 'Unknown multilib method "foo"')
 
     def test_submit_build_duplicate_sources(self):
         with self.test_request_context(user='dev'):
@@ -898,7 +950,9 @@ class TestViews(ViewBaseTest):
                          'koji_event': None,
                          'koji_task_id': None,
                          'packages': None,
-                         'arches': 'x86_64'}
+                         'arches': 'x86_64',
+                         'multilib_arches': '',
+                         'multilib_method': 0}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
