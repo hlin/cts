@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.13:
+  - Release date: 2018-09-12
+  - Add `multilib_arch` and `multilib_method` lists to the API - see the
+    README.md description for more infomration.
+  - The Koji event value is reused for composes from the same Koji tag if
+    the Koji tag and its parents did not change since the last compose. This
+    makes composes comming in bursts from the same Koji tag much faster.
+
 ## 0.2.12:
   - Release date: 2018-09-03
   - When renewing old compose, do not reuse newer compose, but always
