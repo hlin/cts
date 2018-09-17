@@ -651,6 +651,18 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         self.assertEqual(set(self.pungi_config.multilib_arches), set(["i686", "x86_64"]))
         self.assertEqual(self.pungi_config.multilib_method, ["runtime"])
 
+    def test_generate_pungi_compose_multiarch_arches_None(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3',
+            arches="x86_64 s390", multilib_arches=None,
+            multilib_method=None)
+        c.id = 1
+
+        generate_pungi_compose(c)
+        self.assertEqual(set(self.pungi_config.multilib_arches), set([]))
+        self.assertEqual(self.pungi_config.multilib_method, [])
+
     def test_generate_pungi_compose_nodeps(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.KOJI_TAG, "f26",

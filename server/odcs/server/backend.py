@@ -581,12 +581,16 @@ def generate_pungi_compose(compose):
             pungi_cfg = RawPungiConfig(compose.source)
         else:
             # Generate PungiConfig and run Pungi
+            if compose.multilib_arches:
+                multilib_arches = compose.multilib_arches.split(" ")
+            else:
+                multilib_arches = None
             pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
                                     compose.source, packages=packages,
                                     sigkeys=compose.sigkeys,
                                     results=compose.results,
                                     arches=compose.arches.split(" "),
-                                    multilib_arches=compose.multilib_arches.split(" "),
+                                    multilib_arches=multilib_arches,
                                     multilib_method=compose.multilib_method)
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"

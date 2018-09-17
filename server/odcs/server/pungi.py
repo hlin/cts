@@ -134,9 +134,10 @@ class PungiConfig(BasePungiConfig):
 
         self.multilib_arches = multilib_arches if multilib_arches else []
         self.multilib_method = []
-        for k, v in MULTILIB_METHODS.items():
-            if multilib_method & v:
-                self.multilib_method.append(k)
+        if multilib_method:
+            for k, v in MULTILIB_METHODS.items():
+                if multilib_method & v:
+                    self.multilib_method.append(k)
 
         if "boot.iso" in self.results:
             self.bootable = True
