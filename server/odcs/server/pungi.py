@@ -447,7 +447,7 @@ class PungiLogs(object):
         Returns the path to pungi.global.log.
         """
         return os.path.join(
-            self.compose.toplevel_dir, "logs", "global", "pungi.global.log")
+            self.compose.toplevel_work_dir, "logs", "global", "pungi.global.log")
 
     def _get_global_log_errors(self):
         """
