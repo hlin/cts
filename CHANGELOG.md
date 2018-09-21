@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.14:
+  - Release date: 2018-09-21
+  - Fix issue when renewed compose did not respect the `sigkeys` value of
+    original compose.
+  - Fix issue with missing Pungi errors in `Compose.state_reason`.
+
 ## 0.2.13:
   - Release date: 2018-09-12
   - Add `multilib_arch` and `multilib_method` lists to the API - see the
