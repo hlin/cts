@@ -183,6 +183,7 @@ class Compose(ODCSBase):
             arches=compose.arches,
             multilib_arches=compose.multilib_arches,
             multilib_method=compose.multilib_method,
+            sigkeys=compose.sigkeys,
         )
         session.add(compose)
         return compose

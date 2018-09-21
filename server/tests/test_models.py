@@ -19,7 +19,6 @@
 # SOFTWARE.
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
-# -*- coding: utf-8 -*-
 
 from datetime import datetime
 from datetime import timedelta
@@ -70,6 +69,48 @@ class TestModels(ModelsBaseTest):
                          'multilib_arches': '',
                          'multilib_method': 0}
         self.assertEqual(c.json(), expected_json)
+
+    def test_create_copy(self):
+        """
+        Tests that the Compose atttributes stored in database are copied
+        by Compose.create_copy() method.
+        """
+        compose = Compose.create(
+            db.session, "me", PungiSourceType.MODULE, "testmodule-master",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.commit()
+
+        # Generate non-default data for every attribute in compose, so we can
+        # later verify they have been copied to new compose.
+        for c in Compose.__table__.columns:
+            t = str(c.type)
+            if t == "INTEGER":
+                new_value = 4
+            elif t == "VARCHAR":
+                new_value = "non default value"
+            elif t == "DATETIME":
+                new_value = datetime.utcnow()
+            else:
+                raise ValueError("New column type %r added, please handle it "
+                                 "in this test" % t)
+            setattr(compose, c.name, new_value)
+
+        db.session.commit()
+        db.session.expire_all()
+
+        copy = Compose.create_copy(db.session, compose)
+        for c in Compose.__table__.columns:
+            # Following are list of fields which should not be copied
+            # in create_copy() method.
+            if c.name in ["id", "state", "state_reason", "time_to_expire",
+                          "time_done", "time_submitted", "time_removed",
+                          "removed_by", "reused_id", "koji_task_id"]:
+                assertMethod = self.assertNotEqual
+            else:
+                assertMethod = self.assertEqual
+            assertMethod(
+                [c.name, getattr(compose, c.name)],
+                [c.name, getattr(copy, c.name)])
 
 
 class TestUserModel(ModelsBaseTest):
