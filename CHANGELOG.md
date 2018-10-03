@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.15:
+  - Release date: 2018-10-03
+  - Do not add base module into the compose and do not accept it in 'source'.
+
 ## 0.2.14:
   - Release date: 2018-09-21
   - Fix issue when renewed compose did not respect the `sigkeys` value of
