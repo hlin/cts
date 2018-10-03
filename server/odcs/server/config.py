@@ -246,6 +246,11 @@ class Config(object):
             'type': list,
             'default': [],
             'desc': 'Required scopes for submitting request to run new compose.'},
+        'base_module_names': {
+            'type': set,
+            'default': set(['platform', 'bootstrap']),
+            'desc': ("Set of module names which defines the product version "
+                     "(by their stream) of modules depending on them.")},
         'messaging_backend': {
             'type': str,
             'default': '',

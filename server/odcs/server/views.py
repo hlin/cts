@@ -243,10 +243,15 @@ class ODCSAPI(MethodView):
                     source_name)
         elif source_type == PungiSourceType.MODULE:
             for module_str in source:
-                if len(module_str.split(":")) < 2:
+                nsvc = module_str.split(":")
+                if len(nsvc) < 2:
                     raise ValueError(
                         'Module definition must be in "n:s", "n:s:v" or '
                         '"n:s:v:c" format, but got %s' % module_str)
+                if nsvc[0] in conf.base_module_names:
+                    raise ValueError(
+                        "ODCS currently cannot create compose with base "
+                        "modules, but %s was requested." % nsvc[0])
 
         source = ' '.join(source)
 

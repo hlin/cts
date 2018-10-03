@@ -603,6 +603,20 @@ class TestViews(ViewBaseTest):
             data["message"], 'Module definition must be in "n:s", "n:s:v" or '
             '"n:s:v:c" format, but got x')
 
+    def test_submit_module_build_base_module_in_source(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule:master platform:x'}}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(
+            data["message"], 'ODCS currently cannot create compose with base '
+            'modules, but platform was requested.')
+
     def test_submit_build_per_user_source_type_allowed(self):
         with self.test_request_context(user='dev2'):
             flask.g.oidc_scopes = [

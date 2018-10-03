@@ -576,6 +576,37 @@ gpgcheck=0
 
             tag_changed.assert_not_called()
 
+    @patch('odcs.server.mbs.MBS.validate_module_list')
+    @patch('odcs.server.mbs.MBS.get_latest_modules')
+    def test_resolve_compose_module_filter_base_module(
+            self, get_latest_modules, validate_module_list):
+        modules = [
+            {"name": "foo", "stream": "0", "version": 1, "context": "x"},
+            {"name": "bar", "stream": "0", "version": 1, "context": "y"},
+        ]
+        get_latest_modules.return_value = modules
+        validate_module_list.return_value = modules + [
+            {"name": "platform", "stream": "0", "version": 1, "context": "z"}
+        ]
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE, "foo:0 bar:0",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        # Default conf.base_module_names includes "platform" module, so it
+        # should be removed from the source list.
+        resolve_compose(c)
+        self.assertEqual(c.source, "bar:0:1:y foo:0:1:x")
+
+        # Now try removing "platform" from the conf.base_module_names, so it
+        # should appear in a compose source.
+        with patch.object(odcs.server.config.Config, 'base_module_names',
+                          new=["random_name"]):
+            resolve_compose(c)
+            self.assertEqual(c.source, "bar:0:1:y foo:0:1:x platform:0:1:z")
+
 
 class TestGeneratePungiCompose(ModelsBaseTest):
 

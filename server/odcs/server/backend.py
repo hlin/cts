@@ -342,7 +342,8 @@ def resolve_compose(compose):
 
         uids = sorted(
             "{name}:{stream}:{version}:{context}".format(**m)
-            for m in new_mbs_modules)
+            for m in new_mbs_modules
+            if m['name'] not in conf.base_module_names)
         compose.source = ' '.join(uids)
 
 
