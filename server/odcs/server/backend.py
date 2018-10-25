@@ -439,7 +439,8 @@ def get_reusable_compose(compose):
         # example submitted 1 year ago, so koji_event will be one year old.
         # But the `old_compose` was submitted few days ago at max.
         # In this case, we must never reuse the newer compose for old one.
-        if compose.koji_event < old_compose.koji_event:
+        if (compose.koji_event and old_compose.koji_event and
+                compose.koji_event < old_compose.koji_event):
             log.debug("%r: Cannot reuse %r - koji_event of current compose "
                       "is lower than koji_event of old compose.", compose,
                       old_compose)
