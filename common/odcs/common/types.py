@@ -28,6 +28,7 @@ class PungiSourceType:
     REPO = 3
     PULP = 4
     RAW_CONFIG = 5
+    BUILD = 6
 
 
 PUNGI_SOURCE_TYPE_NAMES = {
@@ -41,6 +42,9 @@ PUNGI_SOURCE_TYPE_NAMES = {
     # This allows to submit raw pungi config from predefined URLs in ODCS
     # server-side configuration.
     "raw_config": PungiSourceType.RAW_CONFIG,
+    # Generates compose using exactly defined set of Koji builds without
+    # pulling in RPMs from any Koji tag.
+    "build": PungiSourceType.BUILD,
 }
 
 INVERSE_PUNGI_SOURCE_TYPE_NAMES = {

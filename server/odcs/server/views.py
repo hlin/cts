@@ -200,7 +200,7 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise ValueError(err)
 
-        needed_keys = ["type", "source"]
+        needed_keys = ["type"]
         for key in needed_keys:
             if key not in source_data:
                 err = "Missing %s in source configuration, received: %s" % (key, str(source_data))
@@ -215,9 +215,12 @@ class ODCSAPI(MethodView):
 
         source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
 
-        # Use list(set()) here to remove duplicate sources.
-        source = list(set(source_data["source"].split(" ")))
-        if not source:
+        source = []
+        if "source" in source_data:
+            # Use list(set()) here to remove duplicate sources.
+            source = list(set(source_data["source"].split(" ")))
+
+        if not source and source_type != PungiSourceType.BUILD:
             err = "No source provided for %s" % source_type
             log.error(err)
             raise ValueError(err)
@@ -258,6 +261,10 @@ class ODCSAPI(MethodView):
         packages = None
         if "packages" in source_data:
             packages = ' '.join(source_data["packages"])
+
+        builds = None
+        if "builds" in source_data:
+            builds = ' '.join(source_data["builds"])
 
         if not packages and source_type == PungiSourceType.KOJI_TAG:
             raise ValueError(
@@ -308,7 +315,7 @@ class ODCSAPI(MethodView):
             db.session, self._get_compose_owner(), source_type, source,
             results, seconds_to_live,
             packages, flags, sigkeys, arches, multilib_arches=multilib_arches,
-            multilib_method=multilib_method)
+            multilib_method=multilib_method, builds=builds)
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to
         # send message and before_commit can be called before flush and

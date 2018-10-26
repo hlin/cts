@@ -211,7 +211,8 @@ class ODCS(object):
 
     def new_compose(self, source, source_type,
                     seconds_to_live=None, packages=[], flags=[],
-                    sigkeys=None, results=None, arches=None):
+                    sigkeys=None, results=None, arches=None,
+                    builds=None):
         """Request a new compose
 
         :param str source: from where to grab and make new compose, different
@@ -245,6 +246,8 @@ class ODCS(object):
         }
         if packages:
             request_data['source']['packages'] = packages
+        if builds:
+            request_data['source']['builds'] = builds
         if sigkeys:
             request_data['source']['sigkeys'] = sigkeys
         if seconds_to_live is not None:

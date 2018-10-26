@@ -116,6 +116,8 @@ class Compose(ODCSBase):
     results = db.Column(db.Integer, nullable=False)
     # White-space separated list of packages
     packages = db.Column(db.String)
+    # White-space separated list of builds (NVR) to include in a compose.
+    builds = db.Column(db.String)
     # COMPOSE_FLAGS
     flags = db.Column(db.Integer)
     time_to_expire = db.Column(db.DateTime, nullable=False, index=True)
@@ -138,7 +140,8 @@ class Compose(ODCSBase):
     @classmethod
     def create(cls, session, owner, source_type, source, results,
                seconds_to_live, packages=None, flags=0, sigkeys=None,
-               arches=None, multilib_arches=None, multilib_method=None):
+               arches=None, multilib_arches=None, multilib_method=None,
+               builds=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -153,7 +156,8 @@ class Compose(ODCSBase):
             flags=flags,
             arches=arches if arches else " ".join(conf.arches),
             multilib_arches=multilib_arches if multilib_arches else "",
-            multilib_method=multilib_method if multilib_method else 0
+            multilib_method=multilib_method if multilib_method else 0,
+            builds=builds,
         )
         session.add(compose)
         return compose
@@ -178,6 +182,7 @@ class Compose(ODCSBase):
             time_submitted=now,
             time_to_expire=now + timedelta(seconds=seconds_to_live),
             packages=compose.packages,
+            builds=compose.builds,
             flags=compose.flags,
             koji_event=compose.koji_event,
             arches=compose.arches,
@@ -307,6 +312,7 @@ class Compose(ODCSBase):
             'koji_event': self.koji_event,
             'koji_task_id': self.koji_task_id,
             'packages': self.packages,
+            'builds': self.builds,
             'arches': self.arches,
             'multilib_arches': self.multilib_arches,
             'multilib_method': self.multilib_method,

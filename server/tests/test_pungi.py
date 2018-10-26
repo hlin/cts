@@ -174,6 +174,37 @@ class TestPungiConfig(unittest.TestCase):
                 for method in arch_method_dict.values():
                     self.assertEqual(set(method), set(['runtime', 'devel']))
 
+    def test_get_pungi_conf_pkgset_koji_builds(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
+                                    "f26", builds=["foo-1-1", "bar-1-1"])
+
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertEqual(set(cfg["pkgset_koji_builds"]),
+                             set(["foo-1-1", "bar-1-1"]))
+
+    def test_get_pungi_conf_source_type_build(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.BUILD,
+                                    "x", builds=["foo-1-1", "bar-1-1"])
+
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertEqual(cfg["pkgset_koji_tag"], '')
+            self.assertEqual(set(cfg["pkgset_koji_builds"]),
+                             set(["foo-1-1", "bar-1-1"]))
+
 
 class TestPungi(unittest.TestCase):
 
