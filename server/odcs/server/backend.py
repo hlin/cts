@@ -381,6 +381,15 @@ def get_reusable_compose(compose):
                       old_compose)
             continue
 
+        builds = set(compose.builds.split(" ")) \
+            if compose.builds else set()
+        old_builds = set(old_compose.builds.split(" ")) \
+            if old_compose.builds else set()
+        if builds != old_builds:
+            log.debug("%r: Cannot reuse %r - builds not same", compose,
+                      old_compose)
+            continue
+
         source = set(compose.source.split(" "))
         old_source = set(old_compose.source.split(" "))
         if source != old_source:
@@ -568,6 +577,9 @@ def generate_pungi_compose(compose):
     packages = compose.packages
     if packages:
         packages = packages.split(" ")
+    builds = compose.builds
+    if builds:
+        builds = builds.split(" ")
 
     # Resolve the general data in the compose.
     resolve_compose(compose)
@@ -593,7 +605,8 @@ def generate_pungi_compose(compose):
                                     results=compose.results,
                                     arches=compose.arches.split(" "),
                                     multilib_arches=multilib_arches,
-                                    multilib_method=compose.multilib_method)
+                                    multilib_method=compose.multilib_method,
+                                    builds=builds)
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:

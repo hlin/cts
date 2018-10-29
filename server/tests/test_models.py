@@ -65,6 +65,7 @@ class TestModels(ModelsBaseTest):
                          'koji_event': None,
                          'koji_task_id': None,
                          'packages': None,
+                         'builds': None,
                          'arches': 'x86_64',
                          'multilib_arches': '',
                          'multilib_method': 0}

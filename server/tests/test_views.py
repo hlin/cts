@@ -300,6 +300,7 @@ class TestViews(ViewBaseTest):
                          'koji_event': None,
                          'koji_task_id': None,
                          'packages': None,
+                         'builds': None,
                          'arches': 'x86_64',
                          'multilib_arches': '',
                          'multilib_method': 0}
@@ -497,6 +498,43 @@ class TestViews(ViewBaseTest):
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_extra_builds(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26', 'packages': ['ed'],
+                            'builds': ['foo-1-1', 'bar-1-1']}}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['builds'], 'foo-1-1 bar-1-1')
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(c.builds, 'foo-1-1 bar-1-1')
+
+    def test_submit_build_source_type_build(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'build', 'packages': ['ed'],
+                            'builds': ['foo-1-1', 'bar-1-1']}}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['builds'], 'foo-1-1 bar-1-1')
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(c.source_type, PungiSourceType.BUILD)
+        self.assertEqual(c.builds, 'foo-1-1 bar-1-1')
 
     def test_submit_build_resurrection_removed(self):
         self.c1.state = COMPOSE_STATES["removed"]
@@ -964,6 +1002,7 @@ class TestViews(ViewBaseTest):
                          'koji_event': None,
                          'koji_task_id': None,
                          'packages': None,
+                         'builds': None,
                          'arches': 'x86_64',
                          'multilib_arches': '',
                          'multilib_method': 0}

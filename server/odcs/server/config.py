@@ -199,7 +199,7 @@ class Config(object):
             'desc': 'Number of concurrent Pungi processes.'},
         'allowed_source_types': {
             'type': list,
-            'default': ["tag", "module"],
+            'default': ["tag", "module", "build"],
             'desc': 'Allowed source types.'},
         'allowed_flags': {
             'type': list,

@@ -77,10 +77,10 @@ create_parser = subparsers.add_parser(
 create_parser.set_defaults(command='create')
 create_parser.add_argument(
     'source_type', default=None,
-    choices=['tag', 'module', 'raw_config', 'pulp'],
+    choices=['tag', 'module', 'raw_config', 'pulp', 'build'],
     help="Type for the source. Must be 'tag' or 'module'")
 create_parser.add_argument(
-    'source', default=None,
+    'source', default="",
     help="Source for the compose. May be a koji tag or a "
     "whitespace separated list of modules.")
 create_parser.add_argument(
@@ -99,6 +99,9 @@ create_parser.add_argument(
 create_parser.add_argument(
     'packages', metavar='package', nargs='*',
     help='Packages to be included in the compose.')
+create_parser.add_argument(
+    'builds', metavar='build', nargs='*',
+    help='Builds to be included in the compose.')
 
 
 wait_parser = subparsers.add_parser(
@@ -184,6 +187,7 @@ try:
             sigkeys=args.sigkey,
             flags=args.flag,
             arches=args.arch,
+            builds=args.builds,
         )
     elif args.command == "wait":
         result = {"id": int(args.compose_id)}

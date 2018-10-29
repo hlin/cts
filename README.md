@@ -125,6 +125,7 @@ Both `sources` and `source_type` are strings. Depending on `source_type` value, 
 | module        | White-space separated NAME:STREAM or NAME:STREAM:VERSION of modules to include in compose. |
 | pulp          | White-space separated list of content-sets. Repositories defined by these content-sets will be included in a compose. |
 | raw_config    | String in `name#commit` hash format. The `name` must match one of the raw config locations defined in ODCS server config as `raw_config_urls`. The `commit` is commit hash defining the version of raw config to use. This config is then used as input config for Pungi. |
+| build         | Source should be omitted in the request. The list of Koji builds included in a compose is defined by `builds` attribute. |
 
 There are also additional optional attributes you can pass to `new_compose(...)` method:
 
@@ -144,6 +145,8 @@ There are also additional optional attributes you can pass to `new_compose(...)`
     - `runtime` - Packages whose name ends with "-devel" or "-static" suffix will be considered as multilib. 
     - `devel` - Packages that install some shared object file "*.so.*" will be considered as multilib. 
     - `all` - All pakages will be considered as multilib.
+- `builds` - List of NVRs defining the Koji builds to include in a compose. Only valid for `tag` and `build` source types. For `tag` source type, the NVRs will be considered
+for inclusion in a compose on top of Koji tag defined by `source`. For `build` source type, only the Koji builds defined by the NVRs will be considered for inclusion. The `packages` still need to be set to include particular packages from the Koji builds in a compose.
 
 The `new_compose` method returns `dict` object describing the compose, for example:
 

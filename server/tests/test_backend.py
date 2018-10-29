@@ -329,7 +329,8 @@ class TestBackend(ModelsBaseTest):
     def test_get_reusable_compose_attrs_not_the_same(self):
         old_c = Compose.create(
             db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
-            COMPOSE_RESULTS["repository"], 3600, packages="ed", sigkeys="123")
+            COMPOSE_RESULTS["repository"], 3600, packages="ed", sigkeys="123",
+            builds="foo-1-1")
         old_c.state = COMPOSE_STATES["done"]
         resolve_compose(old_c)
         db.session.add(old_c)
@@ -337,6 +338,7 @@ class TestBackend(ModelsBaseTest):
 
         attrs = {}
         attrs["packages"] = "ed foo"
+        attrs["builds"] = "foo-1-1 bar-1-1"
         attrs["sigkeys"] = "321"
         attrs["koji_event"] = 123456
         attrs["source"] = "123"
@@ -346,7 +348,8 @@ class TestBackend(ModelsBaseTest):
         for attr, value in attrs.items():
             c = Compose.create(
                 db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
-                COMPOSE_RESULTS["repository"], 3600, packages="ed", sigkeys="123")
+                COMPOSE_RESULTS["repository"], 3600, packages="ed", sigkeys="123",
+                builds="foo-1-1")
             setattr(c, attr, value)
 
             # Do not resolve compose for non-existing source and in case we
@@ -740,6 +743,27 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         generate_pungi_compose(c)
         self.assertEqual(self.pungi_config.gather_method, "deps")
         self.assertEqual(self.pungi_config.pkgset_koji_inherit, False)
+
+    def test_generate_pungi_compose_builds(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
+            COMPOSE_RESULTS["repository"], 60, builds='foo-1-1 bar-1-1',
+            flags=COMPOSE_FLAGS["no_inheritance"])
+        c.id = 1
+
+        generate_pungi_compose(c)
+        self.assertEqual(self.pungi_config.builds, ["foo-1-1", "bar-1-1"])
+
+    def test_generate_pungi_compose_source_type_build(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.BUILD, "x",
+            COMPOSE_RESULTS["repository"], 60, builds='foo-1-1 bar-1-1',
+            flags=COMPOSE_FLAGS["no_inheritance"])
+        c.id = 1
+
+        generate_pungi_compose(c)
+        self.assertEqual(self.pungi_config.koji_tag, None)
+        self.assertEqual(self.pungi_config.builds, ["foo-1-1", "bar-1-1"])
 
     @patch.object(odcs.server.config.Config, 'raw_config_urls',
                   new={

@@ -110,7 +110,7 @@ class RawPungiConfig(BasePungiConfig):
 class PungiConfig(BasePungiConfig):
     def __init__(self, release_name, release_version, source_type, source,
                  packages=None, arches=None, sigkeys=None, results=0,
-                 multilib_arches=None, multilib_method=0):
+                 multilib_arches=None, multilib_method=0, builds=None):
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
@@ -124,6 +124,7 @@ class PungiConfig(BasePungiConfig):
         else:
             self.arches = conf.arches
         self.packages = packages or []
+        self.builds = builds or []
 
         # Store results as list of strings, so it can be used by jinja2
         # templates.
@@ -155,6 +156,10 @@ class PungiConfig(BasePungiConfig):
                 raise ValueError("Exact packages cannot be set for MODULE "
                                  "source type.")
         elif source_type == PungiSourceType.REPO:
+            self.gather_source = "comps"
+            self.gather_method = "deps"
+            self.koji_tag = None
+        elif source_type == PungiSourceType.BUILD:
             self.gather_source = "comps"
             self.gather_method = "deps"
             self.koji_tag = None
