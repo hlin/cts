@@ -33,7 +33,8 @@ from odcs.server.mbs import ModuleLookupError
 from odcs.server.pungi import PungiSourceType
 from odcs.server.backend import (resolve_compose, get_reusable_compose,
                                  generate_compose, generate_pulp_compose,
-                                 generate_pungi_compose, validate_pungi_compose)
+                                 generate_pungi_compose, validate_pungi_compose,
+                                 koji_get_inherited_tags)
 from odcs.server.utils import makedirs
 import odcs.server.backend
 from .utils import ModelsBaseTest
@@ -222,6 +223,13 @@ class TestBackend(ModelsBaseTest):
 
         reused_c = get_reusable_compose(c)
         self.assertEqual(reused_c, old_c)
+
+    def test_koji_get_inherited_tags_unknown_tag(self):
+        koji_session = MagicMock()
+        koji_session.getTag.return_value = None
+
+        with self.assertRaisesRegexp(ValueError, 'Unknown Koji tag foo.'):
+            koji_get_inherited_tags(koji_session, "foo")
 
     @patch("odcs.server.backend.koji_get_inherited_tags")
     @patch("odcs.server.backend.create_koji_session")

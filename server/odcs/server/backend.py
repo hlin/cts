@@ -252,6 +252,8 @@ def koji_get_inherited_tags(koji_session, tag, tags=None):
     """
 
     info = koji_session.getTag(tag)
+    if not info:
+        raise ValueError("Unknown Koji tag %s." % tag)
     ids = [info["id"]]
     seen_tags = tags or set()
     inheritance_data = koji_session.getInheritanceData(tag)
