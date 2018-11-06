@@ -73,7 +73,7 @@ class BackendThread(object):
         Reimplement this method in your own BackendThread subclass.
         This method is called every `timeout` seconds.
         """
-        raise NotImplemented("do_work() method not implemented")
+        raise NotImplementedError("do_work() method not implemented")
 
     def _run(self):
         """
