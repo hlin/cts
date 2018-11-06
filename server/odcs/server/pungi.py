@@ -449,10 +449,13 @@ class PungiLogs(object):
     @property
     def global_log_path(self):
         """
-        Returns the path to pungi.global.log.
+        Returns the path to pungi.global.log if it exists.
         """
+        toplevel_work_dir = self.compose.toplevel_work_dir
+        if not toplevel_work_dir:
+            return None
         return os.path.join(
-            self.compose.toplevel_work_dir, "logs", "global", "pungi.global.log")
+            toplevel_work_dir, "logs", "global", "pungi.global.log")
 
     def _get_global_log_errors(self):
         """
@@ -463,8 +466,11 @@ class PungiLogs(object):
         :return: List of error strings.
         """
         errors = []
+        global_log_path = self.global_log_path
+        if not global_log_path:
+            return errors
         try:
-            with open(self.global_log_path, "r") as global_log:
+            with open(global_log_path, "r") as global_log:
                 error = ""
                 for line in global_log.readlines():
                     idx = line.find("[ERROR   ]")

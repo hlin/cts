@@ -697,9 +697,13 @@ def generate_compose(compose_id, lost_compose=False):
             else:
                 log.exception("Error while generating compose %d", compose_id)
 
-            pungi_logs = PungiLogs(compose)
-            state_reason = "Error while generating compose: {}\n{}".format(
-                str(e), pungi_logs.get_error_string())
+            state_reason = "Error while generating compose: {}".format(str(e))
+
+            try:
+                pungi_logs = PungiLogs(compose)
+                state_reason += "\n{}".format(pungi_logs.get_error_string())
+            except Exception:
+                log.exception("Exception raised when getting Pungi logs.")
 
             compose.transition(COMPOSE_STATES["failed"], state_reason)
 

@@ -346,6 +346,13 @@ For more details see {0}/odcs-717-1-20180323.n.0/work/x86_64/pungi/Temporary.x86
         errors = pungi_logs.get_error_string()
         self.assertEqual(errors, "")
 
+    def test_toplevel_work_dir(self):
+        # The self.glob is inherited from ModelsBaseTest.
+        self.glob.return_value = []
+        pungi_logs = PungiLogs(self.compose)
+        errors = pungi_logs.get_error_string()
+        self.assertEqual(errors, "")
+
 
 class TestPungiRunroot(unittest.TestCase):
 

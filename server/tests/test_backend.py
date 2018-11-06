@@ -555,6 +555,28 @@ gpgcheck=0
             r'Error while generating compose: Expected exception\n'
             'Compose failed for unknown reason*')
 
+    @patch("odcs.server.backend.resolve_compose")
+    @patch("odcs.server.backend.generate_pungi_compose")
+    @patch("odcs.server.pungi.PungiLogs.get_error_string")
+    def test_generate_compose_pungi_logs_exceptions(
+            self, get_error_string, generate_pungi_compose, resolve_compose):
+        get_error_string.side_effect = RuntimeError("PungiLogs Expected exception")
+        generate_pungi_compose.side_effect = RuntimeError("Expected exception")
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.KOJI_TAG, "foo-1",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        generate_compose(1)
+
+        c1 = Compose.query.filter(Compose.id == 1).one()
+        self.assertEqual(c1.state, COMPOSE_STATES["failed"])
+        self.assertRegexpMatches(
+            c1.state_reason,
+            r'Error while generating compose: Expected exception*')
+
     @patch('odcs.server.backend.tag_changed', return_value=True)
     @patch('odcs.server.backend.create_koji_session')
     def test_resolve_compose_from_koji_tag_get_last_event_if_tag_changed(
