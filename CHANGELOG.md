@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.16:
+  - Release date: 2018-11-06
+  - Fix exception in get_reusable_compose with Python3.
+  - Add support for building composes including particular Koji builds.
+    See README.md for more infomration.
+  - Show proper error message when requested Koji tag does not exist.
+  - Fix composes stuck in "generating" state in case of compose failing
+    early in the compose process.
+
 ## 0.2.15:
   - Release date: 2018-10-03
   - Do not add base module into the compose and do not accept it in 'source'.
