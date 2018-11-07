@@ -23,7 +23,7 @@
 
 import fedmsg.consumers
 
-from odcs.server import log, conf
+from odcs.server import log, conf, db
 from odcs.server.backend import ComposerThread, RemoveExpiredComposesThread
 from odcs.server.models import Compose
 from odcs.server.utils import retry
@@ -73,6 +73,10 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
             self.process_message(topic, inner_msg)
         except Exception:
             log.exception('Failed while handling {0!r}'.format(message))
+
+        # Commit the session to ensure that database transaction is closed and
+        # does not remain in Idle state acquiring the table lock.
+        db.session.commit()
 
         if self.stop_condition and self.stop_condition(message):
             self.shutdown()

@@ -712,6 +712,10 @@ def generate_compose(compose_id, lost_compose=False):
         koji_tag_cache = KojiTagCache()
         koji_tag_cache.cleanup_reused(compose)
 
+        # Commit the session to ensure that database transaction is closed and
+        # does not remain in Idle state acquiring the table lock.
+        db.session.commit()
+
 
 class ComposerThread(BackendThread):
     """
