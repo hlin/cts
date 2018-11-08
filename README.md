@@ -130,7 +130,8 @@ Both `sources` and `source_type` are strings. Depending on `source_type` value, 
 There are also additional optional attributes you can pass to `new_compose(...)` method:
 
 - `seconds_to_live` - Number of seconds after which the generated compose should expire and will be removed.
-- `packages` - List of packages which should be included in a compose. This is used only when `source_type` is set to `tag` to further limit the compose repository.
+- `packages` - List of packages which should be included in a compose. This is used only when `source_type` is set to `tag` or `build` to further limit the compose repository.
+If the `packages` is not set, all packages in Koji tag or all packages in a `builds` list will be included in a final compose.
 - `flags` - List of flags to further modify the compose output:
     - `no_deps` - For `tag` `source_type`, do not resolve dependencies between packages and include only packages listed in the `packages` in the compose. For `module` `source_type`, do not resolve dependencies between modules and include only the requested module in the compose.
     - `include_unpublished_pulp_repos` - For `pulp` `source_type`, include also unpublished repositories for input content-sets.

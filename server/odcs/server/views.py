@@ -266,10 +266,6 @@ class ODCSAPI(MethodView):
         if "builds" in source_data:
             builds = ' '.join(source_data["builds"])
 
-        if not packages and source_type == PungiSourceType.KOJI_TAG:
-            raise ValueError(
-                '"packages" must be defined for "tag" source_type.')
-
         sigkeys = ""
         if "sigkeys" in source_data:
             sigkeys = ' '.join(source_data["sigkeys"])

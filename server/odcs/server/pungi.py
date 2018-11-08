@@ -34,7 +34,9 @@ import string
 import odcs.server.utils
 from odcs.server import conf, log, db
 from odcs.server import comps
-from odcs.common.types import PungiSourceType, COMPOSE_RESULTS, MULTILIB_METHODS
+from odcs.common.types import (
+    PungiSourceType, COMPOSE_RESULTS, MULTILIB_METHODS,
+    INVERSE_PUNGI_SOURCE_TYPE_NAMES)
 from odcs.server.utils import makedirs, clone_repo, copytree
 
 
@@ -165,6 +167,10 @@ class PungiConfig(BasePungiConfig):
             self.koji_tag = None
         else:
             raise ValueError("Unknown source_type %r" % source_type)
+
+    @property
+    def source_type_str(self):
+        return INVERSE_PUNGI_SOURCE_TYPE_NAMES[self.source_type]
 
     @property
     def release_short(self):

@@ -321,9 +321,12 @@ class TestViews(ViewBaseTest):
                  'flags': ['no_deps']}))
             data = json.loads(rv.get_data(as_text=True))
 
-        self.assertEqual(
-            data['message'],
-            '"packages" must be defined for "tag" source_type.')
+        self.assertEqual(data["state_name"], "wait")
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(c.packages, None)
 
     def test_submit_build_nodeps(self):
         with self.test_request_context(user='dev'):
