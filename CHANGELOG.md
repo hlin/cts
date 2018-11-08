@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.18:
+  - Release date: 2018-11-08
+  - When no `packages` are set in input, include all the packages in a compose.
+
+## 0.2.17:
+  - Release date: 2018-11-07
+  - Retry when there are issues with communication with Pulp.
+  - Commit the session at the end of ODCS jobs to ensure there is no idle
+    transaction.
+
 ## 0.2.16:
   - Release date: 2018-11-06
   - Fix exception in get_reusable_compose with Python3.
