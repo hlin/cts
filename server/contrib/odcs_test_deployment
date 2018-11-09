@@ -10,6 +10,7 @@ import time
 import shutil
 import tempfile
 import openidc_client
+from datetime import datetime
 
 
 class TemporaryDirectory(object):
@@ -121,12 +122,12 @@ def check_compose(compose, source_type, source, packages, flags, arches=None):
                 assert pkg in pkgs
 
             # In case of "no_deps" flag, no extra packages are allowed in
-            # a compose. In case the flag is not there, there must be more
+            # a compose. In case the flag is not there, there migh be more
             # packages in a compose because of dependencies of a package.
             if "no_deps" in flags:
                 assert len(pkgs) == len(packages)
             else:
-                assert len(pkgs) > len(packages)
+                assert len(pkgs) >= len(packages)
         elif source_type == "module":
             # TODO
             # For Koji tag, try to get list of packages in a repo.
@@ -137,7 +138,8 @@ def check_compose(compose, source_type, source, packages, flags, arches=None):
 
 
 def check_new_compose(source_type, source, packages, flags,
-                      sigkeys=None, arches=None, expected_state_reason=None):
+                      sigkeys=None, arches=None, expected_state_reason=None,
+                      expected_packages=None, **kwargs):
     """
     Submits new compose and checks the result.
     """
@@ -152,6 +154,7 @@ def check_new_compose(source_type, source, packages, flags,
             flags=flags,
             sigkeys=sigkeys,
             arches=arches,
+            **kwargs
         )
     except requests.exceptions.HTTPError as e:
         assert expected_state_reason in e.response.json()["message"]
@@ -164,6 +167,8 @@ def check_new_compose(source_type, source, packages, flags,
         assert compose["state_name"] == "failed"
         assert expected_state_reason in compose["state_reason"]
     else:
+        if not packages and expected_packages:
+            packages = expected_packages
         check_compose(compose, source_type, source, packages, flags, arches)
 
     print("OK")
@@ -191,12 +196,20 @@ def check_delete_compose(compose_id):
     """
     print("Deleting compose: %s" % compose_id)
     client.delete_compose(compose_id)
+    # Deleting a compose means setting its "time_to_expire" to "now".
+    # The composes are not delete immediatelly, so this method only
+    # checks that "time_to_expire" is set properly and composes are
+    # therefore marked for deletion.
     for i in range(10):
+        now = time.time()
         compose = client.get_compose(compose_id)
-        if compose["state_name"] == "removed":
+        time_to_expire = datetime.strptime(
+            compose["time_to_expire"], "%Y-%m-%dT%H:%M:%SZ")
+        time_to_expire = time.mktime(time_to_expire.timetuple())
+        if time_to_expire < now:
             break
         time.sleep(1)
-    assert compose["state_name"] == "removed"
+    assert time_to_expire < now
     print("OK")
     print("")
 
@@ -216,20 +229,45 @@ def check_redhat_deployment():
     # Check "tag" with "deps".
     check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
 
-    # Check "tag" with errors.
+    # Check "tag" without "packages" - all packages in tag should be included.
     check_new_compose(
         "tag", "cf-1.0-rhel-5", [], [],
-        expected_state_reason="\"packages\" must be defined for \"tag\" source_type.")
+        expected_packages=[
+            'PyPAM', 'aeolus-audrey-agent', 'facter', 'gofer',
+            'gofer-package', 'gofer-system', 'gofer-virt', 'gofer-watchdog',
+            'help2man', 'katello-agent', 'libdnet', 'libdnet-devel',
+            'libdnet-progs', 'open-vm-tools', 'open-vm-tools-devel',
+            'open-vm-tools-libs', 'open-vm-toolsd', 'python-argparse',
+            'python-gofer', 'python-hashlib', 'python-httplib2',
+            'python-oauth2', 'python-qpid', 'python-saslwrapper',
+            'python-setuptools', 'python-ssl', 'python-uuid', 'rhev-agent',
+            'ruby-gofer', 'ruby-saslwrapper', 'saslwrapper',
+            'saslwrapper-devel'])
+
+    # Check unknown "tag".
     check_new_compose(
         "tag", "unknown-tag", ["gofer-package"], [],
-        expected_state_reason="Compose run failed: No such entry in table tag: unknown-tag")
+        expected_state_reason="Unknown Koji tag")
+
+    #Check "tag" with additional builds.
+    compose_id = check_new_compose(
+        "tag", "cf-1.0-rhel-5", ["gofer-package", "tar"], ["no_deps"],
+        arches=["x86_64", "ppc64"], builds=["tar-1.26-29.el7"])
+
+    # Check "build".
+    compose_id = check_new_compose(
+        "build", "", ["tar"], ["no_deps"],
+        arches=["x86_64", "ppc64"], builds=["tar-1.26-29.el7"])
 
     # Check "pulp".
     check_new_compose("pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
 
+    # Check unknown "pulp" content_set.
+    check_new_compose(
+        "pulp", "rhel-7-server-rpms-unknown", [], [],
+        expected_state_reason="Failed to find")
+
     # Check "module".
-    compose_id = check_new_compose("module", "postgresql-10", [], ["no_deps"], [""])
-    check_delete_compose(compose_id)
     check_new_compose("module", "postgresql:10", [], ["no_deps"], [""])
 
 if __name__ == "__main__":
