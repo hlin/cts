@@ -27,7 +27,7 @@ from datetime import datetime, timedelta
 from mock import patch, MagicMock, call
 
 import odcs.server
-from odcs.server import db, app
+from odcs.server import db, app, conf
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.backend import ComposerThread, resolve_compose
@@ -442,3 +442,21 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
             call(composes[12]), call(composes[13]), call(composes[14]),
             call(composes[15]), call(composes[16]), call(composes[17]),
             call(composes[18]), call(composes[19])])
+
+    def test_fail_lost_generating_composes(self):
+        t = datetime.utcnow() - timedelta(seconds=2 * conf.pungi_timeout)
+
+        time_submitted = t - timedelta(minutes=5)
+        compose_to_fail = self._add_test_compose(
+            COMPOSE_STATES["generating"], time_submitted=time_submitted)
+
+        time_submitted = t + timedelta(minutes=5)
+        compose_to_keep = self._add_test_compose(
+            COMPOSE_STATES["generating"], time_submitted=time_submitted)
+
+        self.composer.fail_lost_generating_composes()
+        db.session.commit()
+        db.session.expire_all()
+
+        self.assertEqual(compose_to_fail.state, COMPOSE_STATES["failed"])
+        self.assertEqual(compose_to_keep.state, COMPOSE_STATES["generating"])

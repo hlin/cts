@@ -119,3 +119,4 @@ class ODCSConsumer(fedmsg.consumers.FedmsgConsumer):
         elif topic.endswith(conf.internal_messaging_topic):
             self.remove_expired_compose_thread.do_work()
             self.composer.pickup_waiting_composes()
+            self.composer.fail_lost_generating_composes()

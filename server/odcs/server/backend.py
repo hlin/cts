@@ -814,6 +814,29 @@ class ComposerThread(BackendThread):
                      "state.", compose)
             self.generate_new_compose(compose)
 
+    def fail_lost_generating_composes(self):
+        """
+        Fails the composes in `generating` state in case they are in this
+        state for longer than `2 * conf.pungi_timeout`. Because composes
+        can be generating only for `conf.pungi_timeout` seconds, this is enough
+        time to generate any compose.
+        """
+        max_generating_time = 2 * conf.pungi_timeout
+        now = datetime.utcnow()
+        too_old_datetime = now - timedelta(seconds=max_generating_time)
+
+        # Get composes which are in 'generating' state for too long.
+        composes = Compose.query.filter(
+            Compose.state == COMPOSE_STATES["generating"],
+            Compose.time_submitted < too_old_datetime).order_by(
+                Compose.id).all()
+
+        for compose in composes:
+            compose.transition(
+                COMPOSE_STATES["failed"],
+                "Compose stuck in 'generating' state for longer than %d "
+                "seconds." % max_generating_time)
+
     def generate_lost_composes(self):
         """
         Gets all the composes in "generating" state and continues with
