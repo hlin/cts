@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import six
 import unittest
 
 from mock import patch
@@ -38,8 +39,8 @@ class TestUtilsExecuteCmd(unittest.TestCase):
 
     def test_execute_cmd_timeout_called(self):
         start_time = time.time()
-        with self.assertRaisesRegexp(
-                RuntimeError, 'Compose has taken more time.*'):
+        with six.assertRaisesRegex(
+                self, RuntimeError, 'Compose has taken more time.*'):
             execute_cmd(["/usr/bin/sleep", "5"], timeout=1)
         stop_time = time.time()
 

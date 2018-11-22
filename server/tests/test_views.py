@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import six
 import contextlib
 import json
 
@@ -830,8 +831,8 @@ class TestViews(ViewBaseTest):
 
                 self.assertEqual(resp.status, '400 BAD REQUEST')
                 self.assertEqual(data['status'], 400)
-                self.assertRegexpMatches(data['message'],
-                                         r"Compose \(id=%s\) can not be removed, its state need to be in .*." % new_c.id)
+                six.assertRegex(self, data['message'],
+                                r"Compose \(id=%s\) can not be removed, its state need to be in .*." % new_c.id)
                 self.assertEqual(data['error'], 'Bad Request')
 
     def test_delete_non_exist_compose(self):
@@ -911,8 +912,8 @@ class TestViews(ViewBaseTest):
         self.assertEqual(resp.status, '202 ACCEPTED')
         self.assertEqual(resp.status_code, 202)
         self.assertEqual(data['status'], 202)
-        self.assertRegexpMatches(data['message'],
-                                 r"The delete request for compose \(id=%s\) has been accepted and will be processed by backend later." % c3.id)
+        six.assertRegex(self, data['message'],
+                        r"The delete request for compose \(id=%s\) has been accepted and will be processed by backend later." % c3.id)
 
     @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
     @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)

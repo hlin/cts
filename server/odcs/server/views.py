@@ -84,8 +84,9 @@ api_v1 = {
 class ODCSAPI(MethodView):
     def _get_compose_owner(self):
         if conf.auth_backend == "noauth":
-            log.warn("Cannot determine the owner of compose, because "
-                     "'noauth' auth_backend is used.")
+            log.warning(
+                "Cannot determine the owner of compose, because "
+                "'noauth' auth_backend is used.")
             return "unknown"
         else:
             return g.user.username

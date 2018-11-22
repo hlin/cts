@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import six
 import os
 import shutil
 
@@ -100,7 +101,7 @@ class TestBackend(ModelsBaseTest):
             flags=flags)
         db.session.commit()
 
-        with self.assertRaisesRegexp(ModuleLookupError, match):
+        with six.assertRaisesRegex(self, ModuleLookupError, match):
             resolve_compose(c)
 
     @mock_mbs(1)
@@ -145,7 +146,7 @@ class TestBackend(ModelsBaseTest):
             flags=flags)
         db.session.commit()
 
-        with self.assertRaisesRegexp(ModuleLookupError, match):
+        with six.assertRaisesRegex(self, ModuleLookupError, match):
             resolve_compose(c)
 
     def test_resolve_compose_module_not_found(self):
@@ -228,7 +229,7 @@ class TestBackend(ModelsBaseTest):
         koji_session = MagicMock()
         koji_session.getTag.return_value = None
 
-        with self.assertRaisesRegexp(ValueError, 'Unknown Koji tag foo.'):
+        with six.assertRaisesRegex(self, ValueError, 'Unknown Koji tag foo.'):
             koji_get_inherited_tags(koji_session, "foo")
 
     @patch("odcs.server.backend.koji_get_inherited_tags")
@@ -528,7 +529,7 @@ gpgcheck=0
 
         c1 = Compose.query.filter(Compose.id == 1).one()
         self.assertEqual(c1.state, COMPOSE_STATES["failed"])
-        self.assertRegexpMatches(c1.state_reason, r'Error while generating compose: Failed to find all the content_sets.*')
+        six.assertRegex(self, c1.state_reason, r'Error while generating compose: Failed to find all the content_sets.*')
 
     @patch("odcs.server.backend.resolve_compose")
     @patch("odcs.server.backend.generate_pungi_compose")
@@ -550,8 +551,8 @@ gpgcheck=0
 
         c1 = Compose.query.filter(Compose.id == 1).one()
         self.assertEqual(c1.state, COMPOSE_STATES["failed"])
-        self.assertRegexpMatches(
-            c1.state_reason,
+        six.assertRegex(
+            self, c1.state_reason,
             r'Error while generating compose: Expected exception\n'
             'Compose failed for unknown reason*')
 
@@ -573,8 +574,8 @@ gpgcheck=0
 
         c1 = Compose.query.filter(Compose.id == 1).one()
         self.assertEqual(c1.state, COMPOSE_STATES["failed"])
-        self.assertRegexpMatches(
-            c1.state_reason,
+        six.assertRegex(
+            self, c1.state_reason,
             r'Error while generating compose: Expected exception*')
 
     @patch('odcs.server.backend.tag_changed', return_value=True)
@@ -907,7 +908,7 @@ class TestValidatePungiCompose(ModelsBaseTest):
         super(TestValidatePungiCompose, self).tearDown()
 
     def test_missing_packages(self):
-        with self.assertRaisesRegexp(RuntimeError, 'not present.+pkg3'):
+        with six.assertRaisesRegex(self, RuntimeError, 'not present.+pkg3'):
             validate_pungi_compose(self.c)
 
     def test_all_packages_are_included(self):

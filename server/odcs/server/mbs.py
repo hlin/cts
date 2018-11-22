@@ -99,7 +99,7 @@ class MBS(object):
             # But otherwise get the latest module in this name:stream from MBS
             # and add it to new_modules/module_map.
             for deps in mmd.get_dependencies():
-                for name, streams in deps.get_requires().items():
+                for name, streams in deps.peek_requires().items():
                     for stream in streams.get():
                         key = "%s:%s" % (name, stream)
                         if key not in module_map:

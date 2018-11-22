@@ -18,7 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import fedmsg.config
 import mock
 
 from .utils import ModelsBaseTest, ConfigPatcher
@@ -33,8 +32,9 @@ class ConsumerBaseTest(ModelsBaseTest):
 
     def _create_consumer(self):
         hub = mock.MagicMock()
-        hub.config = fedmsg.config.load_config()
+        hub.config = {}
         hub.config['odcsconsumer'] = True
+        hub.config['validate_signatures'] = False
         return ODCSConsumer(hub)
 
     def _compose_state_change_msg(self, id=1, state=None):

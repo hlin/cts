@@ -141,8 +141,8 @@ class RemoveExpiredComposesThread(BackendThread):
 
         # Be nice and don't fail when directory does not exist.
         if not os.path.exists(toplevel_dir):
-            log.warn("Cannot remove directory %s, it does not exist",
-                     toplevel_dir)
+            log.warning("Cannot remove directory %s, it does not exist",
+                        toplevel_dir)
             return
 
         # If toplevel_dir is a symlink, remove the symlink and
