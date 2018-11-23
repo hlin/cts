@@ -326,6 +326,12 @@ class Config(object):
             'type': str,
             'default': None,
             'desc': 'Kerberos principal to use for Koji auth.'},
+        'koji_tag_cache_cleanup_timeout': {
+            'type': int,
+            'default': 30,
+            'desc': 'Number of days after which the cached Koji tag data '
+                    'stored in the "koji_tag_cache" directory will be '
+                    'removed.'},
         'raw_config_urls': {
             'type': dict,
             'default': {},

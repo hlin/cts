@@ -21,6 +21,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import time
 import os
 import shutil
 import threading
@@ -50,6 +51,35 @@ class KojiTagCache(object):
         self.cache_dir = os.path.join(conf.target_dir, "koji_tag_cache")
         with KojiTagCache._cache_lock:
             makedirs(self.cache_dir)
+
+    def remove_old_koji_tag_cache_data(self):
+        """
+        Removes the old unused Koji tag cache directories which has not been
+        used for more than `conf.koji_tag_cache_cleanup_timeout` days.
+        """
+        # The koji_tag_cache_cleanup_timeout is in days, so convert it to
+        # seconds.
+        older_than_seconds = conf.koji_tag_cache_cleanup_timeout * 24 * 3600
+        threshold = time.time() - older_than_seconds
+
+        for cached_dir in os.listdir(self.cache_dir):
+            path = os.path.join(self.cache_dir, cached_dir)
+            try:
+                mtime = os.path.getmtime(path)
+            except OSError:
+                # Directory might have been removed in meantime by some
+                # 3rd party process.
+                log.exception(
+                    "Old koji tag cache directory %s removed while checking "
+                    "Koji cache." % path)
+                continue
+
+            if mtime > threshold:
+                # Koji tag directory is not old enough to be removed.
+                continue
+
+            log.info("Removing old Koji tag cache data in %s." % path)
+            shutil.rmtree(path)
 
     def cached_compose_dir(self, compose):
         """

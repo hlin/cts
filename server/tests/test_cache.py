@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import time
 import os
 from mock import patch
 
@@ -137,3 +138,28 @@ class TestKojiTagCache(ModelsBaseTest):
         self.cache.update_cache(c)
         rmtree.assert_called_once_with(
             os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64"))
+
+    @patch("os.listdir")
+    @patch("os.path.getmtime")
+    @patch("shutil.rmtree")
+    def test_remove_old_koji_tag_cache_data(self, rmtree, getmtime, listdir):
+        now = time.time()
+        listdir.return_value = ["foo", "bar"]
+        # Default timeout is 30 days, so set 31 for first dir and 29 for
+        # second dir.
+        getmtime.side_effect = [now - 31 * 24 * 3600, now - 29 * 24 * 3600]
+
+        self.cache.remove_old_koji_tag_cache_data()
+        rmtree.assert_called_once_with(
+            os.path.join(self.cache.cache_dir, "foo"))
+
+    @patch("os.listdir")
+    @patch("os.path.getmtime")
+    @patch("shutil.rmtree")
+    def test_remove_old_koji_tag_cache_data_getmtime_raises(
+            self, rmtree, getmtime, listdir):
+        listdir.return_value = ["foo", "bar"]
+        getmtime.side_effect = OSError("path does not exist")
+
+        self.cache.remove_old_koji_tag_cache_data()
+        rmtree.assert_not_called()

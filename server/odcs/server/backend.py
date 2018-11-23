@@ -225,6 +225,10 @@ class RemoveExpiredComposesThread(BackendThread):
                 self._remove_compose_dir(path)
                 continue
 
+        # Remove old Koji tag data from Koji tag cache.
+        koji_tag_cache = KojiTagCache()
+        koji_tag_cache.remove_old_koji_tag_cache_data()
+
 
 def create_koji_session():
     """
