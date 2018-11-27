@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.19:
+  - Release data: 2018-11-27
+  - Remove old cached data from Koji tag cache directory.
+  - Fail composes in 'generating' state older than `2 * conf.pungi_timeout`.
+
 ## 0.2.18:
   - Release date: 2018-11-08
   - When no `packages` are set in input, include all the packages in a compose.
