@@ -30,9 +30,5 @@ class BadRequest(ValueError):
     pass
 
 
-class Unauthorized(ValueError):
-    pass
-
-
 class Forbidden(ValueError):
     pass
