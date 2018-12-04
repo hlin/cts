@@ -617,7 +617,7 @@ enabled_metadata=1
 
 def generate_pulp_compose(compose):
     """
-    Generates the compose of PULP type - this basically means only
+    Generates the "compose" of PULP type - this basically means only
     repo file pointing to data in pulp.
     """
     content_sets = compose.source.split(" ")
