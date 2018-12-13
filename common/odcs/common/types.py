@@ -29,6 +29,7 @@ class PungiSourceType:
     PULP = 4
     RAW_CONFIG = 5
     BUILD = 6
+    PUNGI_COMPOSE = 7
 
 
 PUNGI_SOURCE_TYPE_NAMES = {
@@ -45,6 +46,9 @@ PUNGI_SOURCE_TYPE_NAMES = {
     # Generates compose using exactly defined set of Koji builds without
     # pulling in RPMs from any Koji tag.
     "build": PungiSourceType.BUILD,
+    # Generates compose using the same set of RPMs as in existing 3rd party
+    # Pungi compose.
+    "pungi_compose": PungiSourceType.PUNGI_COMPOSE,
 }
 
 INVERSE_PUNGI_SOURCE_TYPE_NAMES = {

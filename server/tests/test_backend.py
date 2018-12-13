@@ -666,6 +666,39 @@ gpgcheck=0
             resolve_compose(c)
             self.assertEqual(c.source, "bar:0:1:y foo:0:1:x platform:0:1:z")
 
+    @patch('odcs.server.pungi_compose.PungiCompose.get_rpms_data')
+    def test_resolve_compose_pungi_compose_source_type(self, get_rpms_data):
+        get_rpms_data.return_value = {
+            'sigkeys': set(['sigkey1', None]),
+            'arches': set(['x86_64']),
+            'builds': {
+                'flatpak-rpm-macros-29-6.module+125+c4f5c7f2': set([
+                    'flatpak-rpm-macros-0:29-6.module+125+c4f5c7f2.src',
+                    'flatpak-rpm-macros-0:29-6.module+125+c4f5c7f2.x86_64']),
+                'flatpak-runtime-config-29-4.module+125+c4f5c7f2': set([
+                    'flatpak-runtime-config-0:29-4.module+125+c4f5c7f2.src',
+                    'flatpak-runtime-config2-0:29-4.module+125+c4f5c7f2.x86_64'])
+            }
+        }
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PUNGI_COMPOSE,
+            "http://localhost/compose/Temporary",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(c)
+        db.session.commit()
+
+        resolve_compose(c)
+        self.assertEqual(c.sigkeys.split(" "), ["sigkey1", ""])
+        self.assertEqual(c.arches.split(" "), ["x86_64"])
+        self.assertEqual(set(c.builds.split(" ")), set([
+            'flatpak-rpm-macros-29-6.module+125+c4f5c7f2',
+            'flatpak-runtime-config-29-4.module+125+c4f5c7f2']))
+        self.assertEqual(set(c.packages.split(" ")), set([
+            'flatpak-rpm-macros',
+            'flatpak-runtime-config',
+            'flatpak-runtime-config2']))
+
 
 class TestGeneratePungiCompose(ModelsBaseTest):
 
