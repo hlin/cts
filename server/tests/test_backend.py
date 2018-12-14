@@ -78,6 +78,41 @@ class TestBackend(ModelsBaseTest):
                                    "moduleD:f26:20170806000000:00000000"]))
 
     @mock_mbs()
+    def test_resolve_compose_module_multiple_contexts_no_deps(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "testcontexts:master:1",
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=COMPOSE_FLAGS["no_deps"])
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source,
+                         " ".join(["testcontexts:master:1:a",
+                                   "testcontexts:master:1:b"]))
+
+    @mock_mbs()
+    def test_resolve_compose_module_multiple_contexts_deps(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "testcontexts:master:1",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source,
+                         " ".join(["parent:master:1:a",
+                                   "parent:master:1:b",
+                                   "testcontexts:master:1:a",
+                                   "testcontexts:master:1:b"]))
+
+    @mock_mbs()
     def test_resolve_compose_module_no_deps(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,

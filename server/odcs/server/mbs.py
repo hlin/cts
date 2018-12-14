@@ -21,6 +21,7 @@
 #
 
 import requests
+from collections import defaultdict
 
 import odcs.server.utils
 from odcs.server import log
@@ -129,30 +130,37 @@ class MBS(object):
         new_modules = []
         # Temporary dict with "name:stream" as key and list of module dicts
         # as value.
-        module_map = {}
+        module_map = defaultdict(list)
 
         for module in modules:
             key = "%s:%s" % (module['name'], module['stream'])
 
-            # If this module is not in `new_modules` yet, add it there and
-            # continue to next module.
-            if key not in module_map:
-                module_map[key] = [module]
+            # In case this is the first module with this name:stream,
+            # just add it to new_modules.
+            old_modules = module_map[key]
+            if not old_modules:
+                module_map[key].append(module)
                 new_modules.append(module)
                 continue
 
             # Check if there is already this module in new_modules, but in
             # different version. If so, raise an exception.
-            old_modules = module_map[key]
-            if (module['version'] != old_modules[0]['version']):
+            if module['version'] != old_modules[0]['version']:
                 raise ModuleLookupError(
                     "%s:%s:%s:%s conflicts with %s:%s:%s:%s" % (
                         module['name'], module["stream"], module["version"],
                         module["context"], old_modules[0]['name'],
                         old_modules[0]["stream"], old_modules[0]["version"],
                         old_modules[0]["context"]))
-            else:
-                module_map[key].append(module)
+
+            # Check if there is already this module in new_modules in the very
+            # same context - do not add it there, because it would be duplicate.
+            if module['context'] in [m["context"] for m in old_modules]:
+                continue
+
+            # Add it to new_modules/module_map.
+            module_map[key].append(module)
+            new_modules.append(module)
 
         if expand:
             added_module_list = new_modules

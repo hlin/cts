@@ -33,12 +33,14 @@ gi.require_version('Modulemd', '1.0') # noqa
 from gi.repository import Modulemd
 
 
-def make_module(name, stream, version, requires={}, mdversion=1):
+def make_module(name, stream, version, requires={}, mdversion=1,
+                context=None):
     mmd = Modulemd.Module()
     mmd.set_mdversion(mdversion)
     mmd.set_name(name)
     mmd.set_stream(stream)
     mmd.set_version(version)
+    mmd.set_context(context or '00000000')
     mmd.set_summary("foo")
     mmd.set_description("foo")
     licenses = Modulemd.SimpleSet()
@@ -57,7 +59,7 @@ def make_module(name, stream, version, requires={}, mdversion=1):
         'name': name,
         'stream': stream,
         'version': str(version),
-        'context': '00000000',
+        'context': context or '00000000',
         'modulemd': mmd.dumps()
     }
 
@@ -104,7 +106,15 @@ TEST_MBS_MODULES_MMDv2 = [
 
     # test_composerthread.py
     make_module('testmodule', 'master', 20170515074418, {}, 2),
-    make_module('testmodule', 'master', 20170515074419, {}, 2)
+    make_module('testmodule', 'master', 20170515074419, {}, 2),
+
+    # multiple contexts
+    make_module('parent', 'master', 1, {}, 2, context="a"),
+    make_module('parent', 'master', 1, {}, 2, context="b"),
+    make_module('testcontexts', 'master', 1, {"parent": "master"},
+                2, context="a"),
+    make_module('testcontexts', 'master', 1, {"parent": "master"},
+                2, context="b"),
 ]
 
 
