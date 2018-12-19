@@ -32,8 +32,9 @@ from itertools import chain
 from flask import g
 from flask_login import login_required as _login_required
 
+from werkzeug.exceptions import Unauthorized
 from odcs.server import conf, log
-from odcs.server.errors import Unauthorized, Forbidden
+from odcs.server.errors import Forbidden
 from odcs.server.models import User
 from odcs.server.models import commit_on_success
 

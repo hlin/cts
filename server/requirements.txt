@@ -1,5 +1,6 @@
 flufl.lock
 fedmsg
+psutil
 moksha.hub
 funcsigs  # Python2 only
 httplib2

@@ -29,6 +29,7 @@ from mock import patch, Mock
 
 import odcs.server.auth
 
+from werkzeug.exceptions import Unauthorized
 from odcs.server.auth import init_auth
 from odcs.server.auth import load_krb_user_from_request
 from odcs.server.auth import load_openidc_user
@@ -36,7 +37,6 @@ from odcs.server.auth import query_ldap_groups
 from odcs.server.auth import require_scopes
 from odcs.server.auth import load_krb_or_ssl_user_from_request
 from odcs.server.auth import load_ssl_user_from_request
-from odcs.server.errors import Unauthorized
 from odcs.server.errors import Forbidden
 from odcs.server import app, conf, db
 from odcs.server.models import User
@@ -94,7 +94,8 @@ class TestLoadSSLUserFromRequest(ModelsBaseTest):
         with app.test_request_context(environ_base=environ_base):
             with self.assertRaises(Unauthorized) as ctx:
                 load_ssl_user_from_request(flask.request)
-            self.assertTrue('Cannot verify client: GENEROUS' in ctx.exception.args)
+            self.assertIn('Cannot verify client: GENEROUS',
+                          ctx.exception.description)
 
     def test_401_if_cn_not_set(self):
         environ_base = {
@@ -104,7 +105,8 @@ class TestLoadSSLUserFromRequest(ModelsBaseTest):
         with app.test_request_context(environ_base=environ_base):
             with self.assertRaises(Unauthorized) as ctx:
                 load_ssl_user_from_request(flask.request)
-            self.assertTrue('Unable to get user information (DN) from client certificate' in ctx.exception.args)
+            self.assertIn('Unable to get user information (DN) from client certificate',
+                          ctx.exception.description)
 
 
 class TestLoadKrbOrSSLUserFromRequest(unittest.TestCase):
@@ -192,7 +194,8 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
         with app.test_request_context():
             with self.assertRaises(Unauthorized) as ctx:
                 load_krb_user_from_request(flask.request)
-            self.assertTrue('REMOTE_USER is not present in request.' in ctx.exception.args)
+            self.assertIn('REMOTE_USER is not present in request.',
+                          ctx.exception.description)
 
 
 class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
@@ -325,7 +328,8 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             with app.test_request_context(environ_base=environ_base):
                 with self.assertRaises(Unauthorized) as ctx:
                     load_openidc_user(flask.request)
-                self.assertTrue('Required OIDC scope new-compose not present.' in ctx.exception.args)
+                self.assertIn('Required OIDC scope new-compose not present.',
+                              ctx.exception.description)
 
 
 class TestQueryLdapGroups(unittest.TestCase):

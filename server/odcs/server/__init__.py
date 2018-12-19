@@ -26,12 +26,12 @@ from logging import getLogger
 from flask import Flask, jsonify
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, Unauthorized
 
 from odcs.server.logger import init_logging
 from odcs.server.config import init_config
 from odcs.server.proxy import ReverseProxy
-from odcs.server.errors import NotFound, Unauthorized, Forbidden
+from odcs.server.errors import NotFound, Forbidden
 
 import pkg_resources
 
@@ -77,7 +77,7 @@ def notfound_error(e):
 @app.errorhandler(Unauthorized)
 def unauthorized_error(e):
     """Flask error handler for Unauthorized exceptions"""
-    return json_error(401, 'Unauthorized', e.args[0])
+    return json_error(401, 'Unauthorized', e.description)
 
 
 @app.errorhandler(Forbidden)
