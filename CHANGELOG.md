@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.20:
+  - Release data: 2019-01-03
+  - Return HTTP 401 error instead of HTTP 500 error in case of Unauthorized.
+  - Fix generation of composes with modules with the same NSV but different
+    contexts.
+
 ## 0.2.19:
   - Release data: 2018-11-27
   - Remove old cached data from Koji tag cache directory.
