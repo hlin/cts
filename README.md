@@ -143,8 +143,8 @@ If the `packages` is not set, all packages in Koji tag or all packages in a `bui
 - `multilib_arches` - Subset of `arches` for which the multilib should be enabled. For each architecture in the `multilib_arches` list, ODCS will include also packages from other compatible architectures in a compose. For example when "x86_64" is included `multilib_arches`, ODCS will include also "i686" packages in a compose. The set of packages included in a composes is influenced by `multilib_method` list.
 - `multilib_method` - List defining the method used to determine whether consider package as multilib. Defaults to empty list. The list can have following values:
     - `iso` - Generates non-installable ISO files with RPMs from a compose.
-    - `runtime` - Packages whose name ends with "-devel" or "-static" suffix will be considered as multilib. 
-    - `devel` - Packages that install some shared object file "*.so.*" will be considered as multilib. 
+    - `runtime` - Packages whose name ends with "-devel" or "-static" suffix will be considered as multilib.
+    - `devel` - Packages that install some shared object file "*.so.*" will be considered as multilib.
     - `all` - All pakages will be considered as multilib.
 - `builds` - List of NVRs defining the Koji builds to include in a compose. Only valid for `tag` and `build` source types. For `tag` source type, the NVRs will be considered
 for inclusion in a compose on top of Koji tag defined by `source`. For `build` source type, only the Koji builds defined by the NVRs will be considered for inclusion. The `packages` still need to be set to include particular packages from the Koji builds in a compose.
