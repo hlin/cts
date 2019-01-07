@@ -488,6 +488,22 @@ def get_reusable_compose(compose):
                       old_compose)
             continue
 
+        modular_koji_tags = set(compose.modular_koji_tags.split(" ")) \
+            if compose.modular_koji_tags else set()
+        old_modular_koji_tags = set(old_compose.modular_koji_tags.split(" ")) \
+            if old_compose.modular_koji_tags else set()
+        if modular_koji_tags != old_modular_koji_tags:
+            log.debug("%r: Cannot reuse %r - modular_koji_tags not same", compose,
+                      old_compose)
+            continue
+
+        module_defaults_url = compose.module_defaults_url
+        old_module_defaults_url = old_compose.module_defaults_url
+        if module_defaults_url != old_module_defaults_url:
+            log.debug("%r: Cannot reuse %r - module_defaults_url not same", compose,
+                      old_compose)
+            continue
+
         # In case of compose renewal, the compose.koji_event will be actually
         # lower than the "old_compose"'s one - the `compose` might have been for
         # example submitted 1 year ago, so koji_event will be one year old.
@@ -652,7 +668,9 @@ def generate_pungi_compose(compose):
                                     multilib_arches=multilib_arches,
                                     multilib_method=compose.multilib_method,
                                     builds=builds, flags=compose.flags,
-                                    lookaside_repos=compose.lookaside_repos)
+                                    lookaside_repos=compose.lookaside_repos,
+                                    modular_koji_tags=compose.modular_koji_tags,
+                                    module_defaults_url=compose.module_defaults_url)
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:

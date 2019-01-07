@@ -305,7 +305,9 @@ class TestViews(ViewBaseTest):
                          'arches': 'x86_64',
                          'multilib_arches': '',
                          'multilib_method': 0,
-                         'lookaside_repos': ''}
+                         'lookaside_repos': '',
+                         'modular_koji_tags': None,
+                         'module_defaults_url': None}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -486,6 +488,57 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'], 'Unknown multilib method "foo"')
+
+    def test_submit_build_modular_koji_tags(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26',
+                            'modular_koji_tags': ['f26-modules']}}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['modular_koji_tags'], "f26-modules")
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_module_defaults_url(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26',
+                            'module_defaults_url': 'git://localhost.tld/x.git',
+                            'module_defaults_commit': 'master'}}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['module_defaults_url'], 'git://localhost.tld/x.git master')
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_module_defaults_url_no_branch(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26',
+                            'module_defaults_url': 'git://localhost.tld/x.git'}}))
+            data = json.loads(rv.get_data(as_text=True))
+            self.assertEqual(data['status'], 400)
+            self.assertEqual(data['error'], 'Bad Request')
+            self.assertEqual(data['message'],
+                             'The "module_defaults_url" and "module_defaults_commit" '
+                             'must be used together.')
 
     def test_submit_build_duplicate_sources(self):
         with self.test_request_context(user='dev'):
@@ -1011,7 +1064,9 @@ class TestViews(ViewBaseTest):
                          'arches': 'x86_64',
                          'multilib_arches': '',
                          'multilib_method': 0,
-                         'lookaside_repos': ''}
+                         'lookaside_repos': '',
+                         'modular_koji_tags': None,
+                         'module_defaults_url': None}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()

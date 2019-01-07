@@ -102,6 +102,18 @@ create_parser.add_argument(
 create_parser.add_argument(
     'builds', metavar='build', nargs='*',
     help='Builds to be included in the compose.')
+create_parser.add_argument(
+    '--module-defaults-url', default="",
+    metavar='module_defaults_url',
+    help="URL to git repository with module defaults.")
+create_parser.add_argument(
+    '--module-defaults-commit', default="",
+    metavar='module_defaults_commit',
+    help="Git commit/branch from which to take the module defaults.")
+create_parser.add_argument(
+    '--modular-tag', default=[], action='append',
+    metavar="modular_koji_tags",
+    help="Koji tag with module builds.")
 
 
 wait_parser = subparsers.add_parser(
@@ -188,6 +200,8 @@ try:
             flags=args.flag,
             arches=args.arch,
             builds=args.builds,
+            module_defaults_url=module_defaults_url,
+            module_defaults_commit=module_defaults_commit,
         )
     elif args.command == "wait":
         result = {"id": int(args.compose_id)}
