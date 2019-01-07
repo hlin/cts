@@ -231,8 +231,13 @@ compose = odcs.renew_compose(compose["id"])
 Install packages required by pip to compile some python packages:
 
 ```
-$ sudo yum install -y gcc swig redhat-rpm-config python-devel openssl-devel openldap-devel
+$ sudo dnf install -y gcc swig redhat-rpm-config python-devel openssl-devel openldap-devel \
+    zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel tk-devel \
+    git python3-cairo-devel cairo-gobject-devel gobject-introspection-devel
 ```
+
+A lot of these dependencies come from the module
+[pygobject](https://pygobject.readthedocs.io/en/latest/devguide/dev_environ.html#fedora-dep).
 
 Koji is required but not available on pypi.python.org, we enabled system sitepackages for tox, so koji can be found while running tests.
 
