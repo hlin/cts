@@ -34,6 +34,7 @@ from odcs.server.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
 from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType, PungiLogs, RawPungiConfig
 from odcs.server.pulp import Pulp
 from odcs.server.cache import KojiTagCache
+from odcs.server.pungi_compose import PungiCompose
 from concurrent.futures import ThreadPoolExecutor
 import glob
 import odcs.server.utils
@@ -351,6 +352,35 @@ def resolve_compose(compose):
             for m in new_mbs_modules
             if m['name'] not in conf.base_module_names)
         compose.source = ' '.join(uids)
+    elif compose.source_type == PungiSourceType.PUNGI_COMPOSE:
+        external_compose = PungiCompose(compose.source)
+        rpms_data = external_compose.get_rpms_data()
+
+        # If there is None in the sigkeys, it means unsigned packages are
+        # allowed. The sigkeys in the `compose.sigkeys` are sorted by
+        # preference and unsigned packages should be tried as last.
+        # Therefore we need to remove None from `sigkeys` and handle
+        # it as last element in `compose.sigkeys`.
+        if None in rpms_data["sigkeys"]:
+            allow_unsigned = True
+            # Remove None from sigkeys.
+            rpms_data["sigkeys"].remove(None)
+        else:
+            allow_unsigned = False
+        compose.sigkeys = " ".join(rpms_data["sigkeys"])
+        if allow_unsigned:
+            # Unsigned packages are allowed by white-space in the end of
+            # `compose.sigkeys`.
+            compose.sigkeys += " "
+
+        compose.arches = " ".join(rpms_data["arches"])
+        compose.builds = " ".join(rpms_data["builds"].keys())
+
+        packages = set()
+        for rpms in rpms_data["builds"].values():
+            for rpm_nevra in rpms:
+                packages.add(productmd.common.parse_nvra(rpm_nevra)['name'])
+        compose.packages = " ".join(packages)
 
 
 def get_reusable_compose(compose):
@@ -579,6 +609,9 @@ def generate_pungi_compose(compose):
     """
     koji_tag_cache = KojiTagCache()
 
+    # Resolve the general data in the compose.
+    resolve_compose(compose)
+
     # Reformat the data from database
     packages = compose.packages
     if packages:
@@ -586,9 +619,6 @@ def generate_pungi_compose(compose):
     builds = compose.builds
     if builds:
         builds = builds.split(" ")
-
-    # Resolve the general data in the compose.
-    resolve_compose(compose)
 
     # Check if we can reuse some existing compose instead of
     # generating new one.

@@ -157,11 +157,9 @@ class PungiConfig(BasePungiConfig):
             if self.packages:
                 raise ValueError("Exact packages cannot be set for MODULE "
                                  "source type.")
-        elif source_type == PungiSourceType.REPO:
-            self.gather_source = "comps"
-            self.gather_method = "deps"
-            self.koji_tag = None
-        elif source_type == PungiSourceType.BUILD:
+        elif source_type in [PungiSourceType.BUILD,
+                             PungiSourceType.PUNGI_COMPOSE,
+                             PungiSourceType.REPO]:
             self.gather_source = "comps"
             self.gather_method = "deps"
             self.koji_tag = None
