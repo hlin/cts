@@ -36,7 +36,7 @@ from odcs.server import conf, log, db
 from odcs.server import comps
 from odcs.common.types import (
     PungiSourceType, COMPOSE_RESULTS, MULTILIB_METHODS,
-    INVERSE_PUNGI_SOURCE_TYPE_NAMES)
+    INVERSE_PUNGI_SOURCE_TYPE_NAMES, COMPOSE_FLAGS)
 from odcs.server.utils import makedirs, clone_repo, copytree
 
 
@@ -112,7 +112,8 @@ class RawPungiConfig(BasePungiConfig):
 class PungiConfig(BasePungiConfig):
     def __init__(self, release_name, release_version, source_type, source,
                  packages=None, arches=None, sigkeys=None, results=0,
-                 multilib_arches=None, multilib_method=0, builds=None):
+                 multilib_arches=None, multilib_method=0, builds=None,
+                 flags=0):
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
@@ -165,6 +166,8 @@ class PungiConfig(BasePungiConfig):
             self.koji_tag = None
         else:
             raise ValueError("Unknown source_type %r" % source_type)
+
+        self.check_deps = flags & COMPOSE_FLAGS["check_deps"]
 
     @property
     def source_type_str(self):

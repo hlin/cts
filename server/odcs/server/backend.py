@@ -642,7 +642,7 @@ def generate_pungi_compose(compose):
                                     arches=compose.arches.split(" "),
                                     multilib_arches=multilib_arches,
                                     multilib_method=compose.multilib_method,
-                                    builds=builds)
+                                    builds=builds, flags=compose.flags)
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:

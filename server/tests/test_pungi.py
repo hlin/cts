@@ -34,7 +34,7 @@ from odcs.server.pungi import (
 import odcs.server.pungi
 from odcs.server import conf, db
 from odcs.server.models import Compose
-from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
+from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS, COMPOSE_FLAGS
 from odcs.server.utils import makedirs
 from .utils import ConfigPatcher, AnyStringWith, ModelsBaseTest
 
@@ -155,6 +155,26 @@ class TestPungiConfig(unittest.TestCase):
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
             self.assertTrue(cfg["pkgset_koji_inherit"])
+
+    def test_get_pungi_conf_check_deps(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
+                                    "f26")
+
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertFalse(cfg["check_deps"])
+
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
+                                    "f26", flags=COMPOSE_FLAGS["check_deps"])
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertTrue(cfg["check_deps"])
 
     def test_get_pungi_conf_multilib(self):
         _, mock_path = tempfile.mkstemp()

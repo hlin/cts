@@ -99,6 +99,8 @@ COMPOSE_FLAGS = {
     "no_inheritance": 2,
     # For "pulp" source_type, include unpublished Pulp repos.
     "include_unpublished_pulp_repos": 4,
+    # Abort the compose when some package has broken dependencies.
+    "check_deps": 8,
 }
 
 INVERSE_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}
