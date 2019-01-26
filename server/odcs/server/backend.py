@@ -463,6 +463,15 @@ def get_reusable_compose(compose):
                       old_compose)
             continue
 
+        lookaside_repos = set(compose.lookaside_repos.split(" ")) \
+            if compose.lookaside_repos else set()
+        old_lookaside_repos = set(old_compose.lookaside_repos.split(" ")) \
+            if old_compose.lookaside_repos else set()
+        if lookaside_repos != old_lookaside_repos:
+            log.debug("%r: Cannot reuse %r - lookaside_repos not same", compose,
+                      old_compose)
+            continue
+
         multilib_arches = set(compose.multilib_arches.split(" ")) \
             if compose.multilib_arches else set()
         old_multilib_arches = set(old_compose.multilib_arches.split(" ")) \
@@ -642,7 +651,8 @@ def generate_pungi_compose(compose):
                                     arches=compose.arches.split(" "),
                                     multilib_arches=multilib_arches,
                                     multilib_method=compose.multilib_method,
-                                    builds=builds, flags=compose.flags)
+                                    builds=builds, flags=compose.flags,
+                                    lookaside_repos=compose.lookaside_repos)
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:

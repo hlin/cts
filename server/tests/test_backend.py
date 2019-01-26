@@ -389,6 +389,7 @@ class TestBackend(ModelsBaseTest):
         attrs["arches"] = "ppc64 x86_64"
         attrs["multilib_arches"] = "x86_64 i686"
         attrs["multilib_method"] = 1
+        attrs["lookaside_repos"] = "foo bar"
         for attr, value in attrs.items():
             c = Compose.create(
                 db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),

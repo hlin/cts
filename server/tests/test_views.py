@@ -304,7 +304,8 @@ class TestViews(ViewBaseTest):
                          'builds': None,
                          'arches': 'x86_64',
                          'multilib_arches': '',
-                         'multilib_method': 0}
+                         'multilib_method': 0,
+                         'lookaside_repos': ''}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -1009,7 +1010,8 @@ class TestViews(ViewBaseTest):
                          'builds': None,
                          'arches': 'x86_64',
                          'multilib_arches': '',
-                         'multilib_method': 0}
+                         'multilib_method': 0,
+                         'lookaside_repos': ''}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()

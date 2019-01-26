@@ -150,6 +150,7 @@ If the `packages` is not set, all packages in Koji tag or all packages in a `bui
     - `all` - All pakages will be considered as multilib.
 - `builds` - List of NVRs defining the Koji builds to include in a compose. Only valid for `tag` and `build` source types. For `tag` source type, the NVRs will be considered
 for inclusion in a compose on top of Koji tag defined by `source`. For `build` source type, only the Koji builds defined by the NVRs will be considered for inclusion. The `packages` still need to be set to include particular packages from the Koji builds in a compose.
+- `lookaside_repos` - List of base URLs of RPM repositories which should be considered when choosing packages for a compose.
 
 The `new_compose` method returns `dict` object describing the compose, for example:
 

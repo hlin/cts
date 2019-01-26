@@ -136,12 +136,14 @@ class Compose(ODCSBase):
     multilib_arches = db.Column(db.String)
     # Method to generate multilib compose as defined by python-multilib.
     multilib_method = db.Column(db.Integer)
+    # White-space separated lookaside repository URLs.
+    lookaside_repos = db.Column(db.String, nullable=True)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
                seconds_to_live, packages=None, flags=0, sigkeys=None,
                arches=None, multilib_arches=None, multilib_method=None,
-               builds=None):
+               builds=None, lookaside_repos=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -158,6 +160,7 @@ class Compose(ODCSBase):
             multilib_arches=multilib_arches if multilib_arches else "",
             multilib_method=multilib_method if multilib_method else 0,
             builds=builds,
+            lookaside_repos=lookaside_repos,
         )
         session.add(compose)
         return compose
@@ -189,6 +192,7 @@ class Compose(ODCSBase):
             multilib_arches=compose.multilib_arches,
             multilib_method=compose.multilib_method,
             sigkeys=compose.sigkeys,
+            lookaside_repos=compose.lookaside_repos,
         )
         session.add(compose)
         return compose
@@ -316,6 +320,7 @@ class Compose(ODCSBase):
             'arches': self.arches,
             'multilib_arches': self.multilib_arches,
             'multilib_method': self.multilib_method,
+            'lookaside_repos': self.lookaside_repos,
         }
 
     @staticmethod

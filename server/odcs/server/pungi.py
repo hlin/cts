@@ -113,7 +113,7 @@ class PungiConfig(BasePungiConfig):
     def __init__(self, release_name, release_version, source_type, source,
                  packages=None, arches=None, sigkeys=None, results=0,
                  multilib_arches=None, multilib_method=0, builds=None,
-                 flags=0):
+                 flags=0, lookaside_repos=None):
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
@@ -122,6 +122,7 @@ class PungiConfig(BasePungiConfig):
         self.source = source
         self.koji_profile = conf.koji_profile
         self.pkgset_koji_inherit = True
+        self.lookaside_repos = lookaside_repos.split(" ") if lookaside_repos else []
         if arches:
             self.arches = arches
         else:

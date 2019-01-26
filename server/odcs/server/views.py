@@ -297,6 +297,10 @@ class ODCSAPI(MethodView):
         if "multilib_arches" in data:
             multilib_arches = " ".join(data["multilib_arches"])
 
+        lookaside_repos = ""
+        if "lookaside_repos" in data:
+            lookaside_repos = " ".join(data["lookaside_repos"])
+
         multilib_method = MULTILIB_METHODS["none"]
         if "multilib_method" in data:
             for name in data["multilib_method"]:
@@ -312,7 +316,8 @@ class ODCSAPI(MethodView):
             db.session, self._get_compose_owner(), source_type, source,
             results, seconds_to_live,
             packages, flags, sigkeys, arches, multilib_arches=multilib_arches,
-            multilib_method=multilib_method, builds=builds)
+            multilib_method=multilib_method, builds=builds,
+            lookaside_repos=lookaside_repos)
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to
         # send message and before_commit can be called before flush and
