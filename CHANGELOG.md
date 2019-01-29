@@ -2,14 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.21
+  - Release date: 2019-01-29
+  - Add "pungi_compose" source type to generate compose containing the same
+    set of packages as another Pungi compose. The packages are still taken
+    from the Koji to ensure they come from the trusted source.
+  - Add "check_deps" flag. When set, the compose will fail in case some
+    dependencies between the packages cannot be resolved.
+  - Add "lookaside_repos" variable. It can be set to list of extra repositories
+    which are considered when resolving dependencies between packages which
+    end up in a compose.
+
 ## 0.2.20:
-  - Release data: 2019-01-03
+  - Release date: 2019-01-03
   - Return HTTP 401 error instead of HTTP 500 error in case of Unauthorized.
   - Fix generation of composes with modules with the same NSV but different
     contexts.
 
 ## 0.2.19:
-  - Release data: 2018-11-27
+  - Release date: 2018-11-27
   - Remove old cached data from Koji tag cache directory.
   - Fail composes in 'generating' state older than `2 * conf.pungi_timeout`.
 
