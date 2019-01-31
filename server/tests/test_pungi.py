@@ -168,13 +168,13 @@ class TestPungiConfig(unittest.TestCase):
 
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
-            self.assertFalse(cfg["check_deps"])
+            self.assertIs(cfg["check_deps"], False)
 
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
                                     "f26", flags=COMPOSE_FLAGS["check_deps"])
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
-            self.assertTrue(cfg["check_deps"])
+            self.assertIs(cfg["check_deps"], True)
 
     def test_get_pungi_conf_multilib(self):
         _, mock_path = tempfile.mkstemp()

@@ -168,7 +168,7 @@ class PungiConfig(BasePungiConfig):
         else:
             raise ValueError("Unknown source_type %r" % source_type)
 
-        self.check_deps = flags & COMPOSE_FLAGS["check_deps"]
+        self.check_deps = bool(flags & COMPOSE_FLAGS["check_deps"])
 
     @property
     def source_type_str(self):
