@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.22
+  - Release date: 2019-02-01
+  - Fix 0.2.21 regression when passing check_deps option to Pungi which
+    was wrongly set to int instead of bool.
+
 ## 0.2.21
   - Release date: 2019-01-29
   - Add "pungi_compose" source type to generate compose containing the same
