@@ -69,7 +69,9 @@ class TestModels(ModelsBaseTest):
                          'arches': 'x86_64',
                          'multilib_arches': '',
                          'multilib_method': 0,
-                         'lookaside_repos': None}
+                         'lookaside_repos': None,
+                         'modular_koji_tags': None,
+                         'module_defaults_url': None}
         self.assertEqual(c.json(), expected_json)
 
     def test_create_copy(self):

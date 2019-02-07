@@ -308,6 +308,27 @@ class ODCSAPI(MethodView):
                     raise ValueError("Unknown multilib method \"%s\"" % name)
                 multilib_method |= MULTILIB_METHODS[name]
 
+        modular_koji_tags = None
+        if "modular_koji_tags" in source_data:
+            modular_koji_tags = ' '.join(source_data["modular_koji_tags"])
+
+        module_defaults_url = None
+        if "module_defaults_url" in source_data:
+            module_defaults_url = source_data["module_defaults_url"]
+
+        module_defaults_commit = None
+        if "module_defaults_commit" in source_data:
+            module_defaults_commit = source_data["module_defaults_commit"]
+
+        module_defaults = None
+        # The "^" operator is logical XOR.
+        if bool(module_defaults_url) ^ bool(module_defaults_commit):
+            raise ValueError(
+                'The "module_defaults_url" and "module_defaults_commit" '
+                'must be used together.')
+        elif module_defaults_url and module_defaults_commit:
+            module_defaults = "%s %s" % (module_defaults_url, module_defaults_commit)
+
         raise_if_input_not_allowed(
             source_types=source_type, sources=source, results=results,
             flags=flags, arches=arches)
@@ -317,7 +338,9 @@ class ODCSAPI(MethodView):
             results, seconds_to_live,
             packages, flags, sigkeys, arches, multilib_arches=multilib_arches,
             multilib_method=multilib_method, builds=builds,
-            lookaside_repos=lookaside_repos)
+            lookaside_repos=lookaside_repos,
+            modular_koji_tags=modular_koji_tags,
+            module_defaults_url=module_defaults)
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to
         # send message and before_commit can be called before flush and

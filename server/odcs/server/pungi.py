@@ -113,7 +113,8 @@ class PungiConfig(BasePungiConfig):
     def __init__(self, release_name, release_version, source_type, source,
                  packages=None, arches=None, sigkeys=None, results=0,
                  multilib_arches=None, multilib_method=0, builds=None,
-                 flags=0, lookaside_repos=None):
+                 flags=0, lookaside_repos=None, modular_koji_tags=None,
+                 module_defaults_url=None):
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
@@ -148,9 +149,14 @@ class PungiConfig(BasePungiConfig):
             self.bootable = True
 
         if source_type == PungiSourceType.KOJI_TAG:
+            self.koji_module_tags = modular_koji_tags.split(" ") if modular_koji_tags else []
+            self.module_defaults_url = module_defaults_url.split(" ") if module_defaults_url else []
             self.koji_tag = source
             self.gather_source = "comps"
-            self.gather_method = "deps"
+            if self.koji_module_tags:
+                self.gather_method = "hybrid"
+            else:
+                self.gather_method = "deps"
         elif source_type == PungiSourceType.MODULE:
             self.koji_tag = None
             self.gather_source = "module"

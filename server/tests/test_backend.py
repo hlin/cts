@@ -390,6 +390,8 @@ class TestBackend(ModelsBaseTest):
         attrs["multilib_arches"] = "x86_64 i686"
         attrs["multilib_method"] = 1
         attrs["lookaside_repos"] = "foo bar"
+        attrs["modular_koji_tags"] = "f26-modules"
+        attrs["module_defaults_url"] = "git://localhost/x.git#branch"
         for attr, value in attrs.items():
             c = Compose.create(
                 db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),

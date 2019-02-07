@@ -211,6 +211,29 @@ class TestPungiConfig(unittest.TestCase):
             self.assertEqual(cfg["additional_packages"],
                              [(u'^Temporary$', {u'*': [u'*']})])
 
+    def test_get_pungi_conf_modular_koji_tags(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig(
+                "MBS-512", "1", PungiSourceType.KOJI_TAG, "f26",
+                modular_koji_tags="f26-modules",
+                module_defaults_url="git://localhost.tld/x.git master")
+
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertEqual(set(cfg["pkgset_koji_module_tag"]),
+                             set(["f26-modules"]))
+            self.assertEqual(cfg["gather_method"], "hybrid")
+            self.assertEqual(cfg["module_defaults_dir"], {
+                'branch': 'master',
+                'dir': '.',
+                'repo': 'git://localhost.tld/x.git',
+                'scm': 'git'})
+
     def test_get_pungi_conf_source_type_build(self):
         _, mock_path = tempfile.mkstemp()
         template_path = os.path.abspath(os.path.join(test_dir,

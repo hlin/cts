@@ -103,6 +103,10 @@ class Compose(ODCSBase):
     source_type = db.Column(db.Integer, nullable=False)
     # White-space separated list of koji_tags or modules
     source = db.Column(db.String, nullable=False)
+    # White-space separated list of modular Koji tags.
+    modular_koji_tags = db.Column(db.String)
+    # URL on which the module defaults can be found.
+    module_defaults_url = db.Column(db.String)
     # Koji event id at which the compose has been generated
     koji_event = db.Column(db.Integer)
     # White-space separated list sigkeys to define the key using which
@@ -143,7 +147,8 @@ class Compose(ODCSBase):
     def create(cls, session, owner, source_type, source, results,
                seconds_to_live, packages=None, flags=0, sigkeys=None,
                arches=None, multilib_arches=None, multilib_method=None,
-               builds=None, lookaside_repos=None):
+               builds=None, lookaside_repos=None, modular_koji_tags=None,
+               module_defaults_url=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -161,6 +166,8 @@ class Compose(ODCSBase):
             multilib_method=multilib_method if multilib_method else 0,
             builds=builds,
             lookaside_repos=lookaside_repos,
+            modular_koji_tags=modular_koji_tags,
+            module_defaults_url=module_defaults_url,
         )
         session.add(compose)
         return compose
@@ -193,6 +200,8 @@ class Compose(ODCSBase):
             multilib_method=compose.multilib_method,
             sigkeys=compose.sigkeys,
             lookaside_repos=compose.lookaside_repos,
+            modular_koji_tags=compose.modular_koji_tags,
+            module_defaults_url=compose.module_defaults_url,
         )
         session.add(compose)
         return compose
@@ -321,6 +330,8 @@ class Compose(ODCSBase):
             'multilib_arches': self.multilib_arches,
             'multilib_method': self.multilib_method,
             'lookaside_repos': self.lookaside_repos,
+            'modular_koji_tags': self.modular_koji_tags,
+            'module_defaults_url': self.module_defaults_url,
         }
 
     @staticmethod

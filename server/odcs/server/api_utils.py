@@ -170,7 +170,7 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
             # not exploitable.
             if last_dict_key in ["packages"]:
                 continue
-            allowed_chars = [' ', '-', '/', '_', '.', ':', '#', '+', '$']
+            allowed_chars = [' ', '-', '/', '_', '.', ':', '#', '+', '?', '$']
             if not all(c.isalnum() or c in allowed_chars for c in v):
                 raise ValueError(
                     "Only alphanumerical characters and %r characters "
