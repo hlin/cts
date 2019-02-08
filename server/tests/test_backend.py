@@ -78,6 +78,44 @@ class TestBackend(ModelsBaseTest):
                                    "moduleD:f26:20170806000000:00000000"]))
 
     @mock_mbs()
+    def test_resolve_compose_module_devel(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "moduleA:f26 moduleA-devel:f26",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source,
+                         ' '.join(["moduleA-devel:f26:20170809000000:00000000",
+                                   "moduleA:f26:20170809000000:00000000",
+                                   "moduleB:f26:20170808000000:00000000",
+                                   "moduleC:f26:20170807000000:00000000",
+                                   "moduleD:f26:20170806000000:00000000"]))
+
+    @mock_mbs()
+    def test_resolve_compose_module_devel_deps_resolving(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "moduleA-devel:f26",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source,
+                         ' '.join(["moduleA-devel:f26:20170809000000:00000000",
+                                   "moduleA:f26:20170809000000:00000000",
+                                   "moduleB:f26:20170808000000:00000000",
+                                   "moduleC:f26:20170807000000:00000000",
+                                   "moduleD:f26:20170806000000:00000000"]))
+
+    @mock_mbs()
     def test_resolve_compose_module_multiple_contexts_no_deps(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,

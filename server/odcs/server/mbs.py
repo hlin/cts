@@ -62,6 +62,19 @@ class MBS(object):
         }
         modules = self.get_modules(**params)
 
+        # True if the module is "-devel" module.
+        devel_module = False
+        if not modules["meta"]["total"]:
+            # In case this is "-devel" module, it won't be included in MBS,
+            # but it exists as CG build in Koji. It therefore can be used
+            # to generate the compose, but to actually find the MBS build,
+            # we need to remove the "-devel" suffix from the NSVC.
+            n = nsvc.split(":")[0]
+            if n.endswith("-devel"):
+                params["nsvc"] = n[:-len("-devel")] + params["nsvc"][len(n):]
+                modules = self.get_modules(**params)
+                devel_module = True
+
         if not modules["meta"]["total"]:
             raise ModuleLookupError(
                 "Failed to find module %s in the MBS." % nsvc)
@@ -77,6 +90,16 @@ class MBS(object):
         for module in modules["items"]:
             if ret and ret[0]["version"] != module["version"]:
                 break
+            if devel_module:
+                # Add -devel to module metadata in case we are composing devel
+                # module.
+                module["name"] += "-devel"
+                # Devel module always depend on the non-devel version
+                mmd = Modulemd.Module.new_from_string(module['modulemd'])
+                mmd.upgrade()
+                for dep in mmd.get_dependencies():
+                    dep.add_requires_single(mmd.get_name(), mmd.get_stream())
+                module["modulemd"] = unicode(mmd.dumps())
             ret.append(module)
         return ret
 

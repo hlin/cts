@@ -56,7 +56,7 @@ class TestPungiConfig(unittest.TestCase):
 
     def test_pungi_config_module(self):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                "testmodule-master")
+                                "testmodule:master:1:1")
         pungi_cfg.get_pungi_config()
         variants = pungi_cfg.get_variants_config()
         comps = pungi_cfg.get_comps_config()
@@ -86,7 +86,7 @@ class TestPungiConfig(unittest.TestCase):
 
         with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                    "testmodule-master")
+                                    "testmodule:master:1:1")
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
             self.assertEqual(cfg["release_name"], "MBS-512")
@@ -98,7 +98,7 @@ class TestPungiConfig(unittest.TestCase):
     @patch("odcs.server.pungi.log")
     def test_get_pungi_conf_exception(self, log):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                "testmodule-master")
+                                "testmodule:master:1:1")
         _, mock_path = tempfile.mkstemp(suffix='-pungi.conf')
         with open(mock_path, 'w') as f:
             # write an invalid jinja2 template file
@@ -116,7 +116,7 @@ class TestPungiConfig(unittest.TestCase):
 
         with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                    "testmodule-master",
+                                    "testmodule:master:1:1",
                                     results=COMPOSE_RESULTS["iso"])
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
@@ -130,7 +130,7 @@ class TestPungiConfig(unittest.TestCase):
 
         with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                    "testmodule-master",
+                                    "testmodule:master:1:1",
                                     results=COMPOSE_RESULTS["boot.iso"])
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
@@ -301,6 +301,24 @@ class TestPungiConfig(unittest.TestCase):
                 cfg["gather_lookaside_repos"],
                 [(u'^.*$', {u'*': [u'foo', u'bar']})])
 
+    def test_get_pungi_conf_include_devel_modules(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir,
+                                                     "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig(
+                "MBS-512", "1", PungiSourceType.MODULE,
+                "foo:1:1:1 foo-devel:1:1:1 bar-devel:1:1:1")
+
+            template = pungi_cfg.get_pungi_config()
+            cfg = self._load_pungi_cfg(template)
+            self.assertEqual(
+                cfg["include_devel_modules"],
+                {"Temporary": ["foo-devel:1"]})
+            self.assertEqual(pungi_cfg.source, "foo:1:1:1 bar-devel:1:1:1")
+
 
 class TestPungi(unittest.TestCase):
 
@@ -329,7 +347,7 @@ class TestPungi(unittest.TestCase):
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                "testmodule-master")
+                                "testmodule:master:1:1")
         pungi = Pungi(pungi_cfg)
         pungi.run(self.compose)
 
@@ -502,7 +520,7 @@ class TestPungiRunroot(unittest.TestCase):
         self.koji_session.getTaskInfo.return_value = {"state": koji.TASK_STATES["CLOSED"]}
 
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                "testmodule-master")
+                                "testmodule:master:1:1")
         pungi = Pungi(pungi_cfg)
         pungi.run(self.compose)
 

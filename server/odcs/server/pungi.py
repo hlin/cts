@@ -124,6 +124,7 @@ class PungiConfig(BasePungiConfig):
         self.koji_profile = conf.koji_profile
         self.pkgset_koji_inherit = True
         self.lookaside_repos = lookaside_repos.split(" ") if lookaside_repos else []
+        self.include_devel_modules = []
         if arches:
             self.arches = arches
         else:
@@ -162,6 +163,8 @@ class PungiConfig(BasePungiConfig):
             self.gather_source = "module"
             self.gather_method = "nodeps"
 
+            self._sort_out_devel_modules()
+
             if self.packages:
                 raise ValueError("Exact packages cannot be set for MODULE "
                                  "source type.")
@@ -175,6 +178,31 @@ class PungiConfig(BasePungiConfig):
             raise ValueError("Unknown source_type %r" % source_type)
 
         self.check_deps = bool(flags & COMPOSE_FLAGS["check_deps"])
+
+    def _sort_out_devel_modules(self):
+        """
+        Helper method filtering out "-devel" modules from `self.source`
+        and adding them to `include_devel_modules` list.
+        """
+        source_list = self.source.split(" ")
+        new_source = []
+        for nsvc in source_list:
+            n, s, v, c = nsvc.split(":")
+
+            # It does not have -devel suffix, so it is not -devel module.
+            if not n.endswith("-devel"):
+                new_source.append(nsvc)
+                continue
+
+            # If it is -devel module, there must exist the non-devel
+            # counterpart.
+            non_devel_nsvc = ":".join([n[:-len("-devel")], s, v, c])
+            if not non_devel_nsvc in source_list:
+                new_source.append(nsvc)
+                continue
+
+            self.include_devel_modules.append(":".join([n, s]))
+        self.source = " ".join(new_source)
 
     @property
     def source_type_str(self):
