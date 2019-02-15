@@ -150,6 +150,10 @@ get_parser.add_argument(
 
 args = parser.parse_args()
 
+if not hasattr(args, "command"):
+    parser.print_help()
+    sys.exit(0)
+
 if args.server is None:
     odcs_url = env_config[args.infra][args.env]['server_url']
 else:
