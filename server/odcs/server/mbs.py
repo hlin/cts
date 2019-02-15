@@ -23,7 +23,7 @@
 import requests
 from collections import defaultdict
 
-import odcs.server.utils
+from odcs.server.utils import retry, to_text_type
 from odcs.server import log
 
 import gi
@@ -39,7 +39,7 @@ class MBS(object):
     def __init__(self, config):
         self.mbs_url = config.mbs_url.rstrip("/")
 
-    @odcs.server.utils.retry(wait_on=(requests.ConnectionError, ), logger=log)
+    @retry(wait_on=(requests.ConnectionError, ), logger=log)
     def get_modules(self, **params):
         url = self.mbs_url + "/1/module-builds/"
         r = requests.get(url, params=params)
@@ -99,7 +99,7 @@ class MBS(object):
                 mmd.upgrade()
                 for dep in mmd.get_dependencies():
                     dep.add_requires_single(mmd.get_name(), mmd.get_stream())
-                module["modulemd"] = unicode(mmd.dumps())
+                module["modulemd"] = to_text_type(mmd.dumps())
             ret.append(module)
         return ret
 

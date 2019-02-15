@@ -197,7 +197,7 @@ class PungiConfig(BasePungiConfig):
             # If it is -devel module, there must exist the non-devel
             # counterpart.
             non_devel_nsvc = ":".join([n[:-len("-devel")], s, v, c])
-            if not non_devel_nsvc in source_list:
+            if non_devel_nsvc not in source_list:
                 new_source.append(nsvc)
                 continue
 

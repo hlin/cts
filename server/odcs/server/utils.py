@@ -28,8 +28,19 @@ import time
 import subprocess
 import shutil
 from threading import Timer
+from six import text_type
 
 from odcs.server import conf, log
+
+
+def to_text_type(s):
+    """
+    Converts `s` to `text_type`. In case it fails, returns `s`.
+    """
+    try:
+        return text_type(s, "utf-8")
+    except TypeError:
+        return s
 
 
 def retry(timeout=conf.net_timeout, interval=conf.net_retry_interval, wait_on=Exception, logger=None):
