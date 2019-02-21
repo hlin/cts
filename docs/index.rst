@@ -14,11 +14,6 @@ By a compose, we mainly mean RPM repository with packages taken from different s
    :maxdepth: 2
    :caption: Contents:
 
-   policies
-   package-specific-policies
-   api
-   dev-guide
-   release-notes
 
 
 Indices and tables
