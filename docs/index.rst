@@ -14,7 +14,7 @@ By a compose, we mainly mean RPM repository with packages taken from different s
    :maxdepth: 2
    :caption: Contents:
 
-
+   client
 
 Indices and tables
 ==================
