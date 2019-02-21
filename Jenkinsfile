@@ -20,7 +20,7 @@ sudo dnf -y install \
 try { // massive try{} catch{} around the entire build for failure notifications
 
 timestamps {
-node('fedora-29') {
+node('fedora-28') {
     checkout scm
     scmVars.GIT_AUTHOR_EMAIL = sh (
         script: 'git --no-pager show -s --format=\'%ae\'',
