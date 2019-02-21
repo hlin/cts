@@ -19,6 +19,17 @@ sudo dnf -y install \
 
 try { // massive try{} catch{} around the entire build for failure notifications
 
+node('master'){
+    scmVars = checkout scm
+    scmVars.GIT_BRANCH_NAME = scmVars.GIT_BRANCH.split('/')[-1]  // origin/pr/1234 -> 1234
+
+    // setting build display name
+    def branch = scmVars.GIT_BRANCH_NAME
+    if ( branch == 'master' ) {
+        echo 'Building master'
+    }
+}
+
 timestamps {
 node('fedora-28') {
     checkout scm
