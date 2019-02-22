@@ -248,6 +248,8 @@ class PungiConfig(BasePungiConfig):
         elif self.source_type == PungiSourceType.KOJI_TAG:
             if self.packages:
                 tmp_variant.add_group(comps.Group('odcs-group', 'odcs-group', 'ODCS compose default group'))
+            if self.koji_module_tags:
+                tmp_variant.add_module(comps.Module("*"))
 
         odcs_product.add_variant(tmp_variant)
 
