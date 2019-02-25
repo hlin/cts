@@ -7,13 +7,14 @@
 ODCS
 =========
 
-The main goal of `ODCS`_ is to allow generation of temporary composes using the REST API calls.
-By a compose, we mainly mean RPM repository with packages taken from different sources.
+The ODCS (On Demand Compose Service) is a service allowing to generate temporary
+compose (mainly the RPM repository) with packages from Koji using the REST API.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   abount
    client
 
 Indices and tables

@@ -59,5 +59,9 @@ directly to generate the compose:
 Generating hybrid compose with both modules and bare RPMs
 =========================================================
 
+TODO
+
 Generating compose with lookaside repositories
 ==============================================
+
+TODO
