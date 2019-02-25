@@ -14,7 +14,7 @@ compose (mainly the RPM repository) with packages from Koji using the REST API.
    :maxdepth: 2
    :caption: Contents:
 
-   abount
+   about
    client
 
 Indices and tables
