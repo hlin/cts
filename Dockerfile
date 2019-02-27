@@ -12,8 +12,34 @@ RUN cd /etc/yum.repos.d/ \
     && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-F-28/compose/Everything/x86_64/os/ \
     && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/repos/eng-rhel-7/x86_64 \
     && dnf -v --nogpg -y install \
-    httpd mod_wsgi mod_auth_gssapi python3-rhmsg mod_ssl python3-koji-cli-plugins python3-psycopg2 \
-    odcs \
+        python3-fedmsg \
+        systemd \
+        pungi \
+        python3-pdc-client \
+        python3-fedora \
+        python3-funcsigs \
+        python3-openidc-client \
+        python3-productmd \
+        hardlink \
+        libmodulemd \
+        gobject-introspection \
+        python3-flask-sqlalchemy \
+        python3-flask-migrate \
+        python3-mock \
+        python3-systemd \
+        python3-six \
+        python3-flask \
+        python3-defusedxml \
+        python3-koji \
+        python3-httplib2 \
+        python3-pyOpenSSL \
+        python3-sqlalchemy \
+        python3-flufl-lock \
+        python3-odcs-common = %{version}-%{release} \
+        python3-moksha-hub \
+        python3-fedmsg \
+        python3-psycopg2 \
+        python3-psutil \
     && dnf -y clean all \
     && rm -f /tmp/*
 
