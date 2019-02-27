@@ -35,7 +35,6 @@ RUN cd /etc/yum.repos.d/ \
         python3-pyOpenSSL \
         python3-sqlalchemy \
         python3-flufl-lock \
-        python3-odcs-common = %{version}-%{release} \
         python3-moksha-hub \
         python3-fedmsg \
         python3-psycopg2 \
