@@ -39,6 +39,12 @@ RUN cd /etc/yum.repos.d/ \
         python3-fedmsg \
         python3-psycopg2 \
         python3-psutil \
+        python3-celery \
+        python3-flower \
+        python3-ldap \
+        python3-gobject-base \
+        python3-flask-script \
+        python3-flask-login \
     && dnf -y clean all \
     && rm -f /tmp/*
 
