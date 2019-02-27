@@ -45,7 +45,6 @@ RUN cd /etc/yum.repos.d/ \
         python3-gobject-base \
         python3-flask-script \
         python3-flask-login \
-        rabbitmq-server \
     && dnf -y clean all \
     && rm -f /tmp/*
 
