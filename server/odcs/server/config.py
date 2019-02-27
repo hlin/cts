@@ -357,7 +357,27 @@ class Config(object):
             'default': {},
             'desc': 'Command line argument for raw_config source type, which '
                     'overwrite arguments listed PUNGI_KOJI_ARGS.'
-        }
+        },
+        'celery_config': {
+            'type': dict,
+            'default': {},
+            'desc': 'Configuration dict to pass to Celery.'
+        },
+        'celery_broker_url': {
+            'type': str,
+            'default': "",
+            'desc': 'Celery broker URL'
+        },
+        'celery_pulp_composes_queue': {
+            'type': str,
+            'default': "pulp_composes",
+            'desc': 'Name of the Celery queue for Pulp composes.'
+        },
+        'celery_pungi_composes_queue': {
+            'type': str,
+            'default': "pungi_composes",
+            'desc': 'Name of the Celery queue for Pungi composes.'
+        },
     }
 
     def __init__(self, conf_section_obj):
