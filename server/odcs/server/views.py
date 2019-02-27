@@ -39,6 +39,15 @@ from odcs.server.api_utils import (
 from odcs.server.auth import requires_role, login_required
 from odcs.server.auth import require_scopes
 
+try:
+    from odcs.server.celery_tasks import (
+        generate_pulp_compose, generate_pungi_compose)
+    CELERY_AVAILABLE = True
+except ImportError:
+    log.exception(
+        "Cannot import celery_tasks. The Celery support is turned off.")
+    CELERY_AVAILABLE = False
+
 
 api_v1 = {
     'composes': {
@@ -347,6 +356,12 @@ class ODCSAPI(MethodView):
         # therefore the compose ID won't be set.
         db.session.flush()
         db.session.commit()
+
+        if CELERY_AVAILABLE:
+            if source_type == PungiSourceType.PULP:
+                generate_pulp_compose.delay(compose.id)
+            else:
+                generate_pungi_compose.delay(compose.id)
 
         return jsonify(compose.json()), 200
 

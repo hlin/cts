@@ -1,9 +1,9 @@
 #!/bin/bash
 
-export PYTHONPATH=./common:./server:./client
+export PYTHONPATH=`pwd`/common:`pwd`/server:`pwd`/client
 export ODCS_DEVELOPER_ENV=1
 
-python server/odcs//server/manage.py runbackend &
+celery -A odcs.server.celery_tasks worker --loglevel=info -Q pungi_composes,pulp_composes &
 PIDS[0]=$!
 
 trap "kill ${PIDS[*]}" SIGINT
