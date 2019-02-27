@@ -99,7 +99,7 @@ html_theme = 'alabaster'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+# html_static_path = ['_static']
 html_static_path = []
 
 
@@ -190,13 +190,15 @@ issuetracker_url = 'https://pagure.io/'
 issuetracker_project = 'odcs'
 
 # Until Pagure support is merged: https://github.com/ignatenkobrain/sphinxcontrib-issuetracker/pull/15
-import requests
-from sphinxcontrib.issuetracker import Issue
+import requests  # noqa
+from sphinxcontrib.issuetracker import Issue  # noqa
 PAGURE_URL = '{0.url}/{0.project}/issue/{1}'
 PAGURE_API_URL = '{0.url}/api/0/{0.project}/issue/{1}'
 HEADERS = {
     'User-Agent': 'sphinxcontrib-issuetracker'
 }
+
+
 def get(app, url):
     try:
         response = requests.get(url, headers=HEADERS)
@@ -208,6 +210,8 @@ def get(app, url):
     except IOError as e:
         msg = 'GET {0} failed with error: {1}'
         app.warn(msg.format(url, e))
+
+
 def lookup_pagure_issue(app, tracker_config, issue_id):
     if not tracker_config.url:
         raise ValueError('URL required, try: https://pagure.io/')
@@ -219,6 +223,7 @@ def lookup_pagure_issue(app, tracker_config, issue_id):
         return Issue(id=issue_id, title=title, closed=closed, url=issue_url)
     else:
         return Issue(id=issue_id, title=None, closed=False, url=issue_url)
+
 
 def setup(app):
     app.connect('issuetracker-lookup-issue', lookup_pagure_issue)
