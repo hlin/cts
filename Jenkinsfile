@@ -105,12 +105,12 @@ node('docker') {
             }
         }
         /* Build and push the same image with the same tag to quay.io, but without the cacert. */
-        docker.withRegistry(
+/*        docker.withRegistry(
                 'https://quay.io/',
                 'quay-io-factory2-builder-sa-credentials') {
             def image = docker.build "factory2/odcs:${appversion}", "."
             image.push()
-        }
+        }*/
     }
 }
 
