@@ -6,7 +6,7 @@ import groovy.json.*
 // 'global' var to store git info
 def scmVars
 
-// Greenwave RPM dependencies
+// ODCS RPM dependencies
 def installDepsCmd = '''
 sudo dnf -y install \
     python3-dogpile-cache \
@@ -79,7 +79,40 @@ node('fedora-28') {
         }
     }
 }
-
+node('docker') {
+    checkout scm
+    stage('Build Docker container') {
+        def appversion = sh(returnStdout: true, script: './get-version.sh').trim()
+        /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
+         * the rules in PEP440. But Docker does not let us have + in the tag
+         * name, so let's munge it here. */
+        appversion = appversion.replace('+', '-')
+        /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
+         * the rules in PEP440. But Docker does not let us have + in the tag
+         * name, so let's munge it here. */
+        docker.withRegistry(
+                'https://docker-registry.engineering.redhat.com/',
+                'docker-registry-factory2-builder-sa-credentials') {
+            /* Note that the docker.build step has some magic to guess the
+             * Dockerfile used, which will break if the build directory (here ".")
+             * is not the final argument in the string. */
+            def image = docker.build "factory2/odcs:internal-${appversion}", "--build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
+            /* Pushes to the internal registry can sometimes randomly fail
+             * with "unknown blob" due to a known issue with the registry
+             * storage configuration. So we retry up to 3 times. */
+            retry(3) {
+                image.push()
+            }
+        }
+        /* Build and push the same image with the same tag to quay.io, but without the cacert. */
+        docker.withRegistry(
+                'https://quay.io/',
+                'quay-io-factory2-builder-sa-credentials') {
+            def image = docker.build "factory2/odcs:${appversion}", "."
+            image.push()
+        }
+    }
+}
 
 } // end of timestamps
 } catch (e) {
