@@ -101,7 +101,7 @@ node('docker') {
              * with "unknown blob" due to a known issue with the registry
              * storage configuration. So we retry up to 3 times. */
             retry(3) {
-                image.push()
+                image.push('latest')
             }
         }
         /* Build and push the same image with the same tag to quay.io, but without the cacert. */
