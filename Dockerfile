@@ -58,6 +58,7 @@ COPY . .
 RUN pip3 install . --no-deps
 RUN rm -rf ./fedmsg.d
 
+WORKDIR /tmp
 USER 1001
 EXPOSE 8080
 
