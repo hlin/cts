@@ -1,3 +1,1 @@
-funcsigs  # Python2 only
 six
-futures  # Python 2 only
