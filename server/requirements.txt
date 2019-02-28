@@ -22,4 +22,3 @@ pyldap
 defusedxml
 productmd
 pygobject
-koji
