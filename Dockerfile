@@ -11,7 +11,7 @@ RUN cd /etc/yum.repos.d/ \
     && dnf -v -y install 'dnf-command(config-manager)' \
     && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-F-28/compose/Everything/x86_64/os/ \
     && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/repos/eng-rhel-7/x86_64 \
-    && dnf -v --nogpg -y install \
+    && dnf -v --nogpg -y install httpd mod_wsgi mod_auth_gssapi python2-rhmsg mod_ssl \
         python3-fedmsg \
         systemd \
         pungi \
