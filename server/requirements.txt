@@ -21,3 +21,5 @@ jinja2
 defusedxml
 productmd
 pygobject
+koji
+pyldap
