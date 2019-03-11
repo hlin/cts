@@ -106,15 +106,17 @@ class MergeRepo(object):
                 data_url = os.path.join(baseurl, data_location)
                 downloader.submit(self._download_file, path, data_url)
 
-    def run(self, arch, repos):
+    def run(self, arch, repos, repo_name):
         """
         Merges multiple RPM repositories and stores the output to
-        `os.path.join(compose.result_repo_dir, arch)`.
+        `os.path.join(compose.result_repo_dir, repo_name, arch)`.
 
         Raises an RuntimeError in case of error.
 
         :param str arch: Architecture of RPMs in repositories.
         :param list repos: List of URLs pointing to repos to merge.
+        :param str repo_name: Name of the repository defining the subdirectory
+            in `compose.result_repo_dir`.
         """
         # Multiple MergeRepo tasks can be running in the same time, so the
         # pulp_repo_cache must be protected by lock.
@@ -150,7 +152,7 @@ class MergeRepo(object):
             if not mergerepo_exe:
                 raise RuntimeError("mergerepo_c is not available on system")
 
-            result_repo_dir = os.path.join(self.compose.result_repo_dir, arch)
+            result_repo_dir = os.path.join(self.compose.result_repo_dir, repo_name, arch)
             makedirs(result_repo_dir)
 
             args = [mergerepo_exe, "--method", "nvr", "-o",

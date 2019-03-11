@@ -90,7 +90,7 @@ class Pulp(object):
             first_repo["arches"] = first_repo["arches"].union(repo["arches"])
         return first_repo
 
-    def _merge_repos(self, content_set_repos):
+    def _merge_repos(self, content_set, content_set_repos):
         """
         Merges the repositories of the same arch from `content_set_repos`
         and returns the new repository dict pointing to the newly created
@@ -122,10 +122,10 @@ class Pulp(object):
 
         for arch, repos in per_arch_repos.items():
             urls = [repo["url"] for repo in repos]
-            merge_repo.run(arch, urls)
+            merge_repo.run(arch, urls, content_set)
 
         return {
-            "url": self.compose.result_repo_url + "/$basearch",
+            "url": "%s/%s/$basearch" % (self.compose.result_repo_url, content_set),
             "arches": set(per_arch_repos.keys()),
             "sigkeys": content_set_repos[0]["sigkeys"],
         }
@@ -191,7 +191,7 @@ class Pulp(object):
             if not merged_repos:
                 # In case we cannot merge repositories by replacing the arch
                 # with $basearch, call mergerepo_c.
-                merged_repos = self._merge_repos(repos)
+                merged_repos = self._merge_repos(cs, repos)
             if merged_repos:
                 ret[cs] = merged_repos
             else:
