@@ -170,26 +170,26 @@ class TestPulp(ModelsBaseTest):
             ret,
             {
                 "foo-1": {
-                    "url": "http://localhost/odcs/latest-odcs-1-1/compose/Temporary/$basearch",
+                    "url": "http://localhost/odcs/latest-odcs-1-1/compose/Temporary/foo-1/$basearch",
                     "arches": set(["x86_64", "ppc64le"]),
                     "sigkeys": ["SIG1", "SIG2"],
                 }
             })
 
-        makedirs.assert_any_call(c.result_repo_dir + "/x86_64")
-        makedirs.assert_any_call(c.result_repo_dir + "/ppc64le")
+        makedirs.assert_any_call(c.result_repo_dir + "/foo-1/x86_64")
+        makedirs.assert_any_call(c.result_repo_dir + "/foo-1/ppc64le")
 
         repo_prefix = "%s/pulp_repo_cache/content/" % conf.target_dir
         execute_cmd.assert_any_call(
             ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
-             c.result_repo_dir + '/x86_64',
+             c.result_repo_dir + '/foo-1/x86_64',
              '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
              '--repo-prefix-replace', 'http://localhost/',
              '-r', repo_prefix + "1.0/x86_64/os",
              '-r', repo_prefix + "1.1/x86_64/os"])
         execute_cmd.assert_any_call(
             ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
-             c.result_repo_dir + '/ppc64le',
+             c.result_repo_dir + '/foo-1/ppc64le',
              '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
              '--repo-prefix-replace', 'http://localhost/',
              '-r', repo_prefix + "1.0/ppc64le/os"])
