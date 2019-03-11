@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 
 ## 0.2.23
+  - Release date: 2019-03-11
+  - Fix issue with "include_unpublished_pulp_repos" when compose contains
+    two or more content-sets which need to be merged. In this case, ODCS
+    overwrote the first merged repo with the second merged repo. In this
+    release, this is fixed by storing merged repos in directories prefixed
+    with the content-set name.
+  - Allow deploying ODCS as Celery application.
+  - Include all modules in modular Koji tag in compose by default.
+  - Fix traceback when executing "odcs" client without any argument.
+    Show help instead.
+  - Add "docs" directory with basic ODCS documentation.
+
+## 0.2.23
   - Release date: 2019-02-15
   - Add support for hybrid composes - composes with both modular and normal
     RPMs.
