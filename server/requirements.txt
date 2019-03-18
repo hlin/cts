@@ -1,3 +1,5 @@
+futures
+funcsigs
 flufl.lock
 fedmsg
 psutil
