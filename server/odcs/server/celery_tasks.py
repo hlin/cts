@@ -23,6 +23,7 @@
 
 import os
 from celery import Celery
+from six.moves.urllib.parse import urlparse
 
 from odcs.server import conf, db
 from odcs.server.backend import (
@@ -45,6 +46,35 @@ elif conf.celery_broker_url:
     broker_url = conf.celery_broker_url
 else:
     broker_url = "amqp://localhost"
+
+# Although the Celery handles amqps using Kombu Python module,
+# it does not do that correctly.
+#
+# When using "amqps://" protocol, Kombu uses SSLTransport which effectively
+# sets the `amqp.Connection.ssl = True`. This enables SSL, but it does it
+# in a way when we cannot set any other SSL options like client cert/key
+# or for example SNI hostname which needs to be used.
+#
+# This is done in this commit:
+# In the https://github.com/celery/kombu/commit/701672c2ba732883869a42f061a10dbfc8fe2f30
+#
+# To workaround this, we detect "amqps" here and sets the `broker_use_ssl`. This
+# allows us to set any SSL options like client cert/key or SNI header.
+# The `broker_use_ssl` is directly passed to `amqp.Connection.ssl` which handles
+# it.
+#
+# In the end, we change the `broker_url` protocol from "amqps" to "amqp", so
+# the Celery wont' override the `amps.Connection.ssl` with `True`.
+if broker_url.startswith("amqps://"):
+    netloc = urlparse(broker_url).netloc
+    host_port = netloc.split("@")[-1]
+    host = host_port.split(":")[0]
+    broker_use_ssl = {
+        'server_hostname': host
+    }
+    conf.celery_config.update({"broker_use_ssl": broker_use_ssl})
+    broker_url = broker_url.replace("amqps://", "amqp://")
+
 celery_app = Celery("backend", broker=broker_url)
 celery_app.conf.update(conf.celery_config)
 
