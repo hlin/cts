@@ -87,8 +87,8 @@ node('docker') {
          * */
         sh "sed -i '/futures/d' ./server/requirements.txt"
         sh "sed -i '/funcsigs/d' ./server/requirements.txt"
-        sh "sed -i '/koji/d' ./odcs/requirements.txt"
-        sh "sed -i '/pyldap/d' ./odcs/requirements.txt"
+        sh "sed -i '/koji/d' ./server/requirements.txt"
+        sh "sed -i '/pyldap/d' ./server/requirements.txt"
         sh "sed -i '/funcsigs/d' ./client/requirements.txt"
         def appversion = sh(returnStdout: true, script: './get-version.sh').trim()
         /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
