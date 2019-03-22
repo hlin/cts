@@ -378,6 +378,11 @@ class Config(object):
             'default': "pungi_composes",
             'desc': 'Name of the Celery queue for Pungi composes.'
         },
+        'celery_cleanup_queue': {
+            'type': str,
+            'default': "cleanup",
+            'desc': 'Name of the Celery queue for cleanup task.'
+        },
     }
 
     def __init__(self, conf_section_obj):

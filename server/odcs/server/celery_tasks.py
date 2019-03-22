@@ -124,7 +124,7 @@ def generate_pulp_compose(compose_id):
     generate_compose(compose_id)
 
 
-@celery_app.task
+@celery_app.task(queue=conf.celery_cleanup_queue)
 def run_cleanup():
     """
     Runs the cleanup.
