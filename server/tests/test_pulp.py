@@ -45,8 +45,7 @@ class TestPulp(ModelsBaseTest):
         pulp_rest_post.assert_called_once_with(
             'repositories/search/',
             {'criteria': {
-                'fields': ['notes.relative_url', 'notes.content_set',
-                           'notes.arch', 'notes.signatures'],
+                'fields': ['notes'],
                 'filters': {
                     'notes.include_in_download_service': 'True',
                     'notes.content_set': {'$in': ['foo-1', 'foo-2']}
@@ -65,8 +64,7 @@ class TestPulp(ModelsBaseTest):
         pulp_rest_post.assert_called_once_with(
             'repositories/search/',
             {'criteria': {
-                'fields': ['notes.relative_url', 'notes.content_set',
-                           'notes.arch', 'notes.signatures'],
+                'fields': ['notes'],
                 'filters': {
                     'notes.content_set': {'$in': ['foo-1', 'foo-2']}
                 }

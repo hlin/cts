@@ -155,8 +155,7 @@ class Pulp(object):
                 'filters': {
                     'notes.content_set': {'$in': content_sets},
                 },
-                'fields': ['notes.relative_url', 'notes.content_set',
-                           'notes.arch', 'notes.signatures'],
+                'fields': ['notes'],
             }
         }
 
