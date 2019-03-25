@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.2.23
+## 0.2.25
+  - Release date: 2019-03-25
+  - Fix compatibility with Pulp > 2.7
+  - Allow using SSL with SNI headers in Celery broker URL.
+  - Add queue for Celery cleanup tasks.
+
+## 0.2.24
   - Release date: 2019-03-11
   - Fix issue with "include_unpublished_pulp_repos" when compose contains
     two or more content-sets which need to be merged. In this case, ODCS
