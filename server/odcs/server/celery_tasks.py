@@ -21,6 +21,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import ssl
 import os
 from celery import Celery
 from six.moves.urllib.parse import urlparse
@@ -69,8 +70,12 @@ if broker_url.startswith("amqps://"):
     netloc = urlparse(broker_url).netloc
     host_port = netloc.split("@")[-1]
     host = host_port.split(":")[0]
+
+    ssl_ctx = {}
+
     broker_use_ssl = {
-        'server_hostname': host
+        "server_hostname": host,
+        "context": {"purpose": ssl.Purpose.SERVER_AUTH},
     }
     conf.celery_config.update({"broker_use_ssl": broker_use_ssl})
     broker_url = broker_url.replace("amqps://", "amqp://")
