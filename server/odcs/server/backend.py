@@ -685,7 +685,7 @@ def generate_pungi_compose(compose):
             koji_tag_cache.reuse_cached(compose)
             old_compose = koji_tag_cache.cache_dir
 
-        pungi = Pungi(pungi_cfg, koji_event, old_compose)
+        pungi = Pungi(compose.id, pungi_cfg, koji_event, old_compose)
         pungi.run(compose)
 
         _write_repo_file(compose)

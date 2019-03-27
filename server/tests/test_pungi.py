@@ -337,23 +337,31 @@ class TestPungi(unittest.TestCase):
         self.clone_repo = self.patch_clone_repo.start()
         self.clone_repo.side_effect = mocked_clone_repo
 
+        self.patch_makedirs = patch("odcs.server.pungi.makedirs")
+        self.makedirs = self.patch_makedirs.start()
+
         self.compose = MagicMock()
 
     def tearDown(self):
         super(TestPungi, self).tearDown()
 
         self.patch_clone_repo.stop()
+        self.patch_makedirs.stop()
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
                                 "testmodule:master:1:1")
-        pungi = Pungi(pungi_cfg)
+        pungi = Pungi(1, pungi_cfg)
         pungi.run(self.compose)
+
+        self.makedirs.assert_called_once_with(
+            AnyStringWith("test_composes/odcs-1-1-"))
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
-             AnyStringWith('--target-dir'), '--nightly'],
+             AnyStringWith('--target-dir'), AnyStringWith('--compose-dir='),
+             '--nightly'],
             cwd=AnyStringWith('/tmp/'), timeout=3600)
 
     @patch("odcs.server.utils.execute_cmd")
@@ -372,8 +380,11 @@ class TestPungi(unittest.TestCase):
             }
         }
         with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
-            pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
+            pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
             pungi.run(self.compose)
+
+        self.makedirs.assert_called_once_with(
+            AnyStringWith("test_composes/odcs-1-1-"))
 
         execute_cmd.assert_called_once()
         self.clone_repo.assert_called_once_with(
@@ -397,7 +408,7 @@ class TestPungi(unittest.TestCase):
             }
         }
         with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
-            pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
+            pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
             pungi.run(self.compose)
 
         execute_cmd.assert_called_once()
@@ -521,7 +532,7 @@ class TestPungiRunroot(unittest.TestCase):
 
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
                                 "testmodule:master:1:1")
-        pungi = Pungi(pungi_cfg)
+        pungi = Pungi(1, pungi_cfg)
         pungi.run(self.compose)
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
@@ -557,7 +568,7 @@ class TestPungiRunroot(unittest.TestCase):
         with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
             with patch.object(conf, 'raw_config_pungi_koji_args',
                               new=fake_raw_config_pungi_koji_args):
-                pungi = Pungi(RawPungiConfig('pungi.conf#hash'))
+                pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
                 pungi.run(self.compose)
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")

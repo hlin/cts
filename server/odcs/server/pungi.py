@@ -289,7 +289,8 @@ class PungiConfig(BasePungiConfig):
 
 
 class Pungi(object):
-    def __init__(self, pungi_cfg, koji_event=None, old_compose=None):
+    def __init__(self, compose_id, pungi_cfg, koji_event=None, old_compose=None):
+        self.compose_id = compose_id
         self.pungi_cfg = pungi_cfg
         self.koji_event = koji_event
         self.old_compose = old_compose
@@ -345,7 +346,7 @@ class Pungi(object):
 
         return koji_session
 
-    def get_pungi_cmd(self, conf_topdir, targetdir):
+    def get_pungi_cmd(self, conf_topdir, targetdir, compose_dir=None):
         """
         Returns list with pungi command line arguments needed to generate
         the compose.
@@ -353,6 +354,7 @@ class Pungi(object):
             configuration files.
         :param str targetdir: Target directory in which the compose should be
             generated.
+        :param str compose_dir: If defined, overrides the Pungi compose_dir.
         :rtype: list
         :return: List of pungi command line arguments.
         """
@@ -361,6 +363,9 @@ class Pungi(object):
             "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
             "--target-dir=%s" % targetdir,
         ]
+
+        if compose_dir:
+            pungi_cmd.append("--compose-dir=%s" % compose_dir)
 
         if isinstance(self.pungi_cfg, RawPungiConfig):
             pungi_cmd += self.pungi_cfg.pungi_koji_args
@@ -375,6 +380,16 @@ class Pungi(object):
             pungi_cmd += ["--old-composes", self.old_compose]
         return pungi_cmd
 
+    def _prepare_compose_dir(self, conf_topdir, targetdir):
+        """
+        Creates the compose directory and returns the full path to it.
+        """
+        compose_id = "odcs-%s-1-%s.n.0" % (
+            self.compose_id, time.strftime("%Y%m%d", time.localtime()))
+        compose_dir = os.path.join(targetdir, compose_id)
+        makedirs(compose_dir)
+        return compose_dir
+
     def run_locally(self):
         """
         Runs local Pungi compose.
@@ -383,7 +398,8 @@ class Pungi(object):
         try:
             td = tempfile.mkdtemp()
             self._write_cfgs(td)
-            pungi_cmd = self.get_pungi_cmd(td, conf.target_dir)
+            compose_dir = self._prepare_compose_dir(td, conf.target_dir)
+            pungi_cmd = self.get_pungi_cmd(td, conf.target_dir, compose_dir)
             odcs.server.utils.execute_cmd(pungi_cmd, cwd=td,
                                           timeout=conf.pungi_timeout)
         finally:
