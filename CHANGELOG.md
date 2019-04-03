@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.27
+  - Release date: 2019-04-03
+  - Fix issues with generating raw_config composes.
+
 ## 0.2.26
   - Release date: 2019-04-03
   - Fix compatibility of Celery code with older versions of python-amqp.
