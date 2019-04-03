@@ -30,6 +30,7 @@ import munch
 import time
 import random
 import string
+from productmd.composeinfo import ComposeInfo
 
 import odcs.server.utils
 from odcs.server import conf, log, db
@@ -72,7 +73,7 @@ class RawPungiConfig(BasePungiConfig):
 
         self.pungi_cfg = url_data
         self.pungi_koji_args = conf.raw_config_pungi_koji_args.get(
-            source_name, [])
+            source_name, conf.pungi_koji_args)
 
     def write_config_files(self, topdir):
         """Write raw config files
@@ -361,11 +362,12 @@ class Pungi(object):
         pungi_cmd = [
             conf.pungi_koji,
             "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
-            "--target-dir=%s" % targetdir,
         ]
 
         if compose_dir:
             pungi_cmd.append("--compose-dir=%s" % compose_dir)
+        else:
+            pungi_cmd.append("--target-dir=%s" % targetdir)
 
         if isinstance(self.pungi_cfg, RawPungiConfig):
             pungi_cmd += self.pungi_cfg.pungi_koji_args
@@ -384,10 +386,33 @@ class Pungi(object):
         """
         Creates the compose directory and returns the full path to it.
         """
+        compose_date = time.strftime("%Y%m%d", time.localtime())
         compose_id = "odcs-%s-1-%s.n.0" % (
-            self.compose_id, time.strftime("%Y%m%d", time.localtime()))
+            self.compose_id, compose_date)
         compose_dir = os.path.join(targetdir, compose_id)
         makedirs(compose_dir)
+
+        # Generate ComposeInfo which is needed for Pungi.
+        # These variables can be hardcoded, because we only generate composes
+        # like this in ODCS.
+        ci = ComposeInfo()
+        ci.release.name = "odcs-%s" % self.compose_id
+        ci.release.short = "odcs-%s" % self.compose_id
+        ci.release.version = "1"
+        ci.release.is_layered = False
+        ci.release.type = "ga"
+        ci.release.internal = False
+        ci.compose.id = compose_id
+        ci.compose.label = None
+        ci.compose.type = "nightly"
+        ci.compose.date = compose_date
+        ci.compose.respin = 0
+
+        # Dump the compose info to work/global/composeinfo-base.json.
+        work_dir = os.path.join(compose_dir, "work", "global")
+        makedirs(work_dir)
+        ci.dump(os.path.join(work_dir, "composeinfo-base.json"))
+
         return compose_dir
 
     def run_locally(self):

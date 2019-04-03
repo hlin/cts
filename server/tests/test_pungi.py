@@ -340,6 +340,9 @@ class TestPungi(unittest.TestCase):
         self.patch_makedirs = patch("odcs.server.pungi.makedirs")
         self.makedirs = self.patch_makedirs.start()
 
+        self.patch_ci_dump = patch("odcs.server.pungi.ComposeInfo.dump")
+        self.ci_dump = self.patch_ci_dump.start()
+
         self.compose = MagicMock()
 
     def tearDown(self):
@@ -347,6 +350,7 @@ class TestPungi(unittest.TestCase):
 
         self.patch_clone_repo.stop()
         self.patch_makedirs.stop()
+        self.patch_ci_dump.stop()
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):
@@ -355,13 +359,16 @@ class TestPungi(unittest.TestCase):
         pungi = Pungi(1, pungi_cfg)
         pungi.run(self.compose)
 
-        self.makedirs.assert_called_once_with(
+        self.makedirs.assert_called_with(
             AnyStringWith("test_composes/odcs-1-1-"))
+        self.makedirs.assert_called_with(
+            AnyStringWith("work/global"))
+        self.ci_dump.assert_called_once_with(
+            AnyStringWith("work/global/composeinfo-base.json"))
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
-             AnyStringWith('--target-dir'), AnyStringWith('--compose-dir='),
-             '--nightly'],
+             AnyStringWith('--compose-dir='), '--nightly'],
             cwd=AnyStringWith('/tmp/'), timeout=3600)
 
     @patch("odcs.server.utils.execute_cmd")
@@ -383,8 +390,12 @@ class TestPungi(unittest.TestCase):
             pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
             pungi.run(self.compose)
 
-        self.makedirs.assert_called_once_with(
+        self.makedirs.assert_called_with(
             AnyStringWith("test_composes/odcs-1-1-"))
+        self.makedirs.assert_called_with(
+            AnyStringWith("work/global"))
+        self.ci_dump.assert_called_once_with(
+            AnyStringWith("work/global/composeinfo-base.json"))
 
         execute_cmd.assert_called_once()
         self.clone_repo.assert_called_once_with(
