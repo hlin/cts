@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.26
+  - Release date: 2019-04-03
+  - Fix compatibility of Celery code with older versions of python-amqp.
+  - Store raw_config composes in the same directory layout as normal ones and
+    enable their expiration the same way as we do for normal composes.
+
 ## 0.2.25
   - Release date: 2019-03-25
   - Fix compatibility with Pulp > 2.7
