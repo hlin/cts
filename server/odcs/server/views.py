@@ -174,6 +174,13 @@ class ODCSAPI(MethodView):
             # flush and therefore the compose ID won't be set.
             db.session.flush()
             db.session.commit()
+
+            if CELERY_AVAILABLE and conf.celery_broker_url:
+                if source_type == PungiSourceType.PULP:
+                    generate_pulp_compose.delay(compose.id)
+                else:
+                    generate_pungi_compose.delay(compose.id)
+
             return jsonify(compose.json()), 200
         else:
             # Otherwise, just extend expiration to make it usable for longer
