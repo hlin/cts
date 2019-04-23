@@ -21,6 +21,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import copy
 import os
 import shutil
 import tempfile
@@ -65,7 +66,7 @@ class RawPungiConfig(BasePungiConfig):
     def __init__(self, compose_source):
         source_name, source_hash = compose_source.split("#")
 
-        url_data = conf.raw_config_urls[source_name]
+        url_data = copy.deepcopy(conf.raw_config_urls[source_name])
         # Do not override commit hash by hash from ODCS client if it is
         # hardcoded in the config file.
         if "commit" not in url_data:

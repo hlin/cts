@@ -581,6 +581,8 @@ class TestPungiRunroot(unittest.TestCase):
                               new=fake_raw_config_pungi_koji_args):
                 pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
                 pungi.run(self.compose)
+                # Test that we do not override the conf variable.
+                self.assertTrue("commit" not in fake_raw_config_urls["pungi.conf"])
 
         conf_topdir = os.path.join(conf.target_dir, "odcs/unique_path")
         self.koji_session.uploadWrapper.assert_has_calls(
