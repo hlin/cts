@@ -369,7 +369,9 @@ class TestPungi(unittest.TestCase):
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
              AnyStringWith('--compose-dir='), '--nightly'],
-            cwd=AnyStringWith('/tmp/'), timeout=3600)
+            cwd=AnyStringWith('/tmp/'), timeout=3600,
+            stderr=AnyStringWith("pungi-stderr.log"),
+            stdout=AnyStringWith("pungi-stdout.log"))
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run_raw_config(self, execute_cmd):

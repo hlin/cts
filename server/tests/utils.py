@@ -36,7 +36,7 @@ from mock import patch
 
 class AnyStringWith(str):
     def __eq__(self, other):
-        return self in other
+        return self in str(other)
 
 
 class ConfigPatcher(object):
