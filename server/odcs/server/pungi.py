@@ -426,8 +426,15 @@ class Pungi(object):
             self._write_cfgs(td)
             compose_dir = self._prepare_compose_dir(td, conf.target_dir)
             pungi_cmd = self.get_pungi_cmd(td, conf.target_dir, compose_dir)
-            odcs.server.utils.execute_cmd(pungi_cmd, cwd=td,
-                                          timeout=conf.pungi_timeout)
+
+            log_out_path = os.path.join(compose_dir, "pungi-stdout.log")
+            log_err_path = os.path.join(compose_dir, "pungi-stderr.log")
+
+            with open(log_out_path, "w") as log_out:
+                with open(log_err_path, "w") as log_err:
+                    odcs.server.utils.execute_cmd(
+                        pungi_cmd, cwd=td, timeout=conf.pungi_timeout,
+                        stdout=log_out, stderr=log_err)
         finally:
             try:
                 if td is not None:

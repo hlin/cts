@@ -176,7 +176,7 @@ class ODCSAPI(MethodView):
             db.session.commit()
 
             if CELERY_AVAILABLE and conf.celery_broker_url:
-                if source_type == PungiSourceType.PULP:
+                if compose.source_type == PungiSourceType.PULP:
                     generate_pulp_compose.delay(compose.id)
                 else:
                     generate_pungi_compose.delay(compose.id)
