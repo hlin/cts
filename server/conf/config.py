@@ -213,6 +213,7 @@ class TestConfiguration(BaseConfiguration):
     AUTH_LDAP_GROUP_BASE = 'ou=groups,dc=example,dc=com'
 
     MESSAGING_BACKEND = 'rhmsg'
+    KOJI_PROFILE = 'koji'
 
 
 class ProdConfiguration(BaseConfiguration):

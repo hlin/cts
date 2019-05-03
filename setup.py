@@ -84,6 +84,7 @@ setup(name='odcs',
                               'odcs-gencert = odcs.server.manage:generatelocalhostcert [server]',
                               'odcs-frontend = odcs.server.manage:runssl [server]',
                               'odcs-backend = odcs.server.manage:runbackend [server]',
+                              'odcs-mock-runroot = odcs.server.mock_runroot:mock_runroot_main [server]',
                               'odcs-manager = odcs.server.manage:manager_wrapper [server]'],
       },
       data_files=[
