@@ -25,3 +25,4 @@ productmd
 pygobject
 koji
 pyldap
+celery

@@ -82,6 +82,65 @@ if broker_url.startswith("amqps://"):
 
 celery_app = Celery("backend", broker=broker_url)
 celery_app.conf.update(conf.celery_config)
+celery_app.conf.update({
+    'task_routes': ('odcs.server.celery_tasks.TaskRouter')
+})
+
+
+class TaskRouter:
+    """ Custom Celery router """
+
+    def __init__(self):
+        self.config = conf.celery_router_config
+
+    def route_for_task(self, task_name, *args, **kwargs):
+        """
+        Method which celery expects to be defined on a custom router. Returns the payload
+        with the queue selected for task
+        """
+        if task_name == self.config["cleanup_task"]:
+            return {"queue": conf.celery_cleanup_queue}
+
+        compose_id = args[0][0]
+        compose = get_odcs_compose(compose_id)
+        compose_md = compose.json()
+
+        queue = self.__get_queue_for_compose(compose_md, task_name)
+
+        return {"queue": queue}
+
+    def __get_queue_for_compose(self, compose_md, task_name):
+        """ Goes through routing rules configured for a task returns a queue on the first match. """
+        rules = {}
+        if self.config["routing_rules"].get(task_name):
+            rules.update(self.config["routing_rules"][task_name])
+
+        for queue, rule in rules.items():
+            # if the rule has no properties its an automatic match.
+            if rule:
+                for key, value in rule.items():
+                    if not compose_md.get(key):
+                        raise ValueError(
+                            ("Task Router: Routing rule for queue %s for task %s contains an "
+                             "invalid property: %s") % (queue, task_name, key))
+
+                    # if the value of the property from the rule and compose does not match, the
+                    # whole rule is ignored and we go to the next rule
+                    if type(value) is list:
+                        if compose_md[key] not in value:
+                            break
+                    else:
+                        if compose_md[key] != value:
+                            break
+                else:
+                    # if all of the properties and values match then the whole rule match
+                    return queue
+            else:
+                # if the rule is emtpy its an wildcard and an automatic match
+                return queue
+
+        # if none of the rules applies the default queue is returned
+        return self.config["default_queue"]
 
 
 @celery_app.on_after_configure.connect
@@ -113,7 +172,7 @@ def generate_compose(compose_id):
     backend_generate_compose(compose.id)
 
 
-@celery_app.task(queue=conf.celery_pungi_composes_queue)
+@celery_app.task
 def generate_pungi_compose(compose_id):
     """
     Generates the Pungi based compose.
@@ -121,7 +180,7 @@ def generate_pungi_compose(compose_id):
     generate_compose(compose_id)
 
 
-@celery_app.task(queue=conf.celery_pulp_composes_queue)
+@celery_app.task
 def generate_pulp_compose(compose_id):
     """
     Generates the Pungi based compose.
@@ -129,7 +188,7 @@ def generate_pulp_compose(compose_id):
     generate_compose(compose_id)
 
 
-@celery_app.task(queue=conf.celery_cleanup_queue)
+@celery_app.task
 def run_cleanup():
     """
     Runs the cleanup.

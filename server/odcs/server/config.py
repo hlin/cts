@@ -383,6 +383,26 @@ class Config(object):
             'default': "cleanup",
             'desc': 'Name of the Celery queue for cleanup task.'
         },
+        'celery_router_config': {
+            'type': dict,
+            'default': {
+                "routing_rules": {
+                    "odcs.server.celery_tasks.generate_pungi_compose": {
+                        "pungi_composes": {
+                            "source_type": 3,
+                        },
+                    },
+                    "odcs.server.celery_tasks.generate_pulp_compose": {
+                        "pulp_composes": {
+                            "source_type": 4,
+                        },
+                    },
+                },
+                "cleanup_task": "odcs.server.celery_tasks.run_cleanup",
+                "default_queue": "pungi_composes",
+            },
+            'desc': 'Configuration for custom celery router.'
+        }
     }
 
     def __init__(self, conf_section_obj):
@@ -512,3 +532,18 @@ class Config(object):
         if not os.path.isfile(s):
             raise ValueError("Pungi config template doesn't exist: %s" % s)
         self._pungi_conf_path = s
+
+    def _setifok_celery_router_config(self, celery_router_config):
+        if type(celery_router_config) != dict:
+            raise TypeError("celery_router_config must be a dict.")
+
+        required_config_keys = ["routing_rules", "cleanup_task", "default_queue"]
+
+        for conf_key in required_config_keys:
+            if not celery_router_config.get(conf_key):
+                raise KeyError("celery_router_config is missing %s" % conf_key)
+
+        if type(celery_router_config["routing_rules"]) != dict:
+            raise TypeError("routing_rules must be a dict.")
+
+        self._celery_router_config = celery_router_config
