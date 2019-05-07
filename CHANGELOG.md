@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.28
+  - Release date: 2019-05-07
+  - Fix compose renew when using Celery distributed task queue.
+  - Do not override commit hash when using raw_config source type.
+  - Log Pungi stdout and stderr to compose directory.
+  - Add "odcs-mock-runroot" script to allow generating runroot tasks.
+
 ## 0.2.27
   - Release date: 2019-04-03
   - Fix issues with generating raw_config composes.
