@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.29
+  - Release date: 2019-05-09
+  - Add new `odcs_celery_router_config` to configure how tasks are routed
+    into the different Celery queues.
+
 ## 0.2.28
   - Release date: 2019-05-07
   - Fix compose renew when using Celery distributed task queue.
