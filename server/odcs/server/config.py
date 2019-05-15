@@ -402,7 +402,12 @@ class Config(object):
                 "default_queue": "pungi_composes",
             },
             'desc': 'Configuration for custom celery router.'
-        }
+        },
+        'runroot_extra_mounts': {
+            'type': list,
+            'default': [],
+            'desc': 'Extra mountpoint directories for odcs-mock-runroot.'
+        },
     }
 
     def __init__(self, conf_section_obj):

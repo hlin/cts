@@ -48,6 +48,7 @@ import koji
 import os
 import uuid
 import tempfile
+import logging
 
 from odcs.server import conf
 from odcs.server.backend import create_koji_session
@@ -129,6 +130,11 @@ def mock_runroot_init(tag_name):
     # Generate the runroot_key.
     runroot_key = str(uuid.uuid1())
 
+    # Disable logging completely for the rest of execution, because the only
+    # thing we must print is the runroot_key and the general logging to stdout
+    # would confuse Pungi when calling this method.
+    logging.disable(logging.CRITICAL)
+
     # Get the latest Koji repo associated with the tag.
     koji_module = koji.get_profile_module(conf.koji_profile)
     koji_session = create_koji_session()
@@ -196,7 +202,7 @@ def mock_runroot_run(runroot_key, cmd):
 
     try:
         # Mount the conf.targetdir in the Mock chroot.
-        do_mounts(rootdir, [conf.target_dir])
+        do_mounts(rootdir, [conf.target_dir] + conf.runroot_extra_mounts)
 
         # Wrap the runroot command in /bin/sh, because that's how Koji does
         # that and we need to stay compatible with this way...
@@ -208,7 +214,7 @@ def mock_runroot_run(runroot_key, cmd):
         execute_mock(runroot_key, args, False)
     finally:
         # In the end of run, umount the conf.targetdir.
-        undo_mounts(rootdir, [conf.target_dir])
+        undo_mounts(rootdir, [conf.target_dir] + conf.runroot_extra_mounts)
 
 
 def mock_runroot_main(argv=None):
