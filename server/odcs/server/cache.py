@@ -24,7 +24,8 @@
 import time
 import os
 import shutil
-import threading
+from datetime import timedelta
+from flufl.lock import Lock
 
 from odcs.common.types import PungiSourceType, COMPOSE_STATES
 from odcs.server import conf, log
@@ -43,14 +44,9 @@ class KojiTagCache(object):
     ODCS compose attributes which influences the repodata.
     """
 
-    # This class is thread-safe and only single backend thread can change the
-    # content of koji_tag_cache in the same time. This lock guards that.
-    _cache_lock = threading.Lock()
-
     def __init__(self):
         self.cache_dir = os.path.join(conf.target_dir, "koji_tag_cache")
-        with KojiTagCache._cache_lock:
-            makedirs(self.cache_dir)
+        makedirs(self.cache_dir)
 
     def remove_old_koji_tag_cache_data(self):
         """
@@ -114,11 +110,10 @@ class KojiTagCache(object):
         :return: Returns True when there exists cached compose for input
             compose.
         """
-        with KojiTagCache._cache_lock:
-            if compose.source_type != PungiSourceType.KOJI_TAG:
-                return False
+        if compose.source_type != PungiSourceType.KOJI_TAG:
+            return False
 
-            return os.path.exists(self.cached_compose_dir(compose))
+        return os.path.exists(self.cached_compose_dir(compose))
 
     def reuse_cached(self, compose):
         """
@@ -128,10 +123,18 @@ class KojiTagCache(object):
         :param models.Compose compose: Compose which will reuse the older
             cached compose.
         """
-        with KojiTagCache._cache_lock:
-            cached_compose_dir = self.cached_compose_dir(compose)
-            log.info("Reusing repodata from old cached compose %s",
-                     cached_compose_dir)
+
+        cached_compose_dir = self.cached_compose_dir(compose)
+        log.info("Reusing repodata from old cached compose %s",
+                 cached_compose_dir)
+
+        # Create the lock. The rmtree and copytree on same fs should not take more
+        # than 3 minutes really.
+        lock = Lock(cached_compose_dir + ".lock")
+        lock.lifetime = timedelta(minutes=3)
+
+        try:
+            lock.lock()
 
             compose_dir_name = "odcs-%d-1-19700101.n.0" % compose.id
             compose_dir = os.path.join(self.cache_dir, compose_dir_name)
@@ -139,6 +142,9 @@ class KojiTagCache(object):
             if os.path.exists(compose_dir):
                 shutil.rmtree(compose_dir)
             shutil.copytree(cached_compose_dir, compose_dir, symlinks=True)
+        finally:
+            if lock.is_locked:
+                lock.unlock()
 
     def cleanup_reused(self, compose):
         """
@@ -158,16 +164,25 @@ class KojiTagCache(object):
 
         :param models.Compose compose: Compose to update the cache from.
         """
-        with KojiTagCache._cache_lock:
-            if (compose.source_type != PungiSourceType.KOJI_TAG or
-                    compose.state != COMPOSE_STATES["done"]):
-                log.info("Not caching the compose %s.", compose)
-                return
+        if (compose.source_type != PungiSourceType.KOJI_TAG or
+                compose.state != COMPOSE_STATES["done"]):
+            log.info("Not caching the compose %s.", compose)
+            return
 
-            log.info("Caching the compose %s", compose)
-            cached_compose_dir = self.cached_compose_dir(compose)
-            compose_dir = os.path.realpath(compose.toplevel_dir)
+        log.info("Caching the compose %s", compose)
+        cached_compose_dir = self.cached_compose_dir(compose)
+        compose_dir = os.path.realpath(compose.toplevel_dir)
 
+        # Create the lock. The rmtree and copytree on same fs should not take more
+        # than 3 minutes really.
+        lock = Lock(cached_compose_dir + ".lock")
+        lock.lifetime = timedelta(minutes=3)
+
+        try:
+            lock.lock()
             if os.path.exists(cached_compose_dir):
                 shutil.rmtree(cached_compose_dir)
             shutil.copytree(compose_dir, cached_compose_dir, symlinks=True)
+        finally:
+            if lock.is_locked:
+                lock.unlock()
