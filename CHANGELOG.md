@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.30
+  - Release date: 2019-05-16
+  - Use locks which work across multiple backend processes in KojiTagCache.
+  - Allow defining extra mount points for odcs-mock-runroot.
+
 ## 0.2.29
   - Release date: 2019-05-09
   - Add new `odcs_celery_router_config` to configure how tasks are routed
