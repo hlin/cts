@@ -49,6 +49,7 @@ import os
 import uuid
 import tempfile
 import logging
+import stat
 
 from odcs.server import conf
 from odcs.server.backend import create_koji_session
@@ -82,6 +83,72 @@ def undo_mounts(rootdir, mounts):
         mpoint = "%s%s" % (rootdir, mount)
         cmd = ["umount", "-l", mpoint]
         execute_cmd(cmd)
+
+
+def rmtree_skip_mounts(rootdir, mounts, rootdir_mounts=None):
+    """
+    The rmtree method based on `shutil.rmtree` skipping the `mounts` directories.
+    We want to skip these directories in case the umount fails for whatever reason.
+    We need to ensure that /mnt/odcs content is not removed.
+
+    This method catches the `os.error` exceptions, so the runroot task does
+    not fail because of rmtree error.
+
+    :param str rootdir: Full path to root directory for Mock chroot to remove.
+        For example "/var/lib/mock/foo/root".
+    :param list mounts: List of mount points to skip in case they are not umounted.
+        For example ["/mnt/odcs", "/mnt/koji"].
+    :param str rootdir_mounts: Helper variable for recursive calls of this
+        function. It is initialized by this function in the first call and is
+        passed to recursive calls. It contains the full-path to mount point.
+        For example:
+            ["/var/lib/mock/foo/root/mnt/odcs", "/var/lib/mock/foo/root/mnt/koji"]
+    :return bool: True if some subdirectory of `rootdir` has been skipped and
+        not removed.
+    """
+    if not rootdir_mounts:
+        rootdir_mounts = ["%s%s" % (rootdir, mount) for mount in mounts]
+
+    # Skip the directory which is mount point in case it contains some files -
+    # that means it has not been umounted.
+    # This counts with recursive call of this method. For example:
+    #   rootdir_mounts = ["/var/lib/mock/foo/root/mnt/koji"]
+    #   Call #1:      rootdir = "/var/lib/mock/foo/root/"
+    #     Call #2:    rootdir = "/var/lib/mock/foo/root/mnt"
+    #       Call #3:  rootdir = "/var/lib/mock/foo/root/mnt/koji"
+    # In the Call #3, the rootdir == rootdir_mounts[0], so this directory is
+    # not removed when not empty and True is returned back to calls #2 and #1.
+    # That tells the #2 and #1 to also not remove the "rootdir" with which
+    # they have been called.
+    if rootdir in rootdir_mounts and os.listdir(rootdir):
+        return True
+
+    subdirectory_skipped = False
+    names = []
+    try:
+        names = os.listdir(rootdir)
+    except os.error:
+        pass
+    for name in names:
+        fullname = os.path.join(rootdir, name)
+        try:
+            mode = os.lstat(fullname).st_mode
+        except os.error:
+            mode = 0
+        if stat.S_ISDIR(mode):
+            if rmtree_skip_mounts(fullname, mounts, rootdir_mounts):
+                subdirectory_skipped = True
+        else:
+            try:
+                os.remove(fullname)
+            except os.error:
+                continue
+    if not subdirectory_skipped:
+        try:
+            os.rmdir(rootdir)
+        except os.error:
+            pass
+    return subdirectory_skipped
 
 
 def runroot_tmp_path(runroot_key):
@@ -199,10 +266,11 @@ def mock_runroot_run(runroot_key, cmd):
     """
     raise_if_runroot_key_invalid(runroot_key)
     rootdir = "/var/lib/mock/%s/root" % runroot_key
+    mounts = [conf.target_dir] + conf.runroot_extra_mounts
 
     try:
         # Mount the conf.targetdir in the Mock chroot.
-        do_mounts(rootdir, [conf.target_dir] + conf.runroot_extra_mounts)
+        do_mounts(rootdir, mounts)
 
         # Wrap the runroot command in /bin/sh, because that's how Koji does
         # that and we need to stay compatible with this way...
@@ -214,7 +282,14 @@ def mock_runroot_run(runroot_key, cmd):
         execute_mock(runroot_key, args, False)
     finally:
         # In the end of run, umount the conf.targetdir.
-        undo_mounts(rootdir, [conf.target_dir] + conf.runroot_extra_mounts)
+        undo_mounts(rootdir, mounts)
+        # TODO: Pungi so far does not indicate anyhow that the runroot root can
+        # be removed. The last command is always "rpm -qa ...", so we use it
+        # as a mark for now that runroot root can be removed.
+        # We should try improving Pungi OpenSSH runroot method to remove this
+        # workaround later.
+        if cmd[0] == "rpm":
+            rmtree_skip_mounts(rootdir, mounts)
 
 
 def mock_runroot_main(argv=None):
