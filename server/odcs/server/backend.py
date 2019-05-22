@@ -134,6 +134,16 @@ class RemoveExpiredComposesThread(BackendThread):
         """
         super(RemoveExpiredComposesThread, self).__init__(10)
 
+    def _on_rmtree_error(self, function, path, excinf):
+        """
+        Helper method passed to `shutil.rmtree` as `onerror` kwarg which logs
+        the rmtree error, but allows the rmtree to continue removing other
+        files.
+        """
+        exception_value = excinf[1]
+        log.warning("The %r function for path %s failed: %r" % (
+            function, path, exception_value))
+
     def _remove_compose_dir(self, toplevel_dir):
         """
         Removes the compose toplevel_dir symlink together with the real
@@ -153,9 +163,9 @@ class RemoveExpiredComposesThread(BackendThread):
             targetpath = os.path.realpath(toplevel_dir)
             os.unlink(toplevel_dir)
             if os.path.exists(targetpath):
-                shutil.rmtree(targetpath)
+                shutil.rmtree(targetpath, onerror=self._on_rmtree_error)
         else:
-            shutil.rmtree(toplevel_dir)
+            shutil.rmtree(toplevel_dir, onerror=self._on_rmtree_error)
 
     def _get_compose_id_from_path(self, path):
         """

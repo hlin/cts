@@ -228,3 +228,17 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         self.thread._remove_compose_dir(toplevel_dir)
         unlink.assert_not_called()
         rmtree.assert_called_once()
+
+    @patch("os.unlink")
+    @patch("os.path.realpath")
+    @patch("os.path.exists")
+    @patch("odcs.server.backend.log.warning")
+    def test_remove_compose_rmtree_error(
+            self, log_warning, exists, realpath, unlink):
+        exists.return_value = True
+        toplevel_dir = "/odcs"
+        realpath.return_value = "/odcs-real"
+
+        # This must not raise an exception.
+        self.thread._remove_compose_dir(toplevel_dir)
+        log_warning.assert_called()
