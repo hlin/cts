@@ -21,11 +21,11 @@
 # SOFTWARE.
 
 import unittest
-from mock import patch, mock_open
+from mock import patch, mock_open, MagicMock
 
 from odcs.server.mock_runroot import (
     mock_runroot_init, raise_if_runroot_key_invalid, mock_runroot_run,
-    mock_runroot_install)
+    mock_runroot_install, rmtree_skip_mounts)
 from .utils import AnyStringWith
 
 
@@ -77,3 +77,53 @@ class TestMockRunroot(unittest.TestCase):
     def test_mock_runroot_install(self, execute_mock):
         mock_runroot_install("foo-bar", ["lorax", "dracut"])
         execute_mock.assert_called_once_with('foo-bar', ['--install', 'lorax', 'dracut'])
+
+    @patch("odcs.server.mock_runroot.os.rmdir")
+    @patch("odcs.server.mock_runroot.os.listdir")
+    @patch("odcs.server.mock_runroot.os.lstat")
+    @patch("odcs.server.mock_runroot.os.remove")
+    @patch("odcs.server.mock_runroot.stat.S_ISDIR")
+    def test_mock_runroot_rmtree(self, isdir, remove, lstat, listdir, rmdir):
+        """
+        Tests that `rmtree_skip_mounts` really skips the mount points when
+        removing the runroot root directory.
+
+        The fake runroot root directory in this test is following:
+        - /mnt/koji - empty directory which should be removed
+        - /mnt/odcs - non-empty mountpoint directory must not be removed.
+        - /x - regular file which should be removed.
+        """
+        def mocked_listdir(path):
+            # Creates fake directory structure within the /var/lib/mock/foo-bar/root:
+            #  - /mnt/koji
+            #  - /mnt/odcs/foo
+            #  - /x
+            if path == "/var/lib/mock/foo-bar/root":
+                return ["mnt", "x"]
+            if path.endswith("/mnt"):
+                return ["odcs", "koji"]
+            elif path.endswith("/odcs"):
+                return ["foo"]
+            return []
+        listdir.side_effect = mocked_listdir
+
+        def mocked_isdir(mode):
+            # We use fake values here:
+            # - 0 means it is not a directory.
+            # - 1 means it is a directory.
+            return mode
+        isdir.side_effect = mocked_isdir
+
+        def mocked_lstat(path):
+            stat_result = MagicMock()
+            if path.endswith("/x"):
+                stat_result.st_mode = 0  # Just fake return value for regular file.
+            else:
+                stat_result.st_mode = 1  # Fake value for directory.
+            return stat_result
+        lstat.side_effect = mocked_lstat
+
+        rmtree_skip_mounts("/var/lib/mock/foo-bar/root", ["/mnt/odcs"])
+
+        rmdir.assert_called_once_with("/var/lib/mock/foo-bar/root/mnt/koji")
+        remove.assert_called_once_with("/var/lib/mock/foo-bar/root/x")
