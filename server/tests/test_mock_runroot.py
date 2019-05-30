@@ -40,18 +40,23 @@ class TestMockRunroot(unittest.TestCase):
     @patch("odcs.server.mock_runroot.create_koji_session")
     @patch("odcs.server.mock_runroot.execute_mock")
     @patch("odcs.server.mock_runroot.print", create=True)
-    def test_mock_runroot_init(self, fake_print, execute_mock, create_koji_session):
+    @patch("odcs.server.mock_runroot.rmtree_skip_mounts")
+    def test_mock_runroot_init(
+            self, rmtree_skip_mounts, fake_print, execute_mock, create_koji_session):
+        execute_mock.side_effect = RuntimeError("Expected exception")
         koji_session = create_koji_session.return_value
         koji_session.getRepo.return_value = {"id": 1}
 
         m = mock_open()
         with patch('odcs.server.mock_runroot.open', m, create=True):
-            mock_runroot_init("f30-build")
+            with self.assertRaises(RuntimeError):
+                mock_runroot_init("f30-build")
 
         fake_print.assert_called_once()
         m.return_value.write.assert_called_once_with(AnyStringWith("f30-build"))
 
         execute_mock.assert_called_once_with(AnyStringWith("-"), ['--init'])
+        rmtree_skip_mounts.assert_called_once()
 
     def test_raise_if_runroot_key_invalid(self):
         with self.assertRaises(ValueError):
@@ -77,6 +82,14 @@ class TestMockRunroot(unittest.TestCase):
     def test_mock_runroot_install(self, execute_mock):
         mock_runroot_install("foo-bar", ["lorax", "dracut"])
         execute_mock.assert_called_once_with('foo-bar', ['--install', 'lorax', 'dracut'])
+
+    @patch("odcs.server.mock_runroot.execute_mock")
+    @patch("odcs.server.mock_runroot.rmtree_skip_mounts")
+    def test_mock_runroot_install_exception(self, rmtree_skip_mounts, execute_mock):
+        execute_mock.side_effect = RuntimeError("Expected exception")
+        with self.assertRaises(RuntimeError):
+            mock_runroot_install("foo-bar", ["lorax", "dracut"])
+        rmtree_skip_mounts.assert_called_once()
 
     @patch("odcs.server.mock_runroot.os.rmdir")
     @patch("odcs.server.mock_runroot.os.listdir")

@@ -231,7 +231,13 @@ def mock_runroot_init(tag_name):
     print(runroot_key)
 
     # Run the `mock --init` with some log files.
-    execute_mock(runroot_key, ["--init"])
+    try:
+        execute_mock(runroot_key, ["--init"])
+    except Exception:
+        rootdir = "/var/lib/mock/%s/root" % runroot_key
+        mounts = [conf.target_dir] + conf.runroot_extra_mounts
+        rmtree_skip_mounts(rootdir, mounts)
+        raise
 
 
 def raise_if_runroot_key_invalid(runroot_key):
@@ -254,7 +260,13 @@ def mock_runroot_install(runroot_key, packages):
     :param list packages: List of packages to install.
     """
     raise_if_runroot_key_invalid(runroot_key)
-    execute_mock(runroot_key, ["--install"] + packages)
+    try:
+        execute_mock(runroot_key, ["--install"] + packages)
+    except Exception:
+        rootdir = "/var/lib/mock/%s/root" % runroot_key
+        mounts = [conf.target_dir] + conf.runroot_extra_mounts
+        rmtree_skip_mounts(rootdir, mounts)
+        raise
 
 
 def mock_runroot_run(runroot_key, cmd):
