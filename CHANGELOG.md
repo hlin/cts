@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.31
+  - Release date: 2019-06-14
+  - Remove the Mock runroot root after the last `run` method of session is done.
+  - Continue removing expired compose despite the error in `shutil.rmtree`.
+  - Add ~ to the list of allowed characters for REST API input.
+
 ## 0.2.30
   - Release date: 2019-05-16
   - Use locks which work across multiple backend processes in KojiTagCache.
