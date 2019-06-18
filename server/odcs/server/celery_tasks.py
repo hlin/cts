@@ -167,6 +167,8 @@ def generate_compose(compose_id):
     Generates the compose with id `compose_id`.
     """
     compose = get_odcs_compose(compose_id)
+    if compose.state != COMPOSE_STATES["wait"]:
+        raise RuntimeError("The 'generate_compose' called for compose not in 'wait' state: %r" % compose)
     compose.transition(COMPOSE_STATES["generating"], "Compose thread started")
     db.session.commit()
     backend_generate_compose(compose.id)
