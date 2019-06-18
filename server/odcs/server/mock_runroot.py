@@ -292,16 +292,24 @@ def mock_runroot_run(runroot_key, cmd):
         # here, otherwise Lorax fails.
         args = ["--old-chroot", "--chroot", "--"] + sh_wrapper
         execute_mock(runroot_key, args, False)
-    finally:
-        # In the end of run, umount the conf.targetdir.
+
+    except Exception:
+        # In the case of Exception, always call rmtree, because Pungi will
+        # not call the "rpm -qa" last command, so we would never remove
+        # the chroot.
         undo_mounts(rootdir, mounts)
-        # TODO: Pungi so far does not indicate anyhow that the runroot root can
-        # be removed. The last command is always "rpm -qa ...", so we use it
-        # as a mark for now that runroot root can be removed.
-        # We should try improving Pungi OpenSSH runroot method to remove this
-        # workaround later.
-        if cmd[0] == "rpm":
-            rmtree_skip_mounts(rootdir, mounts)
+        rmtree_skip_mounts(rootdir, mounts)
+        raise
+
+    # In the end of run, umount the conf.targetdir.
+    undo_mounts(rootdir, mounts)
+    # TODO: Pungi so far does not indicate anyhow that the runroot root can
+    # be removed. The last command is always "rpm -qa ...", so we use it
+    # as a mark for now that runroot root can be removed.
+    # We should try improving Pungi OpenSSH runroot method to remove this
+    # workaround later.
+    if cmd[0] == "rpm":
+        rmtree_skip_mounts(rootdir, mounts)
 
 
 def mock_runroot_main(argv=None):

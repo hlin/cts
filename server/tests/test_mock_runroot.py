@@ -91,6 +91,21 @@ class TestMockRunroot(unittest.TestCase):
             mock_runroot_install("foo-bar", ["lorax", "dracut"])
         rmtree_skip_mounts.assert_called_once()
 
+    @patch("odcs.server.mock_runroot.execute_mock")
+    @patch("odcs.server.mock_runroot.execute_cmd")
+    @patch("odcs.server.mock_runroot.rmtree_skip_mounts")
+    def test_mock_runroot_run_exception(self, rmtree_skip_mounts, execute_cmd, execute_mock):
+        execute_mock.side_effect = RuntimeError("Expected exception")
+        with self.assertRaises(RuntimeError):
+            mock_runroot_run("foo-bar", ["df", "-h"])
+
+        execute_mock.assert_called_once_with('foo-bar', [
+            '--old-chroot', '--chroot', '--', '/bin/sh', '-c', '{ df -h; }'], False)
+        execute_cmd.assert_any_call([
+            'mount', '-o', 'bind', AnyStringWith('test_composes'), AnyStringWith('test_composes')])
+        execute_cmd.assert_any_call(['umount', '-l', AnyStringWith('test_composes')])
+        rmtree_skip_mounts.assert_called_once()
+
     @patch("odcs.server.mock_runroot.os.rmdir")
     @patch("odcs.server.mock_runroot.os.listdir")
     @patch("odcs.server.mock_runroot.os.lstat")
