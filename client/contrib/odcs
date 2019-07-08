@@ -94,6 +94,9 @@ create_parser.add_argument(
     help="Signing key ID using which the packages must be signed - "
     "\none\" for no signing key.")
 create_parser.add_argument(
+    '--koji-event', default=None,
+    help="Koji event for populating package set")
+create_parser.add_argument(
     '--arch', default=[], action='append',
     help="Koji arch to build the compose for.")
 create_parser.add_argument(
@@ -204,6 +207,7 @@ try:
             packages=args.packages,
             results=args.result,
             sigkeys=args.sigkey,
+            koji_event=args.koji_event,
             flags=args.flag,
             arches=args.arch,
             builds=args.builds,

@@ -289,6 +289,8 @@ class ODCSAPI(MethodView):
         else:
             sigkeys = ' '.join(conf.sigkeys)
 
+        koji_event = source_data.get('koji_event', None)
+
         flags = 0
         if "flags" in data:
             for name in data["flags"]:
@@ -352,8 +354,10 @@ class ODCSAPI(MethodView):
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
             results, seconds_to_live,
-            packages, flags, sigkeys, arches, multilib_arches=multilib_arches,
-            multilib_method=multilib_method, builds=builds,
+            packages, flags, sigkeys, koji_event, arches,
+            multilib_arches=multilib_arches,
+            multilib_method=multilib_method,
+            builds=builds,
             lookaside_repos=lookaside_repos,
             modular_koji_tags=modular_koji_tags,
             module_defaults_url=module_defaults)

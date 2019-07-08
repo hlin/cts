@@ -239,6 +239,7 @@ class TestNewCompose(unittest.TestCase):
             'result_repo': 'http://odcs.host.qe.eng.pek2.redhat.com/composes/latest-odcs-7-1/compose/Temporary',
             'source': 'cf-1.0-rhel-5',
             'source_type': 1,
+            'koji_event': 123456,
             'state': 0,
             'state_name': 'wait',
             'time_done': None,
@@ -253,6 +254,7 @@ class TestNewCompose(unittest.TestCase):
                                             'tag',
                                             packages=['libdnet'],
                                             sigkeys=['123', '456'],
+                                            koji_event=123456,
                                             results=["boot.iso"])
 
         self.assertEqual(fake_new_compose, new_compose)
@@ -262,7 +264,8 @@ class TestNewCompose(unittest.TestCase):
                 'source': {'source': 'cf-1.0-rhel-5',
                            'type': 'tag',
                            'packages': ['libdnet'],
-                           'sigkeys': ['123', '456']},
+                           'sigkeys': ['123', '456'],
+                           'koji_event': 123456},
                 'results': ['boot.iso'],
             }),
             headers={'Content-Type': 'application/json'}

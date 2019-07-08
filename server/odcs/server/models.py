@@ -146,15 +146,16 @@ class Compose(ODCSBase):
     @classmethod
     def create(cls, session, owner, source_type, source, results,
                seconds_to_live, packages=None, flags=0, sigkeys=None,
-               arches=None, multilib_arches=None, multilib_method=None,
-               builds=None, lookaside_repos=None, modular_koji_tags=None,
-               module_defaults_url=None):
+               koji_event=None, arches=None, multilib_arches=None,
+               multilib_method=None, builds=None, lookaside_repos=None,
+               modular_koji_tags=None, module_defaults_url=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
             source_type=source_type,
             source=source,
             sigkeys=sigkeys,
+            koji_event=koji_event,
             state="wait",
             results=results,
             time_submitted=now,

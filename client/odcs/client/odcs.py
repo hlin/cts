@@ -211,8 +211,8 @@ class ODCS(object):
 
     def new_compose(self, source, source_type,
                     seconds_to_live=None, packages=[], flags=[],
-                    sigkeys=None, results=None, arches=None,
-                    builds=None, modular_koji_tags=None,
+                    sigkeys=None, koji_event=None, results=None,
+                    arches=None, builds=None, modular_koji_tags=None,
                     module_defaults_url=None, module_defaults_commit=None,
                     lookaside_repos=None):
         """Request a new compose
@@ -236,6 +236,7 @@ class ODCS(object):
             listed in ``source`` without their dependencies.
         :param list sigkeys: List of signature keys by which the packages
             in compose must be signed.
+        :param int koji_event: Koji event for populating package set.
         :param list results: List of additional results which will be generated
             by ODCS as part of this compose. Can be "iso" for iso files with
             packages or "boot.iso" for images/boot.iso needed to generate
@@ -252,6 +253,8 @@ class ODCS(object):
             request_data['source']['builds'] = builds
         if sigkeys:
             request_data['source']['sigkeys'] = sigkeys
+        if koji_event:
+            request_data['source']['koji_event'] = koji_event
         if modular_koji_tags:
             request_data['source']['modular_koji_tags'] = modular_koji_tags
         if module_defaults_url:
