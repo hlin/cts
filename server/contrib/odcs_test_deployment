@@ -159,7 +159,7 @@ def check_new_compose(source_type, source, packages, flags,
     except requests.exceptions.HTTPError as e:
         assert expected_state_reason in e.response.json()["message"]
         print("OK (HTTPError expected)")
-        print ("")
+        print("")
         return
 
     compose = client.wait_for_compose(compose["id"])
@@ -248,7 +248,7 @@ def check_redhat_deployment():
         "tag", "unknown-tag", ["gofer-package"], [],
         expected_state_reason="Unknown Koji tag")
 
-    #Check "tag" with additional builds.
+    # Check "tag" with additional builds.
     compose_id = check_new_compose(
         "tag", "cf-1.0-rhel-5", ["gofer-package", "tar"], ["no_deps"],
         arches=["x86_64", "ppc64"], builds=["tar-1.26-29.el7"])
@@ -268,6 +268,7 @@ def check_redhat_deployment():
 
     # Check "module".
     check_new_compose("module", "postgresql:10", [], ["no_deps"], [""])
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test ODCS deployment.")
