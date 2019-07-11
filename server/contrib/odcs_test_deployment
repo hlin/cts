@@ -201,11 +201,10 @@ def check_delete_compose(compose_id):
     # checks that "time_to_expire" is set properly and composes are
     # therefore marked for deletion.
     for i in range(10):
-        now = time.time()
+        now = datetime.utcnow()
         compose = client.get_compose(compose_id)
         time_to_expire = datetime.strptime(
             compose["time_to_expire"], "%Y-%m-%dT%H:%M:%SZ")
-        time_to_expire = time.mktime(time_to_expire.timetuple())
         if time_to_expire < now:
             break
         time.sleep(1)
