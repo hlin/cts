@@ -5,12 +5,13 @@ from __future__ import print_function
 import argparse
 import sys
 import odcs.client.odcs
+import re
 import requests
 import time
 import shutil
 import tempfile
 import openidc_client
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class TemporaryDirectory(object):
@@ -137,6 +138,39 @@ def check_compose(compose, source_type, source, packages, flags, arches=None):
             assert len(pkgs) > 0
 
 
+def check_compose_time(compose, time_threshold):
+    """
+    Check the comsumed time of a compose doesn't over the threshold.
+    :param str time_threshold: time threshold for generating a compose,
+        in format of "[0-9]+[s|S|m|M|h|H|d|D]", like "10m".
+    """
+    try:
+        regex = re.compile(r'(?P<num>\d+)[s|S|m|M|h|H|d|D]')
+        m = regex.match(time_threshold)
+        num = int(m.group("num"))
+    except Exception:
+        raise RuntimeError("Unknown format of time threshold: %s" % time_threshold)
+
+    if time_threshold.endswith(("s", "S")):
+        threshold = timedelta(seconds=num)
+    elif time_threshold.endswith(("m", "M")):
+        threshold = timedelta(minutes=num)
+    elif time_threshold.endswith(("h", "H")):
+        threshold = timedelta(hours=num)
+    elif time_threshold.endswith(("d", "D")):
+        threshold = timedelta(days=num)
+
+    time_format = "%Y-%m-%dT%H:%M:%SZ"
+    start_time = datetime.strptime(compose["time_submitted"], time_format)
+    end_time = datetime.strptime(compose["time_done"], time_format)
+    spent_time = end_time - start_time
+    print("Time spent for generating compose (%s): %ss" % (compose["id"],
+          spent_time.total_seconds()))
+    assert spent_time <= threshold, \
+        "Spent time (%ss) over threshold (%s) for generating compose %s." % (
+                spent_time.total_seconds(), time_threshold, compose["id"])
+
+
 def check_new_compose(source_type, source, packages, flags,
                       sigkeys=None, arches=None, expected_state_reason=None,
                       expected_packages=None, **kwargs):
@@ -213,17 +247,32 @@ def check_delete_compose(compose_id):
     print("")
 
 
-def check_redhat_deployment():
+def check_redhat_deployment(with_large_tag_compose=True):
     """
     Checks the Red Hat internal ODCS deployment
     """
     # Check "tag".
-    compose_id = check_new_compose(
-        "tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"],
-        arches=["x86_64", "ppc64"])
-    check_delete_compose(compose_id)
-    check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5",
-                        ["gofer-package"], ["no_deps"], ["x86_64", "ppc64"])
+    if with_large_tag_compose:
+        # test with a compose with much more packages
+        compose_id = check_new_compose(
+            "tag", "rhos-13.0-rhel-7-container-build", [], [],
+            sigkeys=["37017186", "FD431D51", "DB42A60E"],
+            arches=["x86_64", "ppc64le"])
+        compose = client.get_compose(compose_id)
+        check_compose_time(compose, "10m")
+        check_delete_compose(compose_id)
+        check_renew_compose(compose_id, "tag", "rhos-13.0-rhel-7-container-build",
+                            [], [], arches=["x86_64", "pppc64le"])
+    else:
+        # this is a compose much smaller
+        compose_id = check_new_compose(
+            "tag", "cf-1.0-rhel-5", ["gofer-package"], ["no_deps"],
+            arches=["x86_64", "ppc64"])
+        compose = client.get_compose(compose_id)
+        check_compose_time(compose, "5m")
+        check_delete_compose(compose_id)
+        check_renew_compose(compose_id, "tag", "cf-1.0-rhel-5",
+                            ["gofer-package"], ["no_deps"], ["x86_64", "ppc64"])
 
     # Check "tag" with "deps".
     check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
@@ -306,7 +355,10 @@ if __name__ == "__main__":
                 "pulp", "rhel-7-server-rpms rhel-server-rhscl-7-rpms", [], [])
             sys.exit(0) if compose_id else sys.exit(1)
 
-        check_redhat_deployment()
+        with_large_tag_compose = True
+        if '.dev.' in odcs_api_url or '.qe.' in odcs_api_url:
+            with_large_tag_compose = False
+        check_redhat_deployment(with_large_tag_compose=with_large_tag_compose)
     else:
         if fast_check:
             print("Ignoring --fast-check option. Applicable only for redhat profile.")
