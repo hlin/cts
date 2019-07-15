@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.32
+  - Release date: 2019-07-15
+  - Do not execute generation of compose which is not in 'wait' state.
+  - Remove the Mock chroot also in case of exception in runroot command.
+  - Disable GssapiBasicAuth in frontend for security reasons.
+  - Support generating repo with koji_event.
+
 ## 0.2.31
   - Release date: 2019-06-14
   - Remove the Mock runroot root after the last `run` method of session is done.
