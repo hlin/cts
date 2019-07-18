@@ -55,13 +55,6 @@ VARIANTS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
       <arch>{{ arch.name }}</arch>
       {%- endfor %}
     </arches>
-    {%- if variant.modules %}
-    <modules>
-      {%- for module in variant.modules %}
-      <module>{{ module.name }}</module>
-      {%- endfor %}
-    </modules>
-    {%- endif %}
     {%- if variant.groups %}
     <groups>
       {%- for group in variant.groups %}
@@ -70,6 +63,13 @@ VARIANTS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
         {%- if false %}{% endif %}>{{ group.name }}</group>
       {%- endfor %}
     </groups>
+    {%- endif %}
+    {%- if variant.modules %}
+    <modules>
+      {%- for module in variant.modules %}
+      <module>{{ module.name }}</module>
+      {%- endfor %}
+    </modules>
     {%- endif %}
   </variant>
   {%- endfor %}

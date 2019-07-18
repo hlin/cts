@@ -221,7 +221,8 @@ class TestPungiConfig(unittest.TestCase):
             pungi_cfg = PungiConfig(
                 "MBS-512", "1", PungiSourceType.KOJI_TAG, "f26",
                 modular_koji_tags="f26-modules",
-                module_defaults_url="git://localhost.tld/x.git master")
+                module_defaults_url="git://localhost.tld/x.git master",
+                packages=["foo"])
 
             template = pungi_cfg.get_pungi_config()
             cfg = self._load_pungi_cfg(template)
@@ -233,6 +234,12 @@ class TestPungiConfig(unittest.TestCase):
                 'dir': '.',
                 'repo': 'git://localhost.tld/x.git',
                 'scm': 'git'})
+
+            # The "<modules>" must appear in the variants.xml after the "<groups>".
+            variants = pungi_cfg.get_variants_config()
+            self.assertTrue(variants.find("<module>") != -1)
+            self.assertTrue(variants.find("<groups>") != -1)
+            self.assertTrue(variants.find("<module>") > variants.find("<groups>"))
 
     def test_get_pungi_conf_source_type_build(self):
         _, mock_path = tempfile.mkstemp()
