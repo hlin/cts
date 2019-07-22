@@ -42,6 +42,7 @@
 #      the output of this command can be stored there.
 
 from __future__ import print_function
+import time
 import platform
 import sys
 import koji
@@ -151,6 +152,31 @@ def rmtree_skip_mounts(rootdir, mounts, rootdir_mounts=None):
     return subdirectory_skipped
 
 
+def cleanup_old_runroots():
+    """
+    Checks the /var/lib/mock diretory for old runroot chroots and remove them.
+
+    Those chroots can be lost there for example when the host reboots in the
+    middle of runroot generation or in case Pungi task gets killed for
+    whatever reason.
+
+    We need to ensure that the chroot data are removed from the filesystem
+    in these cases.
+    """
+    now = time.time()
+    mounts = [conf.target_dir] + conf.runroot_extra_mounts
+    mock_root = "/var/lib/mock"
+    for runroot_key in os.listdir(mock_root):
+        chroot_path = os.path.join(mock_root, runroot_key, "root")
+        # Skip the chroot_path if it does not exist or is not old enough.
+        try:
+            if os.stat(chroot_path).st_mtime > now - conf.pungi_timeout:
+                continue
+        except OSError:
+            continue
+        rmtree_skip_mounts(chroot_path, mounts)
+
+
 def runroot_tmp_path(runroot_key):
     """
     Creates and returns the temporary path to store the configuration files
@@ -201,6 +227,10 @@ def mock_runroot_init(tag_name):
     # thing we must print is the runroot_key and the general logging to stdout
     # would confuse Pungi when calling this method.
     logging.disable(logging.CRITICAL)
+
+    # At first run the cleanup task to remove possible old lost runroot
+    # chroots.
+    cleanup_old_runroots()
 
     # Get the latest Koji repo associated with the tag.
     koji_module = koji.get_profile_module(conf.koji_profile)

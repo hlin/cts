@@ -20,12 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import time
 import unittest
 from mock import patch, mock_open, MagicMock
 
 from odcs.server.mock_runroot import (
     mock_runroot_init, raise_if_runroot_key_invalid, mock_runroot_run,
-    mock_runroot_install, rmtree_skip_mounts)
+    mock_runroot_install, rmtree_skip_mounts, cleanup_old_runroots)
 from .utils import AnyStringWith
 
 
@@ -41,8 +42,10 @@ class TestMockRunroot(unittest.TestCase):
     @patch("odcs.server.mock_runroot.execute_mock")
     @patch("odcs.server.mock_runroot.print", create=True)
     @patch("odcs.server.mock_runroot.rmtree_skip_mounts")
+    @patch("odcs.server.mock_runroot.cleanup_old_runroots")
     def test_mock_runroot_init(
-            self, rmtree_skip_mounts, fake_print, execute_mock, create_koji_session):
+            self, cleanup_old_runroots, rmtree_skip_mounts, fake_print,
+            execute_mock, create_koji_session):
         execute_mock.side_effect = RuntimeError("Expected exception")
         koji_session = create_koji_session.return_value
         koji_session.getRepo.return_value = {"id": 1}
@@ -57,6 +60,7 @@ class TestMockRunroot(unittest.TestCase):
 
         execute_mock.assert_called_once_with(AnyStringWith("-"), ['--init'])
         rmtree_skip_mounts.assert_called_once()
+        cleanup_old_runroots.assert_called_once()
 
     def test_raise_if_runroot_key_invalid(self):
         with self.assertRaises(ValueError):
@@ -155,3 +159,31 @@ class TestMockRunroot(unittest.TestCase):
 
         rmdir.assert_called_once_with("/var/lib/mock/foo-bar/root/mnt/koji")
         remove.assert_called_once_with("/var/lib/mock/foo-bar/root/x")
+
+    @patch("odcs.server.mock_runroot.os.listdir")
+    @patch("odcs.server.mock_runroot.os.stat")
+    @patch("odcs.server.mock_runroot.rmtree_skip_mounts")
+    def test_cleanup_old_runroot(self, rmtree_skip_mounts, stat, listdir):
+        listdir.return_value = ["foo", "bar", "already-removed"]
+
+        def mocked_stat(path):
+            stat_result = MagicMock()
+            if path.endswith("/foo/root"):
+                # The "foo/root" is 1 day old, so should be removed.
+                stat_result.st_mtime = time.time() - 24 * 3600
+            elif path.endswith("/already-removed/root"):
+                # The "already-removed/root" is already removed, so raise an
+                # exception.
+                raise OSError("No such file")
+            elif path.endswith("/bar/root"):
+                # The "bar/root" is just 10 seconds old, so should not be
+                # removed.
+                stat_result.st_mtime = time.time() - 10
+            else:
+                raise ValueError("stat called for unexpected file.")
+            return stat_result
+        stat.side_effect = mocked_stat
+
+        cleanup_old_runroots()
+
+        rmtree_skip_mounts.assert_called_once_with("/var/lib/mock/foo/root", AnyStringWith("test_composes"))
