@@ -16,6 +16,7 @@ compose (mainly the RPM repository) with packages from Koji using the REST API.
 
    about
    client
+   api
 
 Indices and tables
 ==================

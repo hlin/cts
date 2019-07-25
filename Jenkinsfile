@@ -48,9 +48,27 @@ node('fedora-28') {
         sudo dnf install -y \
             python3-sphinx \
             python3-sphinxcontrib-httpdomain \
-            python3-sphinxcontrib-issuetracker
+            python3-sphinxcontrib-issuetracker \
+            gcc \
+            krb5-devel \
+            openldap-devel \
+            python3-sphinxcontrib-httpdomain python3-pytest-cov \
+            python3-flake8 python3-pylint python3-sphinx \
+            python3-dogpile-cache \
+            python3-fedmsg \
+            python3-flask \
+            python3-prometheus_client \
+            python3-PyYAML \
+            python3-requests \
+            python3-flask-login \
+            python3-flask-sqlalchemy \
+            python3-ldap \
+            python3-kobo \
+            python3-kobo-rpmlib \
+            python3-defusedxml \
+            python3-tox
         '''
-        sh 'make -C docs html'
+        sh 'ODCS_DEVELOPER_ENV=1 make -C docs html'
         archiveArtifacts artifacts: 'docs/_build/html/**'
     }
     if (scmVars.GIT_BRANCH == 'origin/master') {
