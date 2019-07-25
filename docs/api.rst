@@ -1,6 +1,6 @@
-===============
-Freshmaker APIs
-===============
+=========
+ODCS APIs
+=========
 
 .. automodule:: odcs
 
