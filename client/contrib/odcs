@@ -67,6 +67,9 @@ parser.add_argument(
 parser.add_argument(
     '--no-wait', action='store_true',
     help='When used, odcs client will not wait for the action to finish.')
+parser.add_argument(
+    '-q', '--quiet', action='store_true',
+    help='Run without detailed log messages')
 
 subparsers = parser.add_subparsers(
     description='These commands you can use to operate composes with ODCS')
@@ -234,7 +237,8 @@ except requests.exceptions.HTTPError as e:
 if args.no_wait:
     print(json.dumps(result, indent=4, sort_keys=True))
 else:
-    print("Waiting for command %s on compose %d to finish." %
-          (args.command, result["id"]))
+    if not args.quiet:
+        print("Waiting for command %s on compose %d to finish." %
+              (args.command, result["id"]))
     result = client.wait_for_compose(result["id"], 3600)
     print(json.dumps(result, indent=4, sort_keys=True))
