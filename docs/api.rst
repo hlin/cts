@@ -2,6 +2,8 @@
 ODCS APIs
 =========
 
+.. _compose_json:
+
 ODCS Compose JSON representation
 ================================
 
@@ -217,3 +219,9 @@ HTTP REST API
     :undoc-static:
     :modules: odcs.server.views
     :order: path
+
+
+Messaging API
+=============
+
+ODCS also sends AMQP or Fedmsg messages when compose request changes its state. These messages have ``odcs.compose.state-changed`` topic and contains the :ref:`compose_json` as described earlier in this document.
