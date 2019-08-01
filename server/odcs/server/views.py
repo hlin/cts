@@ -114,6 +114,30 @@ class ODCSAPI(MethodView):
             return conf.seconds_to_live
 
     def get(self, id):
+        """ Returns ODCS composes.
+
+        If ``id`` is set, only the ODCS compose defined by that ID is
+        returned.
+
+        :query string owner: Return only composes owned by this:ref:`owner<owner>`.
+        :query number source_type: Return only composes of this :ref:`source type<source_type>`.
+        :query string source: Return only composes built from this :ref:`source<source>`.
+        :query number state: Return only composes built from this :ref:`state<state>`.
+        :query string order_by: Order the composes by the given field. If ``-`` prefix is used,
+            the order will be descending. The default value is ``-id``. Available fields are:
+
+            - :ref:`id<id>`
+            - :ref:`owner<owner>`
+            - :ref:`source_type<source_type>`
+            - :ref:`koji_event<koji_event>`
+            - :ref:`state<state>`
+            - :ref:`time_to_expire<time_to_expire>`
+            - :ref:`time_done<time_done>`
+            - :ref:`time_removed<time_removed>`
+
+        :statuscode 200: Composes are returned.
+        :statuscode 404: Compose not found.
+        """
         if id is None:
             p_query = filter_composes(request)
 
@@ -135,6 +159,15 @@ class ODCSAPI(MethodView):
     @require_scopes('renew-compose')
     @requires_role('allowed_clients')
     def patch(self, id):
+        """ Extends the compose expiration time or regenerates expired compose.
+
+        :query number id: :ref:`ID<id>` of the compose to update/regenerate.
+        :jsonparam number seconds-to-live: Number of seconds before the compoose expires.
+
+        :statuscode 200: Compose updated and returned.
+        :statuscode 401: User is unathorized.
+        :statuscode 404: Compose not found.
+        """
         if request.data:
             data = request.get_json(force=True)
         else:
@@ -203,6 +236,27 @@ class ODCSAPI(MethodView):
     @require_scopes('new-compose')
     @requires_role('allowed_clients')
     def post(self):
+        """ Creates new ODCS compose request.
+
+        :jsonparam number seconds-to-live: Number of seconds before the compoose expires.
+        :jsonparam list flags: List of :ref:`compose flags<flags>` defined as strings.
+        :jsonparam list arches: List of :ref:`arches<arches>` the compose should be generated for.
+        :jsonparam list multilib_arches: List of :ref:`multilib arches<multilib_arches>`.
+        :jsonparam string multilib_method: List defining the :ref:`multilib method<multilib_method>`.
+        :jsonparam list lookaside_repos: List of :ref:`lookaside_repos<lookaside_repos>`.
+        :jsonparam object source: The JSON object defining the source of compose.
+        :jsonparam string source["type"]: String defining the :ref:`source type<source_type>`.
+        :jsonparam string source["source"]: String defining the :ref:`source<source>`.
+        :jsonparam list source["packages"]: List defining the :ref:`packages<packages>`.
+        :jsonparam list source["builds"]: List defining the :ref:`builds<builds>`.
+        :jsonparam list source["sigkeys"]: List defining the :ref:`sigkeys<sigkeys>`.
+        :jsonparam list source["koji_event"]: List defining the :ref:`sigkeys<sigkeys>`.
+        :jsonparam list source["modular_koji_tags"]: List defining the :ref:`modular_koji_tags<modular_koji_tags>`.
+
+        :statuscode 200: Compose request created and returned.
+        :statuscode 401: Request not in valid format.
+        :statuscode 401: User is unathorized.
+        """
         data = request.get_json(force=True)
         if not data:
             raise ValueError('No JSON POST data submitted')
@@ -380,6 +434,17 @@ class ODCSAPI(MethodView):
     @require_scopes('delete-compose')
     @requires_role('admins')
     def delete(self, id):
+        """ Marks compose as expired to be removed later from ODCS storage.
+        The compose metadata are still stored in the ODCS database, only the
+        composed files stored in ODCS storage are removed.
+
+        :query number id: :ref:`ID<id>` of the compose to delete.
+
+        :statuscode 200: Compose updated and returned.
+        :statuscode 400: Compose is not in done or failed :ref:`state<state>`.
+        :statuscode 401: User is unathorized.
+        :statuscode 404: Compose not found.
+        """
         compose = Compose.query.filter_by(id=id).first()
         if compose:
             # can remove compose that is in state of 'done' or 'failed'
@@ -406,6 +471,19 @@ class ODCSAPI(MethodView):
 
 class AboutAPI(MethodView):
     def get(self):
+        """ Returns information about this ODCS instance in JSON format.
+
+        :resjson string version: The ODCS server version.
+        :resjson string auth_backend: The name of authorization backend this
+            server is configured with. Can be one of following:
+
+            - ``noauth`` - No authorization is required.
+            - ``kerberos`` - Kerberos authorization is required.
+            - ``openidc`` - OpenIDC authorization is required.
+            - ``kerberos_or_ssl`` - Kerberos or SSL authorization is required.
+            - ``ssl`` - SSL authorization is required.
+        :statuscode 200: Compose updated and returned.
+        """
         json = {'version': version}
         config_items = ['auth_backend']
         for item in config_items:
