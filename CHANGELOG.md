@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.33
+  - Release date: 2019-08-05
+  - Fix the wrong order of "modules" and "groups" in variants.xml
+  - Cleanup lost Mock chroots before starting new one.
+  - Add "quiet" option to odcs client.
+  - Add development documentation.
+
 ## 0.2.32
   - Release date: 2019-07-15
   - Do not execute generation of compose which is not in 'wait' state.
