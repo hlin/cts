@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.34
+  - Release date: 2019-08-20
+  - Add new `include_done_modules` flag to generate compose with modules in
+    `done` state.
+  - If the input module is defined by complete NSVC, allow using it even if
+    it is in `done` state and not in `ready` state.
+
 ## 0.2.33
   - Release date: 2019-08-05
   - Fix the wrong order of "modules" and "groups" in variants.xml
