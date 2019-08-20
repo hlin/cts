@@ -34,7 +34,7 @@ from gi.repository import Modulemd
 
 
 def make_module(name, stream, version, requires={}, mdversion=1,
-                context=None):
+                context=None, state=5):
     mmd = Modulemd.Module()
     mmd.set_mdversion(mdversion)
     mmd.set_name(name)
@@ -60,7 +60,8 @@ def make_module(name, stream, version, requires={}, mdversion=1,
         'stream': stream,
         'version': str(version),
         'context': context or '00000000',
-        'modulemd': mmd.dumps()
+        'modulemd': mmd.dumps(),
+        'state': state,
     }
 
 
@@ -104,6 +105,9 @@ TEST_MBS_MODULES_MMDv2 = [
 
     make_module('moduleD', 'f26', 20170806000000, {}, 2),
 
+    # module builds in "done" state.
+    make_module('testmodule', 'master', 20180515074419, {}, 2, state=3),
+
     # test_composerthread.py
     make_module('testmodule', 'master', 20170515074418, {}, 2),
     make_module('testmodule', 'master', 20170515074419, {}, 2),
@@ -128,6 +132,7 @@ def mock_mbs(mdversion=2):
         def wrapped(*args, **kwargs):
             def handle_module_builds(request):
                 query = parse_qs(urlparse(request.url).query)
+                states = [int(s) for s in query['state']]
                 nsvc = query['nsvc'][0]
                 nsvc_parts = nsvc.split(":")
                 nsvc_keys = ["name", "stream", "version", "context"]
@@ -147,6 +152,8 @@ def mock_mbs(mdversion=2):
                         if key in nsvc_dict and nsvc_dict[key] != module[key]:
                             skip = True
                             break
+                    if module["state"] not in states:
+                        skip = True
                     if skip:
                         continue
                     body["items"].append(module)

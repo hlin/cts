@@ -78,6 +78,35 @@ class TestBackend(ModelsBaseTest):
                                    "moduleD:f26:20170806000000:00000000"]))
 
     @mock_mbs()
+    def test_resolve_compose_module_include_done_modules(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "testmodule:master",
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=COMPOSE_FLAGS["include_done_modules"])
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source, "testmodule:master:20180515074419:00000000")
+
+    @mock_mbs()
+    def test_resolve_compose_module_include_done_modules_full_nsvc(self):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.MODULE,
+            "testmodule:master:20180515074419:00000000",
+            COMPOSE_RESULTS["repository"], 3600)
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source, "testmodule:master:20180515074419:00000000")
+
+    @mock_mbs()
     def test_resolve_compose_module_devel(self):
         c = Compose.create(
             db.session, "me", PungiSourceType.MODULE,
@@ -260,7 +289,7 @@ class TestBackend(ModelsBaseTest):
     def test_resolve_compose_module_dep_not_found(self):
         self.expect_module_lookup_error(
             "moduleB:f26 moduleB:f27",
-            "Failed to find module moduleC:f27 in the MBS.")
+            "Failed to find module moduleC:f27 in ready state in the MBS.")
 
     @patch("odcs.server.backend.create_koji_session")
     def test_resolve_compose_repo_no_override_koji_event(

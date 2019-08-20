@@ -350,9 +350,15 @@ def resolve_compose(compose):
         mbs = odcs.server.mbs.MBS(conf)
         modules = compose.source.split(" ")
 
+        include_done = compose.flags & COMPOSE_FLAGS["include_done_modules"]
         specified_mbs_modules = []
         for module in modules:
-            specified_mbs_modules += mbs.get_latest_modules(module)
+            # In case the module is defined by complete NSVC, include it in a compose
+            # even if it is in "done" state, because submitter directly asked for this
+            # NSVC.
+            is_complete_nsvc = module.count(":") == 3
+            specified_mbs_modules += mbs.get_latest_modules(
+                module, include_done or is_complete_nsvc)
 
         expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
         new_mbs_modules = mbs.validate_module_list(specified_mbs_modules, expand=expand)

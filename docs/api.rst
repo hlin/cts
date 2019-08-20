@@ -65,6 +65,7 @@ The fields used in the ODCS compose JSON have following meaning:
     - *no_inheritance* - Only packages/modules directly tagged in the requested Koji tag will be added to the module. Inherited tags will be ignored.
     - *include_unpublished_pulp_repos* - Even unpublished Pulp repositories will be included in the resulting compose.
     - *check_deps* - Compose will fail if the RPM-level dependencies between packages in the compose are not satisfied.
+    - *include_done_modules* - Compose can include also modules which are in the ``done`` state. By default, only modules in ``ready`` state are allowed to be included in a composes.
 
 .. _koji_event:
 
@@ -139,7 +140,7 @@ The fields used in the ODCS compose JSON have following meaning:
     Number defining the type of ``source`` giving it particular meaning:
 
     - 1 (``tag``) - The ``source`` is name of Koji tag to take the builds from. Additional Koji builds can be added by when the ``builds`` option is set.
-    - 2 (``module``) - The ``source`` is the list of modules in ``N:S``, ``N:S:V`` or ``N:S:V:C`` format. When using ``N:S`` format, the latest version found in MBS is used.
+    - 2 (``module``) - The ``source`` is the list of modules in ``N:S``, ``N:S:V`` or ``N:S:V:C`` format. When using ``N:S`` format, the latest version found in MBS is used. When using ``N:S`` or ``N:S:V``, the module needs to be in the ``ready`` state in the MBS. When using ``N:S:V:C``, the module can be even in the ``done`` state in the MBS.
     - 3 (``repo``) - The ``source`` is full path to repository from which the packages are taken. This is often disabled source type by deployed ODCS servers.
     - 4 (``pulp``) - The ``source`` is the list of Pulp content-sets. Repositories defined by these content-sets will be included in the compose.
     - 5 (``raw_config``) - The ``source`` is string in the ``name#commit`` hash format. The ``name`` must match one of the raw config locations defined in ODCS server config as ``raw_config_urls``. The ``commit`` is commit hash defining the version of raw config to use. This config is then used as input config for Pungi.

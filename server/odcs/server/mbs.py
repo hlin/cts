@@ -46,17 +46,19 @@ class MBS(object):
         r.raise_for_status()
         return r.json()
 
-    def get_latest_modules(self, nsvc):
+    def get_latest_modules(self, nsvc, include_done=False):
         """
         Query MBS and return the latest version of the module specified by nsvc.
 
         :param nsvc: N:S:V[:C] of a module to include in a compose.
+        :param include_done: When True, also module builds in the "done" state
+            are included in a result.
         :raises ModuleLookupError: if the module couldn't be found
         :return: the latest version of the module.
         """
         params = {
             "nsvc": nsvc,
-            "state": 5,  # 5 is "ready".
+            "state": [3, 5] if include_done else [5],  # 5 is "ready", 3 is "done".
             "verbose": True,  # Needed to get modulemd in response.
             "order_desc_by": "version",
         }
@@ -76,8 +78,9 @@ class MBS(object):
                 devel_module = True
 
         if not modules["meta"]["total"]:
+            state_msg = "ready or done" if include_done else "ready"
             raise ModuleLookupError(
-                "Failed to find module %s in the MBS." % nsvc)
+                "Failed to find module %s in %s state in the MBS." % (nsvc, state_msg))
 
         ret = []
         # In case the nsvc is just "name:stream", there might be multiple
