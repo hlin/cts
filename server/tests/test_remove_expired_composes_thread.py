@@ -27,7 +27,7 @@ from odcs.server.backend import RemoveExpiredComposesThread
 from odcs.server.pungi import PungiSourceType
 from datetime import datetime, timedelta
 
-from .utils import ModelsBaseTest
+from .utils import ModelsBaseTest, AnyStringWith
 
 import os
 import mock
@@ -241,4 +241,5 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
 
         # This must not raise an exception.
         self.thread._remove_compose_dir(toplevel_dir)
-        log_warning.assert_called()
+        log_warning.assert_called_once_with(
+            AnyStringWith('Cannot remove some files in /odcs-real:'))

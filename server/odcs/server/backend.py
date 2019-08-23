@@ -133,16 +133,27 @@ class RemoveExpiredComposesThread(BackendThread):
         Creates new RemoveExpiredComposesThread instance.
         """
         super(RemoveExpiredComposesThread, self).__init__(10)
+        self._rmtree_errors = {}
 
     def _on_rmtree_error(self, function, path, excinf):
         """
-        Helper method passed to `shutil.rmtree` as `onerror` kwarg which logs
-        the rmtree error, but allows the rmtree to continue removing other
-        files.
+        Helper method passed to `shutil.rmtree` as `onerror` kwarg which stores
+        the rmtree errors in the `self._rmtree_errors` dict and allows the rmtree
+        to continue removing other files.
+
+        The errors stored in `self._rmtree_errors` are grouped by the
+        `dirname(path)`. This is needed to not print thousands of log lines in
+        case when directory with wrong permissions contain thousands of files.
         """
+        if function == os.remove:
+            d = os.path.dirname(path)
+        else:
+            d = path
+        if d in self._rmtree_errors:
+            # This directory has been already handled.
+            return
         exception_value = excinf[1]
-        log.warning("The %r function for path %s failed: %r" % (
-            function, path, exception_value))
+        self._rmtree_errors[d] = repr(exception_value)
 
     def _remove_compose_dir(self, toplevel_dir):
         """
@@ -156,6 +167,9 @@ class RemoveExpiredComposesThread(BackendThread):
                         toplevel_dir)
             return
 
+        # Temporary dictionary to store errors from `self._on_rmtree_error`.
+        self._rmtree_errors = {}
+
         # If toplevel_dir is a symlink, remove the symlink and
         # its target. If toplevel_dir is normal directory, just
         # remove it using rmtree.
@@ -166,6 +180,10 @@ class RemoveExpiredComposesThread(BackendThread):
                 shutil.rmtree(targetpath, onerror=self._on_rmtree_error)
         else:
             shutil.rmtree(toplevel_dir, onerror=self._on_rmtree_error)
+
+        for path, error in self._rmtree_errors.items():
+            log.warning("Cannot remove some files in %s: %r" % (
+                path, error))
 
     def _get_compose_id_from_path(self, path):
         """
