@@ -27,7 +27,7 @@ from odcs.server.utils import retry, to_text_type
 from odcs.server import log
 
 import gi
-gi.require_version('Modulemd', '1.0') # noqa
+gi.require_version('Modulemd', '2.0') # noqa
 from gi.repository import Modulemd
 
 
@@ -98,11 +98,17 @@ class MBS(object):
                 # module.
                 module["name"] += "-devel"
                 # Devel module always depend on the non-devel version
-                mmd = Modulemd.Module.new_from_string(module['modulemd'])
-                mmd.upgrade()
+                mmd = Modulemd.ModuleStream.read_string(
+                    module['modulemd'], strict=True, module_name=None, module_stream=None
+                )
+                mmd = mmd.upgrade(2)
                 for dep in mmd.get_dependencies():
-                    dep.add_requires_single(mmd.get_name(), mmd.get_stream())
-                module["modulemd"] = to_text_type(mmd.dumps())
+                    dep.add_runtime_stream(
+                        mmd.get_module_name(), mmd.get_stream_name()
+                    )
+                mod_index = Modulemd.ModuleIndex.new()
+                mod_index.add_module_stream(mmd)
+                module["modulemd"] = to_text_type(mod_index.dump_to_string())
             ret.append(module)
         return ret
 
@@ -118,16 +124,18 @@ class MBS(object):
 
         new_modules = []
         for module in modules:
-            mmd = Modulemd.Module.new_from_string(module['modulemd'])
-            mmd.upgrade()
+            mmd = Modulemd.ModuleStream.read_string(
+                module['modulemd'], strict=True, module_name=None, module_stream=None
+            )
+            mmd = mmd.upgrade(2)
 
             # Check runtime dependency (name:stream) of a module and if this
             # dependency is already in module_map/new_modules, do nothing.
             # But otherwise get the latest module in this name:stream from MBS
             # and add it to new_modules/module_map.
             for deps in mmd.get_dependencies():
-                for name, streams in deps.peek_requires().items():
-                    for stream in streams.get():
+                for name in deps.get_runtime_modules():
+                    for stream in deps.get_runtime_streams(name):
                         key = "%s:%s" % (name, stream)
                         if key not in module_map:
                             new_module = self.get_latest_modules(key)

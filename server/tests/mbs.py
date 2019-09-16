@@ -29,38 +29,43 @@ from six.moves.urllib.parse import urlparse, parse_qs
 from odcs.server import conf
 
 import gi
-gi.require_version('Modulemd', '1.0') # noqa
+gi.require_version('Modulemd', '2.0') # noqa
 from gi.repository import Modulemd
+
+
+def dump_mmd(mmd):
+    mod_index = Modulemd.ModuleIndex.new()
+    mod_index.add_module_stream(mmd)
+    return mod_index.dump_to_string()
 
 
 def make_module(name, stream, version, requires={}, mdversion=1,
                 context=None, state=5):
-    mmd = Modulemd.Module()
-    mmd.set_mdversion(mdversion)
-    mmd.set_name(name)
-    mmd.set_stream(stream)
+    if mdversion == 1:
+        mmd = Modulemd.ModuleStreamV1.new(name, stream)
+    else:
+        mmd = Modulemd.ModuleStreamV2.new(name, stream)
     mmd.set_version(version)
     mmd.set_context(context or '00000000')
     mmd.set_summary("foo")
     mmd.set_description("foo")
-    licenses = Modulemd.SimpleSet()
-    licenses.add("GPL")
-    mmd.set_module_licenses(licenses)
+    mmd.add_module_license("GPL")
 
     if mdversion == 1:
-        mmd.set_requires(requires)
+        for req_name, req_stream in requires.items():
+            mmd.add_runtime_requirement(req_name, req_stream)
     else:
         deps = Modulemd.Dependencies()
         for req_name, req_stream in requires.items():
-            deps.add_requires_single(req_name, req_stream)
-        mmd.set_dependencies((deps, ))
+            deps.add_runtime_stream(req_name, req_stream)
+        mmd.add_dependencies(deps)
 
     return {
         'name': name,
         'stream': stream,
         'version': str(version),
         'context': context or '00000000',
-        'modulemd': mmd.dumps(),
+        'modulemd': dump_mmd(mmd),
         'state': state,
     }
 
