@@ -392,6 +392,9 @@ class Compose(ODCSBase):
             self.time_removed = happen_on or datetime.utcnow()
         elif to_state == COMPOSE_STATES['done']:
             self.time_done = happen_on or datetime.utcnow()
+        if to_state in (COMPOSE_STATES["done"], COMPOSE_STATES["failed"]):
+            ttl = self.time_to_expire - self.time_submitted
+            self.time_to_expire = (happen_on or datetime.utcnow()) + ttl
         db.session.commit()
 
 

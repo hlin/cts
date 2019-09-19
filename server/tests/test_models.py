@@ -29,6 +29,8 @@ from odcs.common.types import COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.models import User
 from odcs.server.pungi import PungiSourceType
 
+import pytest
+
 from .utils import ModelsBaseTest
 
 
@@ -212,3 +214,20 @@ class ComposeModel(ModelsBaseTest):
         self.assertTrue(self.c1 in composes)
         self.assertTrue(self.c2 in composes)
         self.assertTrue(self.c3 not in composes)
+
+    def test_transition_to_done_updates_time_to_expire(self):
+        in_five_minutes = datetime.utcnow() + timedelta(seconds=300)
+        self.c1.transition(COMPOSE_STATES["done"], "it's finished", in_five_minutes)
+        # The compose should expire about 60 seconds (give or take a tenth of a
+        # second) after the time it was finished.
+        expires_in = self.c1.time_to_expire - self.c1.time_done
+        assert expires_in.total_seconds() == pytest.approx(60, abs=0.1)
+
+    def test_transition_to_failed_updates_time_to_expire(self):
+        now = datetime.utcnow()
+        in_five_minutes = now + timedelta(seconds=300)
+        # Fail the compose in five minutes...
+        self.c1.transition(COMPOSE_STATES["failed"], "it's finished", in_five_minutes)
+        # so that it expires in about 6 minutes
+        expires_in = self.c1.time_to_expire - now
+        assert expires_in.total_seconds() == pytest.approx(360, abs=0.1)
