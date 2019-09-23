@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.35
+  - Release date: 2019-09-25
+  - Track time of transition from waiting to generating state and use it to
+    fail stuck composes.
+  - Update `time_to_expire` when compose is finished.
+  - Use py3 and list all the RPMs included in resulting compose in deployment tests.
+  - Group `shutil.rmtree` errors by directory to not flood the ODCS logs.
+
 ## 0.2.34
   - Release date: 2019-08-20
   - Add new `include_done_modules` flag to generate compose with modules in
