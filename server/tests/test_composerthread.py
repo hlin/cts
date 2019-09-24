@@ -374,6 +374,7 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
         self.patch_generate_new_compose.stop()
 
     def _add_test_compose(self, state, time_submitted=None,
+                          time_started=None,
                           source_type=PungiSourceType.KOJI_TAG):
         compose = Compose.create(
             db.session, "unknown", source_type, "f26",
@@ -381,6 +382,8 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
         compose.state = state
         if time_submitted:
             compose.time_submitted = time_submitted
+        if time_started:
+            compose.time_started = time_started
         db.session.add(compose)
         db.session.commit()
         return compose
@@ -446,13 +449,21 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
     def test_fail_lost_generating_composes(self):
         t = datetime.utcnow() - timedelta(seconds=2 * conf.pungi_timeout)
 
-        time_submitted = t - timedelta(minutes=5)
+        time_submitted = t - timedelta(minutes=6)
+        time_started = t - timedelta(minutes=5)
         compose_to_fail = self._add_test_compose(
-            COMPOSE_STATES["generating"], time_submitted=time_submitted)
+            COMPOSE_STATES["generating"],
+            time_submitted=time_submitted,
+            time_started=time_started,
+        )
 
-        time_submitted = t + timedelta(minutes=5)
+        time_submitted = t + timedelta(minutes=4)
+        time_started = t + timedelta(minutes=5)
         compose_to_keep = self._add_test_compose(
-            COMPOSE_STATES["generating"], time_submitted=time_submitted)
+            COMPOSE_STATES["generating"],
+            time_submitted=time_submitted,
+            time_started=time_started,
+        )
 
         self.composer.fail_lost_generating_composes()
         db.session.commit()

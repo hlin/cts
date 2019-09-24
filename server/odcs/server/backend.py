@@ -924,7 +924,7 @@ class ComposerThread(BackendThread):
         # Get composes which are in 'generating' state for too long.
         composes = Compose.query.filter(
             Compose.state == COMPOSE_STATES["generating"],
-            Compose.time_submitted < too_old_datetime).order_by(
+            Compose.time_started < too_old_datetime).order_by(
                 Compose.id).all()
 
         for compose in composes:
