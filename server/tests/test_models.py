@@ -58,6 +58,7 @@ class TestModels(ModelsBaseTest):
                          'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
                          'result_repofile': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary/odcs-1.repo',
                          'time_submitted': c.json()["time_submitted"], 'id': 1,
+                         'time_started': None,
                          'time_removed': None,
                          'removed_by': None,
                          'time_to_expire': c.json()["time_to_expire"],
@@ -110,7 +111,8 @@ class TestModels(ModelsBaseTest):
             # in create_copy() method.
             if c.name in ["id", "state", "state_reason", "time_to_expire",
                           "time_done", "time_submitted", "time_removed",
-                          "removed_by", "reused_id", "koji_task_id"]:
+                          "removed_by", "reused_id", "koji_task_id",
+                          "time_started"]:
                 assertMethod = self.assertNotEqual
             else:
                 assertMethod = self.assertEqual
@@ -231,3 +233,9 @@ class ComposeModel(ModelsBaseTest):
         # so that it expires in about 6 minutes
         expires_in = self.c1.time_to_expire - now
         assert expires_in.total_seconds() == pytest.approx(360, abs=0.1)
+
+    def test_transition_to_generating_updates_time_started(self):
+        now = datetime.utcnow()
+        in_five_minutes = now + timedelta(seconds=300)
+        self.c1.transition(COMPOSE_STATES["generating"], "it started", in_five_minutes)
+        assert self.c1.time_started == in_five_minutes

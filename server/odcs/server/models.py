@@ -124,9 +124,16 @@ class Compose(ODCSBase):
     builds = db.Column(db.String)
     # COMPOSE_FLAGS
     flags = db.Column(db.Integer)
+    # Time when the compose should be deleted
     time_to_expire = db.Column(db.DateTime, nullable=False, index=True)
+    # Time when the request for compose was submitted to ODCS
     time_submitted = db.Column(db.DateTime, nullable=False)
+    # Time when compose transitioned from WAITING to GENERATING
+    time_started = db.Column(db.DateTime)
+    # Time when compose was successfully finished. Failed composes do not have
+    # this time.
     time_done = db.Column(db.DateTime)
+    # Time when compose was deleted
     time_removed = db.Column(db.DateTime)
     # removed_by is set when compose is deleted rather than expired normally
     removed_by = db.Column(db.String, nullable=True)
@@ -315,6 +322,7 @@ class Compose(ODCSBase):
             'state_reason': self.state_reason,
             'time_to_expire': self._utc_datetime_to_iso(self.time_to_expire),
             'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
+            'time_started': self._utc_datetime_to_iso(self.time_started),
             'time_done': self._utc_datetime_to_iso(self.time_done),
             'time_removed': self._utc_datetime_to_iso(self.time_removed),
             'removed_by': self.removed_by,
@@ -392,6 +400,8 @@ class Compose(ODCSBase):
             self.time_removed = happen_on or datetime.utcnow()
         elif to_state == COMPOSE_STATES['done']:
             self.time_done = happen_on or datetime.utcnow()
+        elif to_state == COMPOSE_STATES['generating']:
+            self.time_started = happen_on or datetime.utcnow()
         if to_state in (COMPOSE_STATES["done"], COMPOSE_STATES["failed"]):
             ttl = self.time_to_expire - self.time_submitted
             self.time_to_expire = (happen_on or datetime.utcnow()) + ttl
