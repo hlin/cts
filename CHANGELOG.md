@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.36
+  - Release date: 2019-10-03
+  - Port to libmodulemd version 2.
+
 ## 0.2.35
   - Release date: 2019-09-25
   - Track time of transition from waiting to generating state and use it to
