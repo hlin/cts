@@ -73,10 +73,21 @@ if broker_url.startswith("amqps://"):
 
     ssl_ctx = {}
 
-    broker_use_ssl = {
-        "server_hostname": host,
-        "context": {"purpose": ssl.Purpose.SERVER_AUTH},
-    }
+    # Set the server_hostname only if it's configured in the CELERY_CONFIG,
+    # otherwise Celery uses SNI everytime even if we don't need it.
+    if "server_hostname" in conf.celery_config:
+        broker_use_ssl = {
+            "server_hostname": host,
+            "context": {"purpose": ssl.Purpose.SERVER_AUTH},
+        }
+    else:
+        broker_use_ssl = {}
+
+    # Allow setting certificates using the CELERY_CONFIG.
+    for key in ["ca_certs", "keyfile", "certfile"]:
+        if key in conf.celery_config:
+            broker_use_ssl[key] = conf.celery_config[key]
+
     conf.celery_config.update({"broker_use_ssl": broker_use_ssl})
     broker_url = broker_url.replace("amqps://", "amqp://")
 
