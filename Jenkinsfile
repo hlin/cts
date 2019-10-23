@@ -117,12 +117,12 @@ node('docker') {
          * the rules in PEP440. But Docker does not let us have + in the tag
          * name, so let's munge it here. */
         docker.withRegistry(
-                'https://docker-registry.engineering.redhat.com/',
-                'docker-registry-factory2-builder-sa-credentials') {
+                'https://docker-registry.upshift.redhat.com/',
+                'compose-upshift-registry-token') {
             /* Note that the docker.build step has some magic to guess the
              * Dockerfile used, which will break if the build directory (here ".")
              * is not the final argument in the string. */
-            def image = docker.build "factory2/odcs:internal-${appversion}", "--build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
+            def image = docker.build "compose/odcs:internal-${appversion}", "--build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
             /* Pushes to the internal registry can sometimes randomly fail
              * with "unknown blob" due to a known issue with the registry
              * storage configuration. So we retry up to 3 times. */
