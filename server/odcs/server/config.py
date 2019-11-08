@@ -127,6 +127,11 @@ class Config(object):
             'default': 3600,
             'desc': 'Time in seconds after which the local pungi-koji is '
                     'killed and compose is marked as failed'},
+        'mergerepo_timeout': {
+            'type': int,
+            'default': 1800,
+            'desc': 'Time in seconds after which the mergerepo_c is '
+                    'killed and compose is marked as failed'},
         'pungi_runroot_enabled': {
             'type': bool,
             'default': False,

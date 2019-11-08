@@ -143,6 +143,15 @@ class TestPulp(ModelsBaseTest):
                     "signatures": "SIG1,SIG2",
                 },
             },
+            # Test two same relative_urls here.
+            {
+                "notes": {
+                    "relative_url": "content/1.0/x86_64/os",
+                    "content_set": "foo-1",
+                    "arch": "x86_64",
+                    "signatures": "SIG1,SIG2",
+                },
+            },
             {
                 "notes": {
                     "relative_url": "content/1.1/x86_64/os",
@@ -184,13 +193,13 @@ class TestPulp(ModelsBaseTest):
              '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
              '--repo-prefix-replace', 'http://localhost/',
              '-r', repo_prefix + "1.0/x86_64/os",
-             '-r', repo_prefix + "1.1/x86_64/os"])
+             '-r', repo_prefix + "1.1/x86_64/os"], timeout=1800)
         execute_cmd.assert_any_call(
             ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
              c.result_repo_dir + '/foo-1/ppc64le',
              '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
              '--repo-prefix-replace', 'http://localhost/',
-             '-r', repo_prefix + "1.0/ppc64le/os"])
+             '-r', repo_prefix + "1.0/ppc64le/os"], timeout=1800)
 
         download_repodata.assert_any_call(
             repo_prefix + "1.0/x86_64/os",
