@@ -126,6 +126,12 @@ class MergeRepo(object):
         # Contains paths to per pulp repo pulp_repo_cache sub-directories.
         repo_paths = []
 
+        # Remove duplicated URLs from repos. It is useless to merge the same URLs and it would
+        # also break the locking code which tries to lock the same cache directory twice.
+        # The mergerepo_c can handle the case when we end up with just single repo in the `repos`.
+        repos = list(set(repos))
+        repos.sort()
+
         parsed_url = urlparse(repos[0])
         repo_prefix = "%s://%s" % (parsed_url.scheme, parsed_url.hostname)
         repo_prefix = repo_prefix.strip("/") + "/"
@@ -163,7 +169,7 @@ class MergeRepo(object):
                 args.append("-r")
                 args.append(repo)
 
-            execute_cmd(args)
+            execute_cmd(args, timeout=conf.mergerepo_timeout)
         finally:
             for lock in locks:
                 if lock.is_locked:
