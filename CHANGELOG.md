@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.37
+  - Release date: 2019-11-11
+  - Handle two pulp repos with the same relative_url in single content set.
+  - Add support for fedora-messaging.
+  - Set Celery's server_hostname only if requested by config.
+
 ## 0.2.36
   - Release date: 2019-10-03
   - Port to libmodulemd version 2.
