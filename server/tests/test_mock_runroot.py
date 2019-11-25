@@ -168,14 +168,14 @@ class TestMockRunroot(unittest.TestCase):
 
         def mocked_stat(path):
             stat_result = MagicMock()
-            if path.endswith("/foo/root"):
+            if path.endswith("/foo"):
                 # The "foo/root" is 1 day old, so should be removed.
                 stat_result.st_mtime = time.time() - 24 * 3600
-            elif path.endswith("/already-removed/root"):
+            elif path.endswith("/already-removed"):
                 # The "already-removed/root" is already removed, so raise an
                 # exception.
                 raise OSError("No such file")
-            elif path.endswith("/bar/root"):
+            elif path.endswith("/bar"):
                 # The "bar/root" is just 10 seconds old, so should not be
                 # removed.
                 stat_result.st_mtime = time.time() - 10
@@ -186,4 +186,4 @@ class TestMockRunroot(unittest.TestCase):
 
         cleanup_old_runroots()
 
-        rmtree_skip_mounts.assert_called_once_with("/var/lib/mock/foo/root", AnyStringWith("test_composes"))
+        rmtree_skip_mounts.assert_called_once_with("/var/lib/mock/foo", AnyStringWith("test_composes"))

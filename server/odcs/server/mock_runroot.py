@@ -154,7 +154,7 @@ def rmtree_skip_mounts(rootdir, mounts, rootdir_mounts=None):
 
 def cleanup_old_runroots():
     """
-    Checks the /var/lib/mock diretory for old runroot chroots and remove them.
+    Checks the /var/lib/mock directory for old runroot chroots and remove them.
 
     Those chroots can be lost there for example when the host reboots in the
     middle of runroot generation or in case Pungi task gets killed for
@@ -167,14 +167,14 @@ def cleanup_old_runroots():
     mounts = [conf.target_dir] + conf.runroot_extra_mounts
     mock_root = "/var/lib/mock"
     for runroot_key in os.listdir(mock_root):
-        chroot_path = os.path.join(mock_root, runroot_key, "root")
-        # Skip the chroot_path if it does not exist or is not old enough.
+        mock_dir = os.path.join(mock_root, runroot_key)
+        # Skip the mock_dir if it is not old enough.
         try:
-            if os.stat(chroot_path).st_mtime > now - conf.pungi_timeout:
+            if os.stat(mock_dir).st_mtime > now - conf.pungi_timeout:
                 continue
         except OSError:
             continue
-        rmtree_skip_mounts(chroot_path, mounts)
+        rmtree_skip_mounts(mock_dir, mounts)
 
 
 def runroot_tmp_path(runroot_key):
