@@ -55,14 +55,28 @@ class TestPungiConfig(unittest.TestCase):
         return conf
 
     def test_pungi_config_module(self):
-        pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
-                                "testmodule:master:1:1")
-        pungi_cfg.get_pungi_config()
+        pungi_cfg = PungiConfig(
+            "MBS-512",
+            "1",
+            PungiSourceType.MODULE,
+            "testmodule:master:1:1",
+            module_defaults_url="git://localhost.tld/x.git master",
+        )
+        cfg = pungi_cfg.get_pungi_config()
         variants = pungi_cfg.get_variants_config()
         comps = pungi_cfg.get_comps_config()
 
         self.assertTrue(variants.find("<module>") != -1)
         self.assertEqual(comps, "")
+        self.assertEqual(
+            self._load_pungi_cfg(cfg)["module_defaults_dir"],
+            {
+                "branch": "master",
+                "dir": ".",
+                "repo": "git://localhost.tld/x.git",
+                "scm": "git",
+            },
+        )
 
     def test_pungi_config_tag(self):
         pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG,
