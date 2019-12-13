@@ -164,6 +164,7 @@ class PungiConfig(BasePungiConfig):
             self.koji_tag = None
             self.gather_source = "module"
             self.gather_method = "nodeps"
+            self.module_defaults_url = module_defaults_url.split(" ") if module_defaults_url else []
 
             self._sort_out_devel_modules()
 
