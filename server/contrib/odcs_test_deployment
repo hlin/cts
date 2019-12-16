@@ -263,7 +263,7 @@ def check_redhat_deployment(with_large_tag_compose=True):
         check_compose_time(compose, "10m")
         check_delete_compose(compose_id)
         check_renew_compose(compose_id, "tag", "rhos-13.0-rhel-7-container-build",
-                            [], [], arches=["x86_64", "pppc64le"])
+                            [], [], arches=["x86_64", "ppc64le"])
     else:
         # this is a compose much smaller
         compose_id = check_new_compose(
