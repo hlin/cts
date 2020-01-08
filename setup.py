@@ -89,7 +89,6 @@ setup(name='odcs',
       },
       data_files=[
           (get_dir(['etc', 'odcs']), ['server/conf/config.py', 'server/conf/pungi.conf',
-                                      'server/conf/runroot_koji.conf',
                                       'server/conf/raw_config_wrapper.conf']),
           (get_dir(['etc', 'fedmsg.d']), ['fedmsg.d/odcs-logging.py',
                                           'fedmsg.d/odcs-scheduler.py',
