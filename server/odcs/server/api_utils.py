@@ -270,7 +270,8 @@ def filter_composes(flask_request):
     """
     search_query = dict()
 
-    for key in ['owner', 'source_type', 'source', 'state', 'koji_task_id']:
+    for key in ['owner', 'source_type', 'source', 'state', 'koji_task_id',
+                'pungi_compose_id', 'compose_type', 'label']:
         if flask_request.args.get(key, None):
             search_query[key] = flask_request.args[key]
 

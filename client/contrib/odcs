@@ -124,6 +124,12 @@ create_parser.add_argument(
     '--lookaside-repo', default=[], action='append',
     metavar="lookaside_repos",
     help="Koji tag with module builds.")
+create_parser.add_argument(
+    '--label', default=None,
+    help="Label for raw_config compose.")
+create_parser.add_argument(
+    '--compose-type', default=None,
+    help="Compose type for raw_config compose.")
 
 wait_parser = subparsers.add_parser(
     'wait', help='wait for a compose to finish')
@@ -218,6 +224,8 @@ try:
             module_defaults_url=args.module_defaults_url,
             module_defaults_commit=args.module_defaults_commit,
             lookaside_repos=args.lookaside_repo,
+            label=args.label,
+            compose_type=args.compose_type
         )
     elif args.command == "wait":
         result = {"id": int(args.compose_id)}

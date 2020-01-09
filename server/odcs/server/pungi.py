@@ -28,10 +28,12 @@ import tempfile
 import jinja2
 import time
 from productmd.composeinfo import ComposeInfo
+from kobo.conf import PyConfigParser
 
 import odcs.server.utils
-from odcs.server import conf, log
+from odcs.server import conf, log, db
 from odcs.server import comps
+from odcs.server.models import Compose
 from odcs.common.types import (
     PungiSourceType, COMPOSE_RESULTS, MULTILIB_METHODS,
     INVERSE_PUNGI_SOURCE_TYPE_NAMES, COMPOSE_FLAGS)
@@ -336,7 +338,7 @@ class Pungi(object):
             pungi_cmd += ["--old-composes", self.old_compose]
         return pungi_cmd
 
-    def _prepare_compose_dir(self, conf_topdir, targetdir):
+    def _prepare_compose_dir(self, compose, conf_topdir, targetdir):
         """
         Creates the compose directory and returns the full path to it.
         """
@@ -346,30 +348,45 @@ class Pungi(object):
         compose_dir = os.path.join(targetdir, compose_id)
         makedirs(compose_dir)
 
-        # Generate ComposeInfo which is needed for Pungi.
-        # These variables can be hardcoded, because we only generate composes
-        # like this in ODCS.
+        conf = PyConfigParser()
+        conf.load_from_file(os.path.join(conf_topdir, "pungi.conf"))
+
         ci = ComposeInfo()
-        ci.release.name = "odcs-%s" % self.compose_id
-        ci.release.short = "odcs-%s" % self.compose_id
-        ci.release.version = "1"
-        ci.release.is_layered = False
-        ci.release.type = "ga"
-        ci.release.internal = False
-        ci.compose.id = compose_id
-        ci.compose.label = None
-        ci.compose.type = "nightly"
+        ci.release.name = conf["release_name"]
+        ci.release.short = conf["release_short"]
+        ci.release.version = conf["release_version"]
+        ci.release.is_layered = True if conf.get("base_product_name", "") else False
+        ci.release.type = conf.get("release_type", "ga").lower()
+        ci.release.internal = bool(conf.get("release_internal", False))
+        if ci.release.is_layered:
+            ci.base_product.name = conf["base_product_name"]
+            ci.base_product.short = conf["base_product_short"]
+            ci.base_product.version = conf["base_product_version"]
+            ci.base_product.type = conf.get("base_product_type", "ga").lower()
+
+        ci.compose.label = compose.label
+        ci.compose.type = compose.compose_type or "nightly"
         ci.compose.date = compose_date
         ci.compose.respin = 0
+
+        while True:
+            ci.compose.id = ci.create_compose_id()
+            existing_compose = Compose.query.filter(
+                Compose.pungi_compose_id == ci.compose.id).first()
+            if not existing_compose:
+                break
+            ci.compose.respin += 1
 
         # Dump the compose info to work/global/composeinfo-base.json.
         work_dir = os.path.join(compose_dir, "work", "global")
         makedirs(work_dir)
         ci.dump(os.path.join(work_dir, "composeinfo-base.json"))
 
+        compose.pungi_compose_id = ci.compose.id
+
         return compose_dir
 
-    def run_locally(self):
+    def run_locally(self, compose):
         """
         Runs local Pungi compose.
         """
@@ -377,8 +394,13 @@ class Pungi(object):
         try:
             td = tempfile.mkdtemp()
             self._write_cfgs(td)
-            compose_dir = self._prepare_compose_dir(td, conf.target_dir)
+            compose_dir = self._prepare_compose_dir(compose, td, conf.target_dir)
             pungi_cmd = self.get_pungi_cmd(td, conf.target_dir, compose_dir)
+
+            # Commit the session to ensure that all the `compose` changes are
+            # stored database before executing the compose and are not just
+            # cached locally in the SQLAlchemy.
+            db.session.commit()
 
             log_out_path = os.path.join(compose_dir, "pungi-stdout.log")
             log_err_path = os.path.join(compose_dir, "pungi-stderr.log")
@@ -405,7 +427,7 @@ class Pungi(object):
         :param models.Compose compose: Compose this Pungi process is running
             for.
         """
-        self.run_locally()
+        self.run_locally(compose)
 
 
 class PungiLogs(object):

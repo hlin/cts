@@ -24,6 +24,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import time
 
 from mock import patch, MagicMock, mock_open
 from kobo.conf import PyConfigParser
@@ -339,7 +340,7 @@ class TestPungiConfig(unittest.TestCase):
             self.assertEqual(pungi_cfg.source, "foo:1:1:1 bar-devel:1:1:1")
 
 
-class TestPungi(unittest.TestCase):
+class TestPungi(ModelsBaseTest):
 
     def setUp(self):
         super(TestPungi, self).setUp()
@@ -348,9 +349,19 @@ class TestPungi(unittest.TestCase):
             makedirs(dest)
             makedirs(os.path.join(dest, "another"))
             with open(os.path.join(dest, "pungi.conf"), "w") as fd:
-                fd.write("fake pungi conf 1")
+                lines = [
+                    'release_name = "fake pungi conf 1"',
+                    'release_short = "compose-1"',
+                    'release_version = "10"',
+                ]
+                fd.writelines(lines)
             with open(os.path.join(dest, "another", "pungi.conf"), "w") as fd:
-                fd.write("fake pungi conf 2")
+                lines = [
+                    'release_name = "fake pungi conf 2"',
+                    'release_short = "compose-2"',
+                    'release_version = "10"',
+                ]
+                fd.writelines(lines)
 
         self.patch_clone_repo = patch("odcs.server.pungi.clone_repo")
         self.clone_repo = self.patch_clone_repo.start()
@@ -363,6 +374,7 @@ class TestPungi(unittest.TestCase):
         self.ci_dump = self.patch_ci_dump.start()
 
         self.compose = MagicMock()
+        self.compose.compose_type = "nightly"
 
     def tearDown(self):
         super(TestPungi, self).tearDown()
@@ -422,6 +434,37 @@ class TestPungi(unittest.TestCase):
         self.clone_repo.assert_called_once_with(
             'http://localhost/test.git', AnyStringWith("/raw_config_repo"),
             commit='hash')
+        compose_date = time.strftime("%Y%m%d", time.localtime())
+        self.assertEqual(self.compose.pungi_compose_id,
+                         "compose-1-10-%s.n.0" % compose_date)
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_raw_config_respin(self, execute_cmd):
+        compose = Compose.create(
+            db.session, "me", PungiSourceType.RAW_CONFIG, "foo",
+            COMPOSE_RESULTS["repository"], 3600)
+
+        def mocked_execute_cmd(*args, **kwargs):
+            topdir = kwargs["cwd"]
+            with open(os.path.join(topdir, "pungi.conf"), "r") as f:
+                data = f.read()
+                self.assertTrue("fake pungi conf 1" in data)
+        execute_cmd.side_effect = mocked_execute_cmd
+
+        fake_raw_config_urls = {
+            'pungi.conf': {
+                "url": "http://localhost/test.git",
+                "config_filename": "pungi.conf",
+            }
+        }
+        with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+            pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
+            pungi.run(compose)
+            pungi.run(compose)
+
+        compose_date = time.strftime("%Y%m%d", time.localtime())
+        self.assertEqual(compose.pungi_compose_id,
+                         "compose-1-10-%s.n.1" % compose_date)
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run_raw_config_subpath(self, execute_cmd):

@@ -46,6 +46,11 @@ The fields used in the ODCS compose JSON have following meaning:
 *arches* - ``(white-space separated list of strings)``
     List of architectures the compose is generated for. The strings to express particular architecture are the same as the ones used by Koji build systemd.
 
+.. _compose_type:
+
+*compose_type* - ``(string)``
+    Type of the compose when generating raw_config compose. Can be "test", "nightly", "ci", "production".
+
 .. _builds:
 
 *builds* - ``(white-space separated list of strings or null)``
@@ -71,6 +76,11 @@ The fields used in the ODCS compose JSON have following meaning:
 
 *koji_event* - ``(number or null)``
     The Koji event defining the point in Koji history when the compose was generated. It can be ``null`` if source type does not relate to Koji tag.
+
+.. _label:
+
+*label* - ``(string)``
+    Compose label when generating raw_config compose.
 
 .. _lookaside_repos:
 

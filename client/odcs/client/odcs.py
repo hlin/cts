@@ -214,7 +214,7 @@ class ODCS(object):
                     sigkeys=None, koji_event=None, results=None,
                     arches=None, builds=None, modular_koji_tags=None,
                     module_defaults_url=None, module_defaults_commit=None,
-                    lookaside_repos=None):
+                    lookaside_repos=None, label=None, compose_type=None):
         """Request a new compose
 
         :param str source: from where to grab and make new compose, different
@@ -263,6 +263,10 @@ class ODCS(object):
             request_data['source']['module_defaults_commit'] = module_defaults_commit
         if lookaside_repos:
             request_data['lookaside_repos'] = lookaside_repos
+        if label:
+            request_data['label'] = label
+        if compose_type:
+            request_data['compose_type'] = compose_type
         if seconds_to_live is not None:
             request_data['seconds-to-live'] = seconds_to_live
         if flags:

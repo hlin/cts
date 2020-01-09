@@ -74,7 +74,10 @@ class TestModels(ModelsBaseTest):
                          'multilib_method': 0,
                          'lookaside_repos': None,
                          'modular_koji_tags': None,
-                         'module_defaults_url': None}
+                         'module_defaults_url': None,
+                         'label': None,
+                         'compose_type': None,
+                         'pungi_compose_id': None}
         self.assertEqual(c.json(), expected_json)
 
     def test_create_copy(self):
@@ -112,7 +115,7 @@ class TestModels(ModelsBaseTest):
             if c.name in ["id", "state", "state_reason", "time_to_expire",
                           "time_done", "time_submitted", "time_removed",
                           "removed_by", "reused_id", "koji_task_id",
-                          "time_started"]:
+                          "time_started", "pungi_compose_id"]:
                 assertMethod = self.assertNotEqual
             else:
                 assertMethod = self.assertEqual

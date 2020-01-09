@@ -244,6 +244,8 @@ class ODCSAPI(MethodView):
         :jsonparam list multilib_arches: List of :ref:`multilib arches<multilib_arches>`.
         :jsonparam string multilib_method: List defining the :ref:`multilib method<multilib_method>`.
         :jsonparam list lookaside_repos: List of :ref:`lookaside_repos<lookaside_repos>`.
+        :jsonparam string label: String defining the :ref:`label<label>`.
+        :jsonparam string compose_type: String defining the :ref:`compose_type<compose_type>`.
         :jsonparam object source: The JSON object defining the source of compose.
         :jsonparam string source["type"]: String defining the :ref:`source type<source_type>`.
         :jsonparam string source["source"]: String defining the :ref:`source<source>`.
@@ -401,6 +403,9 @@ class ODCSAPI(MethodView):
         elif module_defaults_url and module_defaults_commit:
             module_defaults = "%s %s" % (module_defaults_url, module_defaults_commit)
 
+        label = data.get("label", None)
+        compose_type = data.get("compose_type", "nightly")
+
         raise_if_input_not_allowed(
             source_types=source_type, sources=source, results=results,
             flags=flags, arches=arches)
@@ -414,7 +419,9 @@ class ODCSAPI(MethodView):
             builds=builds,
             lookaside_repos=lookaside_repos,
             modular_koji_tags=modular_koji_tags,
-            module_defaults_url=module_defaults)
+            module_defaults_url=module_defaults,
+            label=label,
+            compose_type=compose_type)
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to
         # send message and before_commit can be called before flush and

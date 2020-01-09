@@ -308,7 +308,10 @@ class TestViews(ViewBaseTest):
                          'multilib_method': 0,
                          'lookaside_repos': '',
                          'modular_koji_tags': None,
-                         'module_defaults_url': None}
+                         'module_defaults_url': None,
+                         'label': None,
+                         'compose_type': 'nightly',
+                         'pungi_compose_id': None}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -1085,7 +1088,10 @@ class TestViews(ViewBaseTest):
                          'multilib_method': 0,
                          'lookaside_repos': '',
                          'modular_koji_tags': None,
-                         'module_defaults_url': None}
+                         'module_defaults_url': None,
+                         'label': None,
+                         'compose_type': 'nightly',
+                         'pungi_compose_id': None}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -1351,9 +1357,13 @@ class TestViewsRawConfig(ViewBaseTest):
 
             self.client.post('/api/1/composes/', data=json.dumps(
                 {'source': {'type': 'raw_config',
-                            'source': 'pungi_cfg#hash'}}))
+                            'source': 'pungi_cfg#hash'},
+                 'label': 'Beta-1.2',
+                 'compose_type': 'production'}))
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
         self.assertEqual(c.source_type, PungiSourceType.RAW_CONFIG)
         self.assertEqual(c.source, 'pungi_cfg#hash')
+        self.assertEqual(c.label, 'Beta-1.2')
+        self.assertEqual(c.compose_type, 'production')
