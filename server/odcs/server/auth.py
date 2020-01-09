@@ -274,7 +274,9 @@ def requires_role(role):
             in_users = flask.g.user.username in users
             if in_groups or in_users:
                 return f(*args, **kwargs)
-            raise Forbidden('User %s is not in role %s.' % (flask.g.user.username, role))
+            msg = "User %s is not in role %s." % (flask.g.user.username, role)
+            log.error(msg)
+            raise Forbidden(msg)
         return wrapped
     return wrapper
 
