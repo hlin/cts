@@ -6,7 +6,6 @@ psutil
 moksha.hub
 httplib2
 mock
-munch
 pdc-client
 pyOpenSSL
 python-fedora
