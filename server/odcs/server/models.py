@@ -39,7 +39,7 @@ from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
 from odcs.common.types import (
     COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS,
-    COMPOSE_RESULTS, PungiSourceType)
+    COMPOSE_RESULTS)
 
 from sqlalchemy import event, or_
 from flask_sqlalchemy import SignallingSession
@@ -260,13 +260,7 @@ class Compose(ODCSBase):
         """
         Returns public URL to compose directory with per-arch repositories.
         """
-        target_dir_url = conf
-        if (conf.pungi_runroot_enabled and
-                self.source_type in [PungiSourceType.KOJI_TAG,
-                                     PungiSourceType.MODULE]):
-            target_dir_url = conf.pungi_runroot_target_dir_url
-        else:
-            target_dir_url = conf.target_dir_url
+        target_dir_url = conf.target_dir_url
 
         return target_dir_url + "/" \
             + os.path.join(self.latest_dir, "compose", "Temporary")

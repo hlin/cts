@@ -132,52 +132,10 @@ class Config(object):
             'default': 1800,
             'desc': 'Time in seconds after which the mergerepo_c is '
                     'killed and compose is marked as failed'},
-        'pungi_runroot_enabled': {
-            'type': bool,
-            'default': False,
-            'desc': 'When True, ODCS will run Pungi in Koji runroot'},
-        'pungi_parent_runroot_channel': {
-            'type': str,
-            'default': "",
-            'desc': 'Name of Koji channel to run pungi runroot task with.'},
-        'pungi_parent_runroot_packages': {
-            'type': list,
-            'default': "",
-            'desc': 'List of packages to install to pungi Koji runroot task.'},
-        'pungi_parent_runroot_mounts': {
-            'type': list,
-            'default': "",
-            'desc': 'List of mounts to mount in pungi Koji runroot task.'},
-        'pungi_parent_runroot_weight': {
-            'type': float,
-            'default': 3,
-            'desc': 'Weight of pungi Koji runroot task.'},
-        'pungi_parent_runroot_tag': {
-            'type': str,
-            'default': "",
-            'desc': 'Name of tag to run pungi Koji runroot task for.'},
-        'pungi_parent_runroot_arch': {
-            'type': str,
-            'default': "x86_64",
-            'desc': 'Architecture to run pungi Koji runroot task for.'},
-        'pungi_runroot_target_dir': {
-            'type': str,
-            'default': "",
-            'desc': 'Path to target dir to which store composes done by pungi in runroot'},
-        'pungi_runroot_target_dir_url': {
-            'type': str,
-            'default': "",
-            'desc': 'Public facing URL to target_dir.'},
         'pungi_conf_path': {
             'type': str,
             'default': "/etc/odcs/pungi.conf",
             'desc': 'Full path to the pungi.conf jinja2 template.'},
-        'pungi_runroot_koji_conf_path': {
-            'type': str,
-            'default': "/etc/odcs/runroot_koji.conf",
-            'desc': 'Full path to the runroot_koji.conf configuration file. '
-                    'This file holds Koji configuration used in a Pungi parent '
-                    'runroot task if pungi_runroot_enabled is True.'},
         'target_dir': {
             'type': str,
             'default': "/tmp",

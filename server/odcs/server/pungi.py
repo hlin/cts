@@ -26,15 +26,11 @@ import os
 import shutil
 import tempfile
 import jinja2
-import koji
-import munch
 import time
-import random
-import string
 from productmd.composeinfo import ComposeInfo
 
 import odcs.server.utils
-from odcs.server import conf, log, db
+from odcs.server import conf, log
 from odcs.server import comps
 from odcs.common.types import (
     PungiSourceType, COMPOSE_RESULTS, MULTILIB_METHODS,
@@ -304,50 +300,6 @@ class Pungi(object):
         :param str topdir: Directory to write the files to.
         """
         self.pungi_cfg.write_config_files(topdir)
-        if conf.pungi_runroot_koji_conf_path:
-            shutil.copy2(conf.pungi_runroot_koji_conf_path,
-                         os.path.join(topdir, "odcs_koji.conf"))
-
-    def make_koji_session(self):
-        """
-        Creates new KojiSession according to odcs.server.conf, logins to
-        Koji using this session and returns it.
-        :rtype: koji.KojiSession
-        :return: KojiSession
-        """
-        koji_config = munch.Munch(koji.read_config(
-            profile_name=conf.koji_profile,
-            user_config=conf.koji_config,
-        ))
-
-        address = koji_config.server
-        authtype = koji_config.authtype
-        log.info("Connecting to koji %r with %r." % (address, authtype))
-        koji_session = koji.ClientSession(address, opts=koji_config)
-        if authtype == "kerberos":
-            ccache = getattr(conf, "koji_krb_ccache", None)
-            keytab = getattr(conf, "koji_krb_keytab", None)
-            principal = getattr(conf, "koji_krb_principal", None)
-            log.debug("  ccache: %r, keytab: %r, principal: %r" % (
-                ccache, keytab, principal))
-            if keytab and principal:
-                koji_session.krb_login(
-                    principal=principal,
-                    keytab=keytab,
-                    ccache=ccache,
-                )
-            else:
-                koji_session.krb_login(ccache=ccache)
-        elif authtype == "ssl":
-            koji_session.ssl_login(
-                os.path.expanduser(koji_config.cert),
-                None,
-                os.path.expanduser(koji_config.serverca),
-            )
-        else:
-            raise ValueError("Unrecognized koji authtype %r" % authtype)
-
-        return koji_session
 
     def get_pungi_cmd(self, conf_topdir, targetdir, compose_dir=None):
         """
@@ -445,83 +397,6 @@ class Pungi(object):
                     "Failed to remove temporary directory {!r}: {}".format(
                         td, str(e)))
 
-    def _unique_path(self, prefix):
-        """
-        Create a unique path fragment by appending a path component
-        to prefix.  The path component will consist of a string of letter and numbers
-        that is unlikely to be a duplicate, but is not guaranteed to be unique.
-        """
-        # Use time() in the dirname to provide a little more information when
-        # browsing the filesystem.
-        # For some reason repr(time.time()) includes 4 or 5
-        # more digits of precision than str(time.time())
-        # Unnamed Engineer: Guido v. R., I am disappoint
-        return '%s/%r.%s' % (prefix, time.time(),
-                             ''.join([random.choice(string.ascii_letters)
-                                      for i in range(8)]))
-
-    def upload_files_to_koji(self, koji_session, localdir):
-        """
-        Uploads files from `localdir` directory to Koji server using
-        `koji_session`. The unique server-side directory containing
-        the uploaded files is returned.
-        :param koji.KojiSession koji_session: Koji session.
-        "param str localdir: Path to directory with files to upload.
-        """
-        serverdir = self._unique_path("odcs")
-
-        for name in sorted(os.listdir(localdir)):
-            path = os.path.join(localdir, name)
-            koji_session.uploadWrapper(path, serverdir, callback=None)
-
-        return serverdir
-
-    def run_in_runroot(self, compose):
-        """
-        Runs the compose in runroot, waits for a result and raises an
-        exception if the Koji runroot tasks failed.
-        """
-        conf_topdir = os.path.join(conf.target_dir,
-                                   self._unique_path("runroot_configs"))
-        makedirs(conf_topdir)
-        self._write_cfgs(conf_topdir)
-
-        koji_session = self.make_koji_session()
-        serverdir = self.upload_files_to_koji(koji_session, conf_topdir)
-
-        cmd = []
-        cmd += ["cp", "/mnt/koji/work/%s/*" % serverdir, ".", "&&"]
-        cmd += ["cp", "./odcs_koji.conf", "/etc/koji.conf.d/", "&&"]
-        cmd += self.get_pungi_cmd("./", conf.pungi_runroot_target_dir)
-
-        kwargs = {
-            'channel': conf.pungi_parent_runroot_channel,
-            'packages': conf.pungi_parent_runroot_packages,
-            'mounts': conf.pungi_parent_runroot_mounts,
-            'weight': conf.pungi_parent_runroot_weight
-        }
-
-        task_id = koji_session.runroot(
-            conf.pungi_parent_runroot_tag, conf.pungi_parent_runroot_arch,
-            " ".join(cmd), **kwargs)
-
-        compose.koji_task_id = task_id
-        db.session.commit()
-
-        while True:
-            # wait for the task to finish
-            if koji_session.taskFinished(task_id):
-                break
-            log.info("Waiting for Koji runroot task %r to finish...", task_id)
-            time.sleep(60)
-
-        info = koji_session.getTaskInfo(task_id)
-        if info is None:
-            raise RuntimeError("Cannot get status of Koji task %r" % task_id)
-        state = koji.TASK_STATES[info['state']]
-        if state in ('FAILED', 'CANCELED'):
-            raise RuntimeError("Koji runroot task %r failed." % task_id)
-
     def run(self, compose):
         """
         Runs the compose in Pungi. Blocks until the compose is done.
@@ -530,10 +405,7 @@ class Pungi(object):
         :param models.Compose compose: Compose this Pungi process is running
             for.
         """
-        if conf.pungi_runroot_enabled:
-            self.run_in_runroot(compose)
-        else:
-            self.run_locally()
+        self.run_locally()
 
 
 class PungiLogs(object):
