@@ -129,8 +129,9 @@ TEST_MBS_MODULES_MMDv2 = [
 
 def mock_mbs(mdversion=2):
     """
-    Decorator that sets up a test environment so that calls to the PDC to look up
-    modules are redirected to return results from the TEST_MODULES array above.
+    Decorator that sets up a test environment so that calls to the MBS to look
+    up modules are redirected to return results from the TEST_MODULES array
+    above.
     """
     def wrapper(f):
         @wraps(f)

@@ -15,7 +15,6 @@ RUN cd /etc/yum.repos.d/ \
         python3-fedmsg \
         systemd \
         pungi \
-        python3-pdc-client \
         python3-fedora \
         python3-funcsigs \
         python3-openidc-client \

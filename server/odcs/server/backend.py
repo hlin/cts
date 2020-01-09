@@ -332,7 +332,7 @@ def resolve_compose(compose):
       to generate the compose and we can find out if we can reuse that compose
       later
     - For MODULE PungiSourceType, resolves the modules without the "release"
-      field to latest module release using PDC.
+      field to latest module release using MBS.
     """
     if compose.source_type == PungiSourceType.REPO:
         # We treat "revision" of local repo as koji_event for the simplicity.

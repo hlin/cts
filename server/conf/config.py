@@ -36,10 +36,6 @@ class BaseConfiguration(object):
 
     SSL_ENABLED = False
 
-    PDC_URL = 'https://pdc.fedoraproject.org/rest_api/v1'
-    PDC_INSECURE = False
-    PDC_DEVELOP = True
-
     # Users are required to be in allowed_clients to generate composes,
     # you can add group names or usernames (it can be normal user or host
     # principal) into ALLOWED_CLIENTS. The group names are from ldap for
