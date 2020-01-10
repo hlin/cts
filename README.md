@@ -197,9 +197,9 @@ As you can see in our example, compose is in `wait` state and therefore we have 
 
 ### Waiting until the compose is generated
 
-There are two ways how to wait for the compose generation. The preferred one is listening on fedmsg bus for `odcs.state.change` message with `done` or `failed` state and another one is using HTTP polling implemented in `wait_for_compose(...)` method.
+There are two ways how to wait for the compose generation. The preferred one is listening on Fedora messaging bus for `odcs.state.change` message with `done` or `failed` state and another one is using HTTP polling implemented in `wait_for_compose(...)` method.
 
-If your application does not allow listening on fedmsg bus for some reason, you can use `wait_for_compose(...)` method like this:
+If your application does not allow listening on the bus for some reason, you can use `wait_for_compose(...)` method like this:
 
 ```
 compose = odcs.new_compose(sources, source_type)

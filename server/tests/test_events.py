@@ -40,11 +40,6 @@ except ImportError:
     rhmsg = None
 
 try:
-    import fedmsg
-except ImportError:
-    fedmsg = None
-
-try:
     import fedora_messaging
 except ImportError:
     fedora_messaging = None
@@ -88,58 +83,6 @@ class TestRHMsgSendMessageWhenComposeIsCreated(ModelsBaseTest):
 
         producer_send = AMQProducer.return_value.__enter__.return_value.send
         producer_send.assert_called_once_with(Message.return_value)
-
-    def test_send_message(self):
-        compose = Compose.create(db.session,
-                                 "me",
-                                 PungiSourceType.MODULE,
-                                 "testmodule-master",
-                                 COMPOSE_RESULTS["repository"],
-                                 3600)
-
-        self.assert_messaging(compose)
-
-    def test_message_on_state_change(self):
-        compose = db.session.query(Compose).filter(
-            Compose.id == self.compose.id).all()[0]
-        compose.state = COMPOSE_STATES['generating']
-
-        self.assert_messaging(compose)
-
-
-@unittest.skipUnless(fedmsg, 'fedmsg is required to run this test case.')
-class TestFedMsgSendMessageWhenComposeIsCreated(ModelsBaseTest):
-    """Test send message when compose is created"""
-
-    disable_event_handlers = False
-
-    def setUp(self):
-        super(TestFedMsgSendMessageWhenComposeIsCreated, self).setUp()
-
-        # Real lock is not required for running tests
-        self.mock_lock = patch('threading.Lock')
-        self.mock_lock.start()
-
-    def tearDown(self):
-        self.mock_lock.stop()
-
-    def setup_composes(self):
-        self.compose = Compose.create(db.session,
-                                      "mine",
-                                      PungiSourceType.KOJI_TAG,
-                                      "f25",
-                                      COMPOSE_RESULTS["repository"],
-                                      3600)
-        db.session.commit()
-
-    @patch.object(conf, 'messaging_backend', new='fedmsg')
-    @patch('fedmsg.publish')
-    def assert_messaging(self, compose, publish):
-        db.session.commit()
-        publish.assert_called_once_with(
-            topic='compose.state-changed',
-            msg={'event': 'state-changed', 'compose': compose.json()}
-        )
 
     def test_send_message(self):
         compose = Compose.create(db.session,

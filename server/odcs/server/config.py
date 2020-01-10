@@ -221,7 +221,7 @@ class Config(object):
         'messaging_backend': {
             'type': str,
             'default': '',
-            'desc': 'Messaging backend, fedmsg, rhmsg or fedora-messaging.'},
+            'desc': 'Messaging backend, rhmsg or fedora-messaging.'},
         'messaging_broker_urls': {
             'type': list,
             'default': [],

@@ -341,7 +341,7 @@ class ODCS(object):
         in given time limit, raises RuntimeError.
 
         NOTE: It is advised to use this method only in situations where the
-        caller is not able to listen on fedmsg bus or UMB bus for the
+        caller is not able to listen on Fedora messaging bus or UMB bus for the
         odcs.state.change messages which can inform the caller about the
         compose state change without the polling.
 
