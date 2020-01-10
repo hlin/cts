@@ -365,7 +365,7 @@ class Pungi(object):
             ci.base_product.type = conf.get("base_product_type", "ga").lower()
 
         ci.compose.label = compose.label
-        ci.compose.type = compose.compose_type or "nightly"
+        ci.compose.type = compose.compose_type or "test"
         ci.compose.date = compose_date
         ci.compose.respin = 0
 

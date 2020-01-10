@@ -180,6 +180,10 @@ class Config(object):
             'type': list,
             'default': [""],
             'desc': 'Allowed sources.'},
+        'allowed_compose_types': {
+            'type': list,
+            'default': [""],
+            'desc': 'Allowed compose types.'},
         'auth_ldap_server': {
             'type': str,
             'default': '',

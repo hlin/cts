@@ -374,7 +374,7 @@ class TestPungi(ModelsBaseTest):
         self.ci_dump = self.patch_ci_dump.start()
 
         self.compose = MagicMock()
-        self.compose.compose_type = "nightly"
+        self.compose.compose_type = "test"
 
     def tearDown(self):
         super(TestPungi, self).tearDown()
@@ -436,7 +436,7 @@ class TestPungi(ModelsBaseTest):
             commit='hash')
         compose_date = time.strftime("%Y%m%d", time.localtime())
         self.assertEqual(self.compose.pungi_compose_id,
-                         "compose-1-10-%s.n.0" % compose_date)
+                         "compose-1-10-%s.t.0" % compose_date)
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run_raw_config_respin(self, execute_cmd):
@@ -464,7 +464,7 @@ class TestPungi(ModelsBaseTest):
 
         compose_date = time.strftime("%Y%m%d", time.localtime())
         self.assertEqual(compose.pungi_compose_id,
-                         "compose-1-10-%s.n.1" % compose_date)
+                         "compose-1-10-%s.t.1" % compose_date)
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run_raw_config_subpath(self, execute_cmd):

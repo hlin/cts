@@ -62,7 +62,7 @@ def _load_allowed_clients_attrs(key, attrs):
             "Unknown key %r passed to _load_allowed_clients_attrs" % key)
 
     # If some requested attributes are missing in allowed_clients variable,
-    # try to get them from "conf.gallowed_$attr_name". If they are not there
+    # try to get them from "conf.allowed_$attr_name". If they are not there
     # too, use empty list to disallow everything.
     for attr in attrs:
         if attr not in ret_attrs:
@@ -97,6 +97,7 @@ def raise_if_input_not_allowed(**kwargs):
       - source_types - compose.source_type
       - sources - compose.source
       - arches - compose.arches
+      - compose_types - compose.compose_type
 
     The decision whether the user is allowed or not is done based on
     conf.allowed_clients value.

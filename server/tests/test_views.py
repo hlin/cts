@@ -112,7 +112,8 @@ class ViewBaseTest(ModelsBaseTest):
                     'arches': ['ppc64', 's390', 'x86_64']
                 },
                 'dev2': {
-                    'source_types': ['module', 'raw_config']
+                    'source_types': ['module', 'raw_config'],
+                    'compose_types': ["test", "nightly"]
                 }
             }
         }
@@ -310,7 +311,7 @@ class TestViews(ViewBaseTest):
                          'modular_koji_tags': None,
                          'module_defaults_url': None,
                          'label': None,
-                         'compose_type': 'nightly',
+                         'compose_type': 'test',
                          'pungi_compose_id': None}
         self.assertEqual(data, expected_json)
 
@@ -692,6 +693,23 @@ class TestViews(ViewBaseTest):
         self.assertEqual(
             data['message'],
             'User dev not allowed to operate with compose with source_types=repo')
+
+    @patch.object(odcs.server.config.Config, 'raw_config_urls',
+                  new={"pungi_cfg": "http://localhost/pungi.conf#%s"})
+    def test_submit_build_not_allowed_compose_type(self):
+        with self.test_request_context(user='dev2'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config', 'source': 'pungi_cfg#hash'},
+                 'compose_type': 'production'}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(
+            data['message'],
+            'User dev2 not allowed to operate with compose with compose_types=production')
 
     def test_submit_build_unknown_source_type(self):
         with self.test_request_context(user='dev'):
@@ -1090,7 +1108,7 @@ class TestViews(ViewBaseTest):
                          'modular_koji_tags': None,
                          'module_defaults_url': None,
                          'label': None,
-                         'compose_type': 'nightly',
+                         'compose_type': 'test',
                          'pungi_compose_id': None}
         self.assertEqual(data, expected_json)
 
@@ -1359,11 +1377,11 @@ class TestViewsRawConfig(ViewBaseTest):
                 {'source': {'type': 'raw_config',
                             'source': 'pungi_cfg#hash'},
                  'label': 'Beta-1.2',
-                 'compose_type': 'production'}))
+                 'compose_type': 'nightly'}))
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
         self.assertEqual(c.source_type, PungiSourceType.RAW_CONFIG)
         self.assertEqual(c.source, 'pungi_cfg#hash')
         self.assertEqual(c.label, 'Beta-1.2')
-        self.assertEqual(c.compose_type, 'production')
+        self.assertEqual(c.compose_type, 'nightly')

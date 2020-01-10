@@ -188,10 +188,15 @@ class ODCSAPI(MethodView):
             log.error(err)
             raise NotFound(err)
 
+        # Backward compatibility for old composes which don't have
+        # the compose_type set - we treat them as "test" composes
+        # when regenerating them.
+        compose_type = old_compose.compose_type or "test"
+
         raise_if_input_not_allowed(
             source_types=old_compose.source_type, sources=old_compose.source,
             results=old_compose.results, flags=old_compose.flags,
-            arches=old_compose.arches)
+            arches=old_compose.arches, compose_types=compose_type)
 
         has_to_create_a_copy = old_compose.state in (
             COMPOSE_STATES['removed'], COMPOSE_STATES['failed'])
@@ -404,11 +409,11 @@ class ODCSAPI(MethodView):
             module_defaults = "%s %s" % (module_defaults_url, module_defaults_commit)
 
         label = data.get("label", None)
-        compose_type = data.get("compose_type", "nightly")
+        compose_type = data.get("compose_type", "test")
 
         raise_if_input_not_allowed(
             source_types=source_type, sources=source, results=results,
-            flags=flags, arches=arches)
+            flags=flags, arches=arches, compose_types=compose_type)
 
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
