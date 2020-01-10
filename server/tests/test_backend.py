@@ -24,7 +24,7 @@ import six
 import os
 import shutil
 
-from mock import patch, MagicMock
+from mock import patch, MagicMock, call
 from productmd.rpms import Rpms
 
 from odcs.server import conf, db
@@ -38,7 +38,7 @@ from odcs.server.backend import (resolve_compose, get_reusable_compose,
                                  koji_get_inherited_tags)
 from odcs.server.utils import makedirs
 import odcs.server.backend
-from .utils import ModelsBaseTest
+from .utils import ModelsBaseTest, AnyStringWith
 
 from .mbs import mock_mbs
 
@@ -937,10 +937,15 @@ class TestGeneratePungiCompose(ModelsBaseTest):
                           "url": "git://localhost/test.git",
                           "config_filename": "pungi.conf"}
                   })
-    def test_generate_pungi_compose_raw_config(self):
+    @patch("odcs.server.utils.makedirs")
+    @patch("os.symlink")
+    @patch("os.unlink")
+    def test_generate_pungi_compose_raw_config(self, unlink, symlink, makedirs):
         c = Compose.create(
             db.session, "me", PungiSourceType.RAW_CONFIG, "pungi_cfg#hash",
             COMPOSE_RESULTS["repository"], 60)
+        c.compose_type = "nightly"
+        c.pungi_compose_id = "compose-1-10-2020110.n.0"
         c.id = 1
 
         fake_raw_config_urls = {
@@ -957,6 +962,16 @@ class TestGeneratePungiCompose(ModelsBaseTest):
             'config_filename': 'pungi.conf',
             'commit': 'hash'
         })
+
+        makedirs.assert_called_once_with(AnyStringWith("/test_composes/nightly"))
+        symlink.assert_has_calls([
+            call('../odcs-1-2018-1',
+                 AnyStringWith('/test_composes/nightly/compose-1-10-2020110.n.0')),
+            call('../odcs-1-2018-1',
+                 AnyStringWith('/test_composes/nightly/latest-compose-1')),
+        ])
+        unlink.assert_called_with(
+            AnyStringWith('/test_composes/nightly/latest-compose-1'))
 
 
 class TestValidatePungiCompose(ModelsBaseTest):

@@ -67,13 +67,16 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
             c = db.session.query(Compose).filter(Compose.id == 1).one()
             self.assertEqual(c.state, state)
 
-    def test_a_compose_which_state_is_done_is_removed(self):
+    @patch("os.unlink")
+    def test_a_compose_which_state_is_done_is_removed(self, unlink):
         """
         Test that we do remove a compose in done state.
         """
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         c.time_to_expire = datetime.utcnow() - timedelta(seconds=120)
         c.state = COMPOSE_STATES["done"]
+        c.compose_type = "nightly"
+        c.pungi_compose_id = "compose-1-10-2020110.n.0"
         db.session.add(c)
         db.session.commit()
         self.thread.do_work()
@@ -81,6 +84,8 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["removed"])
         self.assertEqual(c.state_reason, 'Compose is expired.')
+        unlink.assert_has_calls([mock.call(AnyStringWith(
+            "test_composes/nightly/compose-1-10-2020110.n.0"))])
 
     def test_a_compose_which_state_is_done_is_removed_keep_state_reason(self):
         """
