@@ -3,4 +3,3 @@ pytest-cov
 responses
 tox
 freezegun
-kobo

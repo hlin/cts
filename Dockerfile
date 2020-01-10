@@ -29,6 +29,7 @@ RUN cd /etc/yum.repos.d/ \
         python3-six \
         python3-flask \
         python3-defusedxml \
+        python3-kobo \
         python3-koji \
         python3-httplib2 \
         python3-pyOpenSSL \

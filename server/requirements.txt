@@ -2,6 +2,7 @@ futures
 funcsigs
 flufl.lock
 fedmsg
+kobo
 psutil
 moksha.hub
 httplib2
