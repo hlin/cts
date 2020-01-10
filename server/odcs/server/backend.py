@@ -1069,29 +1069,3 @@ class ComposerThread(BackendThread):
         self.generate_lost_composes()
         self.generate_new_composes()
         self.refresh_currently_generating()
-
-
-def run_backend():
-    """
-    Runs the backend.
-    """
-    while True:
-        remove_expired_composes_thread = RemoveExpiredComposesThread()
-        composer_thread = ComposerThread()
-        try:
-            remove_expired_composes_thread.start()
-            composer_thread.start()
-            remove_expired_composes_thread.join()
-            composer_thread.join()
-        except KeyboardInterrupt:
-            remove_expired_composes_thread.stop()
-            composer_thread.stop()
-            remove_expired_composes_thread.join()
-            composer_thread.join()
-            return 0
-        except Exception:
-            log.exception("Exception in backend")
-            remove_expired_composes_thread.stop()
-            composer_thread.stop()
-            remove_expired_composes_thread.join()
-            composer_thread.join()

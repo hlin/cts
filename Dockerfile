@@ -12,7 +12,6 @@ RUN cd /etc/yum.repos.d/ \
     && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-F-28/compose/Everything/x86_64/os/ \
     && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/repos/eng-rhel-7/x86_64 \
     && dnf -v --nogpg -y install httpd python3-mod_wsgi mod_auth_gssapi python2-rhmsg mod_ssl mod_ldap \
-        python3-fedmsg \
         systemd \
         pungi \
         python3-fedora \
@@ -35,8 +34,6 @@ RUN cd /etc/yum.repos.d/ \
         python3-pyOpenSSL \
         python3-sqlalchemy \
         python3-flufl-lock \
-        python3-moksha-hub \
-        python3-fedmsg \
         python3-psycopg2 \
         python3-psutil \
         python3-celery \
@@ -56,7 +53,6 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
 
 COPY . .
 RUN pip3 install . --no-deps
-RUN rm -rf ./fedmsg.d
 
 WORKDIR /tmp
 USER 1001

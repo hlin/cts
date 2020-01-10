@@ -28,7 +28,6 @@ import ssl
 
 from odcs.server import app, conf, db
 from odcs.server import models
-from odcs.server.backend import run_backend
 
 
 manager = Manager(app)
@@ -144,17 +143,6 @@ def generatelocalhostcert():
     with open(conf.ssl_certificate_file, 'w') as cert_file:
         cert_file.write(
             crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
-
-
-@console_script_help
-@manager.command
-def runbackend():
-    """
-    Runs the Flask app with the HTTPS settings configured in config.py
-    """
-    logging.info('Starting ODCS backend')
-
-    run_backend()
 
 
 @console_script_help

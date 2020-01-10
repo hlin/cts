@@ -1,3 +1,0 @@
-config = {
-    'odcsconsumer': True,
-}
