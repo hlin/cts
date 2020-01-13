@@ -707,11 +707,29 @@ def remove_compose_symlink(compose):
 
     symlink_dir = os.path.join(conf.target_dir, compose.compose_type)
     symlink = os.path.join(symlink_dir, compose.pungi_compose_id)
+
+    # Check if latest_symlink points to the same directory as the non-latest
+    # symlink. In this case, we will remove the latest-symlink later too.
+    latest_name = "latest-%s" % "-".join(compose.pungi_compose_id.split("-")[:2])
+    latest_symlink = os.path.join(symlink_dir, latest_name)
+    remove_latest_symlink = os.path.realpath(symlink) == os.path.realpath(latest_symlink)
+
+    # Remove non-latest symlink.
+    log.info("%r: Removing %s symlink.", compose, symlink)
     try:
         os.unlink(symlink)
     except OSError as e:
         if e.errno != errno.ENOENT:
             raise
+
+    # Remove latest symlink.
+    if remove_latest_symlink:
+        log.info("%r: Removing %s symlink.", compose, latest_symlink)
+        try:
+            os.unlink(latest_symlink)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
 
 
 def generate_pungi_compose(compose):
