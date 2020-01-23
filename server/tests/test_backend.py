@@ -633,6 +633,58 @@ gpgcheck=0
         self.assertEqual(c1.state, COMPOSE_STATES["failed"])
         six.assertRegex(self, c1.state_reason, r'Error while generating compose: Failed to find all the content_sets.*')
 
+    @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.backend._write_repo_file")
+    def test_generate_pulp_compose_content_set_not_found_allow_absent(
+            self, _write_repo_file, pulp_rest_post
+    ):
+        pulp_rest_post.return_value = [
+            {
+                "notes": {
+                    "relative_url": "content/1/x86_64/os",
+                    "content_set": "foo-1",
+                    "arch": "ppc64",
+                    "signatures": "SIG1,SIG2"
+                },
+            },
+        ]
+
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1 foo-2",
+            COMPOSE_RESULTS["repository"], 3600,
+            flags=COMPOSE_FLAGS["ignore_absent_pulp_repos"],
+        )
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.object(odcs.server.backend.conf, 'pulp_server_url',
+                          "https://localhost/"):
+            generate_compose(1)
+
+        expected_query = {
+            "criteria": {
+                "fields": ["notes"],
+                "filters": {
+                    "notes.content_set": {"$in": ["foo-1", "foo-2"]},
+                    "notes.include_in_download_service": "True"
+                }
+            }
+        }
+        pulp_rest_post.assert_called_once_with('repositories/search/',
+                                               expected_query)
+        expected_repofile = """
+[foo-1]
+name=foo-1
+baseurl=http://localhost/content/1/x86_64/os
+enabled=1
+gpgcheck=0
+"""
+        _write_repo_file.assert_called_once_with(c, expected_repofile)
+
+        c1 = Compose.query.filter(Compose.id == 1).one()
+        self.assertEqual(c1.state, COMPOSE_STATES["done"])
+        self.assertEqual(c1.source, "foo-1")
+
     @patch("odcs.server.backend.resolve_compose")
     @patch("odcs.server.backend.generate_pungi_compose")
     @patch("odcs.server.pungi.PungiLogs.get_error_string")

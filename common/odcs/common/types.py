@@ -103,6 +103,9 @@ COMPOSE_FLAGS = {
     "check_deps": 8,
     # Include also module builds in the "done" state.
     "include_done_modules": 16,
+    # For "pulp" source_type, ignore any repos do not exist in the remote Pulp
+    # instance.
+    "ignore_absent_pulp_repos": 32,
 }
 
 INVERSE_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}

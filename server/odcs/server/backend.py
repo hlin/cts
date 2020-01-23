@@ -633,11 +633,20 @@ def generate_pulp_compose(compose):
     repos = pulp.get_repos_from_content_sets(
         content_sets,
         compose.flags & COMPOSE_FLAGS["include_unpublished_pulp_repos"])
+    ignore_absent_pulp_repos = compose.flags & COMPOSE_FLAGS["ignore_absent_pulp_repos"]
     if len(repos) != len(content_sets):
+        found_content_sets = repos.keys()
         err = "Failed to find all the content_sets %r in the Pulp, " \
-            "found only %r" % (content_sets, repos.keys())
-        log.error(err)
-        raise ValueError(err)
+            "found only %r" % (content_sets, found_content_sets)
+        if ignore_absent_pulp_repos:
+            log.info(err)
+            # Update the source in the compose. This ensures the source matches
+            # what is actually in the compose. However it makes it invisible
+            # that user actually requested something else.
+            compose.source = " ".join(found_content_sets)
+        else:
+            log.error(err)
+            raise ValueError(err)
 
     arches = set()
     sigkeys = set()

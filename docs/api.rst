@@ -69,6 +69,7 @@ The fields used in the ODCS compose JSON have following meaning:
     - *no_deps* - Compose will contain only the requested packages/modules without pulling-in their RPM-level or Module-level dependencies.
     - *no_inheritance* - Only packages/modules directly tagged in the requested Koji tag will be added to the module. Inherited tags will be ignored.
     - *include_unpublished_pulp_repos* - Even unpublished Pulp repositories will be included in the resulting compose.
+    - *ignore_absent_pulp_repos* - Ignore non-existing content sets in the source of Pulp compose. The source field on the compose will be updated to match what was actually used in the compose.
     - *check_deps* - Compose will fail if the RPM-level dependencies between packages in the compose are not satisfied.
     - *include_done_modules* - Compose can include also modules which are in the ``done`` state. By default, only modules in ``ready`` state are allowed to be included in a composes.
 
