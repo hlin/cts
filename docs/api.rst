@@ -36,7 +36,8 @@ The ODCS compose is always represented in the API request as JSON, for example:
         "time_done": "2019-07-23T11:26:26Z",
         "time_removed": null,
         "time_submitted": "2019-07-23T11:24:54Z",
-        "time_to_expire": "2019-07-24T11:24:54Z"
+        "time_to_expire": "2019-07-24T11:24:54Z",
+        "time_started": "2019-07-23T11:25:01Z"
     }
 
 The fields used in the ODCS compose JSON have following meaning:
@@ -193,6 +194,11 @@ The fields used in the ODCS compose JSON have following meaning:
 
 *time_to_expire* - ``(datetime)``
     The date and time on which the compose is planned to expire. After this time, the compose is removed from ODCS storage.
+
+.. _time_started:
+
+*time_started* - ``(datetime)``
+    The date and time on which the compose was started by a backend.
 
 REST API pagination
 ===================
