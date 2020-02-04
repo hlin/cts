@@ -209,3 +209,36 @@ class TestCeleryRouter():
                               *args, **kwargs)
             assert "invalid property" in e.args[0]
             assert "bad_compose_prop" in e.args[0]
+
+    @patch("odcs.server.celery_tasks.get_odcs_compose")
+    def test_rule_with_regexp(self, mock_get_compose):
+        mock_compose = Mock()
+
+        compose_md = {
+            "source_type": 3,
+            "source": "fedora30#commithash",
+        }
+
+        mock_conf = {
+            "routing_rules": {
+                "odcs.server.celery_tasks.generate_pungi_compose": {
+                    "pungi_composes": {
+                        "source_type": 3,
+                        "source": "^fedora30#.*",
+                    },
+                },
+            },
+            "cleanup_task": "odcs.server.celery_tasks.run_cleanup",
+            "default_queue": "default_queue",
+        }
+
+        tr = TaskRouter()
+        tr.config = mock_conf
+
+        mock_compose.json.return_value = compose_md
+        mock_get_compose.return_value = mock_compose
+        args = [[1], {}]
+        kwargs = {}
+        queue = tr.route_for_task("odcs.server.celery_tasks.generate_pungi_compose",
+                                  *args, **kwargs)
+        assert queue == {"queue": "pungi_composes"}

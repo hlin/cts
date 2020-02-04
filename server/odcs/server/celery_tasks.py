@@ -23,6 +23,7 @@
 
 import ssl
 import os
+import re
 from celery import Celery
 from six.moves.urllib.parse import urlparse
 
@@ -137,12 +138,13 @@ class TaskRouter:
 
                     # if the value of the property from the rule and compose does not match, the
                     # whole rule is ignored and we go to the next rule
-                    if type(value) is list:
-                        if compose_md[key] not in value:
-                            break
+                    if isinstance(value, (tuple, list)):
+                        values = value
                     else:
-                        if compose_md[key] != value:
-                            break
+                        values = [value]
+
+                    if not any(re.match(str(v), str(compose_md[key])) for v in values):
+                        break
                 else:
                     # if all of the properties and values match then the whole rule match
                     return queue
