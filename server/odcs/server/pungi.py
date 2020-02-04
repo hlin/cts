@@ -58,6 +58,9 @@ class BasePungiConfig(object):
         """Write configuration into files"""
         raise NotImplementedError('Concrete config object must implement.')
 
+    def validate(self, topdir, compose_dir):
+        """Validate configuration. Raises an exeption of error found."""
+        pass
 
 class RawPungiConfig(BasePungiConfig):
 
@@ -107,6 +110,33 @@ class RawPungiConfig(BasePungiConfig):
         config_path = os.path.join(topdir, self.pungi_cfg["config_filename"])
         if config_path != main_cfg_path:
             shutil.copy2(config_path, main_cfg_path)
+
+    def validate(self, topdir, compose_dir):
+        if not conf.pungi_config_validate:
+            return
+        pungi_config_validate_cmd = [conf.pungi_config_validate, "--old-composes"]
+
+        # Apply global schema override.
+        if conf.raw_config_schema_override:
+            pungi_config_validate_cmd += [
+                "--schema-override", conf.raw_config_schema_override]
+
+        # Apply raw_config specific schema override.
+        if "schema_override" in self.pungi_cfg:
+            pungi_config_validate_cmd += [
+                "--schema-override", self.pungi_cfg["schema_override"]]
+
+        # Add raw_config configuration file to validate.
+        pungi_config_validate_cmd.append(os.path.join(topdir, "pungi.conf"))
+
+        # Run the pungi-config-validate. The execute_cmd raises an exception
+        # if config is invalid.
+        log_out_path = os.path.join(compose_dir, "pungi-config-validate-stdout.log")
+        log_err_path = os.path.join(compose_dir, "pungi-config-validate-stderr.log")
+        with open(log_out_path, "w") as log_out:
+            with open(log_err_path, "w") as log_err:
+                odcs.server.utils.execute_cmd(
+                    pungi_config_validate_cmd, stdout=log_out, stderr=log_err)
 
 
 class PungiConfig(BasePungiConfig):
@@ -395,6 +425,7 @@ class Pungi(object):
             td = tempfile.mkdtemp()
             self._write_cfgs(td)
             compose_dir = self._prepare_compose_dir(compose, td, conf.target_dir)
+            self.pungi_cfg.validate(td, compose_dir)
             pungi_cmd = self.get_pungi_cmd(td, conf.target_dir, compose_dir)
 
             # Commit the session to ensure that all the `compose` changes are

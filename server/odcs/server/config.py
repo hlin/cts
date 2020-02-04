@@ -122,6 +122,11 @@ class Config(object):
             'type': str,
             'default': "pungi-koji",
             'desc': 'Name or full-path to pungi-koji binary.'},
+        'pungi_config_validate': {
+            'type': str,
+            'default': "",
+            'desc': 'Name or full-path to pungi-config-validate binary. '
+                    'If set to empty string, no validation is done.'},
         'pungi_timeout': {
             'type': int,
             'default': 3600,
@@ -313,6 +318,13 @@ class Config(object):
                     'file. This file holds Pungi configuration which should '
                     'import real pungi configuration from raw_config.conf '
                     'in order to override some variables.'},
+        'raw_config_schema_override': {
+            'type': str,
+            'default': "",
+            'desc': 'Full path to the JSON file defining Pungi config schema '
+                    'override. This file is passed to "pungi-config-validate" '
+                    'using the --schema-override option and can influence '
+                    'the raw_config validation.'},
         'pungi_koji_args': {
             'type': list,
             'default': [],

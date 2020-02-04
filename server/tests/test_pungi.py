@@ -26,7 +26,7 @@ import tempfile
 import unittest
 import time
 
-from mock import patch, MagicMock, mock_open
+from mock import patch, MagicMock, mock_open, call
 from kobo.conf import PyConfigParser
 
 from odcs.server.pungi import (
@@ -490,6 +490,29 @@ class TestPungi(ModelsBaseTest):
         self.clone_repo.assert_called_once_with(
             'http://localhost/test.git', AnyStringWith("/raw_config_repo"),
             commit='hash')
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_raw_config_validate(self, execute_cmd):
+        fake_raw_config_urls = {
+            'pungi.conf': {
+                "url": "http://localhost/test.git",
+                "config_filename": "pungi.conf",
+                "schema_override": "/etc/odcs/extra_override.json"
+            }
+        }
+        with patch.object(conf, 'raw_config_schema_override', new="/etc/odcs/default_override.json"):
+            with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+                with patch.object(conf, 'pungi_config_validate', new="pungi-config-validate"):
+                    pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
+                    pungi.run(self.compose)
+
+        self.assertEqual(execute_cmd.mock_calls[0], call(
+            ['pungi-config-validate', '--old-composes',
+             '--schema-override', '/etc/odcs/default_override.json',
+             '--schema-override', '/etc/odcs/extra_override.json',
+             AnyStringWith('pungi.conf')],
+            stderr=AnyStringWith("pungi-config-validate-stderr.log"),
+            stdout=AnyStringWith("pungi-config-validate-stdout.log")))
 
 
 class TestPungiLogs(ModelsBaseTest):
