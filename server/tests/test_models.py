@@ -44,6 +44,7 @@ class TestModels(ModelsBaseTest):
         db.session.expire_all()
 
         c = db.session.query(Compose).filter(compose.id == 1).one()
+        c.pungi_config_dump = "test"
         self.assertEqual(c.owner, "me")
         self.assertEqual(c.source_type, PungiSourceType.MODULE)
         self.assertEqual(c.source, "testmodule-master")
@@ -77,8 +78,9 @@ class TestModels(ModelsBaseTest):
                          'module_defaults_url': None,
                          'label': None,
                          'compose_type': None,
-                         'pungi_compose_id': None}
-        self.assertEqual(c.json(), expected_json)
+                         'pungi_compose_id': None,
+                         'pungi_config_dump': 'test'}
+        self.assertEqual(c.json(True), expected_json)
 
     def test_create_copy(self):
         """

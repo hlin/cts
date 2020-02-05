@@ -992,11 +992,13 @@ class TestGeneratePungiCompose(ModelsBaseTest):
     @patch("odcs.server.utils.makedirs")
     @patch("os.symlink")
     @patch("os.unlink")
-    def test_generate_pungi_compose_raw_config(self, unlink, symlink, makedirs):
+    @patch("odcs.server.pungi.PungiLogs.get_config_dump")
+    def test_generate_pungi_compose_raw_config(self, config_dump, unlink, symlink, makedirs):
+        config_dump.return_value = "fake\npungi\nconf\n"
         c = Compose.create(
             db.session, "me", PungiSourceType.RAW_CONFIG, "pungi_cfg#hash",
             COMPOSE_RESULTS["repository"], 60)
-        c.compose_type = "nightly"
+        c.compose_type = "production"
         c.pungi_compose_id = "compose-1-10-2020110.n.0"
         c.id = 1
 
@@ -1009,21 +1011,22 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
             generate_pungi_compose(c)
 
+        self.assertEqual(c.pungi_config_dump, "fake\npungi\nconf\n")
         self.assertEqual(self.pungi_config.pungi_cfg, {
             'url': 'git://localhost/test.git',
             'config_filename': 'pungi.conf',
             'commit': 'hash'
         })
 
-        makedirs.assert_called_once_with(AnyStringWith("/test_composes/nightly"))
+        makedirs.assert_called_once_with(AnyStringWith("/test_composes/production"))
         symlink.assert_has_calls([
             call('../odcs-1-2018-1',
-                 AnyStringWith('/test_composes/nightly/compose-1-10-2020110.n.0')),
+                 AnyStringWith('/test_composes/production/compose-1-10-2020110.n.0')),
             call('../odcs-1-2018-1',
-                 AnyStringWith('/test_composes/nightly/latest-compose-1')),
+                 AnyStringWith('/test_composes/production/latest-compose-1')),
         ])
         unlink.assert_called_with(
-            AnyStringWith('/test_composes/nightly/latest-compose-1'))
+            AnyStringWith('/test_composes/production/latest-compose-1'))
 
 
 class TestValidatePungiCompose(ModelsBaseTest):

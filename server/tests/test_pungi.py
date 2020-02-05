@@ -575,3 +575,14 @@ For more details see {0}/odcs-717-1-20180323.n.0/work/x86_64/pungi/Temporary.x86
         pungi_logs = PungiLogs(self.compose)
         errors = pungi_logs.get_error_string()
         self.assertEqual(errors, "")
+
+    @patch("odcs.server.pungi.open", create=True)
+    def test_config_dump(self, patched_open):
+        patched_open.return_value = mock_open(
+            read_data="fake\npungi\nconf\n").return_value
+
+        pungi_logs = PungiLogs(self.compose)
+        ret = pungi_logs.get_config_dump()
+        self.assertEqual(ret, "fake\npungi\nconf\n")
+
+        patched_open.assert_called_once_with(AnyStringWith("logs/global/config-dump.global.log"), "r")

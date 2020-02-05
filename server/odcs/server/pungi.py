@@ -62,6 +62,7 @@ class BasePungiConfig(object):
         """Validate configuration. Raises an exception of error found."""
         pass
 
+
 class RawPungiConfig(BasePungiConfig):
 
     def __init__(self, compose_source):
@@ -476,6 +477,17 @@ class PungiLogs(object):
         return os.path.join(
             toplevel_work_dir, "logs", "global", "pungi.global.log")
 
+    @property
+    def config_dump_path(self):
+        """
+        Returns path to Pungi config dump.
+        """
+        toplevel_work_dir = self.compose.toplevel_work_dir
+        if not toplevel_work_dir:
+            return None
+        return os.path.join(
+            toplevel_work_dir, "logs", "global", "config-dump.global.log")
+
     def _get_global_log_errors(self):
         """
         Helper method which opens the `self.global_log_path` and search for
@@ -524,3 +536,11 @@ class PungiLogs(object):
         errors = errors.replace(
             conf.target_dir, conf.target_dir_url)
         return errors
+
+    def get_config_dump(self):
+        config_dump_path = self.config_dump_path
+        if not config_dump_path:
+            return None
+
+        with open(config_dump_path, "r") as config_dump:
+            return config_dump.read()

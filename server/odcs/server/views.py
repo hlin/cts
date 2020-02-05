@@ -151,7 +151,7 @@ class ODCSAPI(MethodView):
         else:
             compose = Compose.query.filter_by(id=id).first()
             if compose:
-                return jsonify(compose.json()), 200
+                return jsonify(compose.json(True)), 200
             else:
                 raise NotFound('No such compose found.')
 

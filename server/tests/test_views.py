@@ -811,6 +811,7 @@ class TestViews(ViewBaseTest):
         data = json.loads(resp.get_data(as_text=True))
         self.assertEqual(data['id'], 1)
         self.assertEqual(data['source'], "testmodule:master")
+        self.assertEqual(data['pungi_config_dump'], None)
 
     def test_query_composes(self):
         resp = self.client.get('/api/1/composes/')
@@ -822,6 +823,7 @@ class TestViews(ViewBaseTest):
         evs = json.loads(resp.get_data(as_text=True))['items']
         self.assertEqual(len(evs), 1)
         self.assertEqual(evs[0]['source'], 'f26')
+        self.assertTrue("pungi_config_dump" not in evs[0])
 
     def test_query_compose_state_done(self):
         resp = self.client.get(
