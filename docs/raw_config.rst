@@ -3,7 +3,7 @@ Raw config composes
 ===================
 
 ODCS can also be used to generate composes defined by the Pungi configuration
-file stored in an extral git repository. There is special compose source type
+file stored in an external git repository. There is special compose source type
 called ``raw_config`` which is used for these composes.
 
 This document describes how to configure ODCS server to generate
@@ -89,7 +89,7 @@ defines the ``raw_config`` and can have following keys:
   - ``schema_override`` [optional] - If set, defines the path to JSON schema
     override file to be used when validating the main Pungi configuration file.
 
-    
+
 Enabling ``pungi-config-validate``
 -------------------------------------
 
@@ -106,9 +106,9 @@ Preparing the ``schema_override`` JSON file
 -------------------------------------------
 
 Raw Pungi configuration files can be used to execute any command on the ODCS
-backend which might be a security issue in case the people editting the
+backend which might be a security issue in case the people editing the
 configuration files cannot be trusted. It is also for example possible to
-generate composes with external files comming from untrusted repositories.
+generate composes with external files coming from untrusted repositories.
 
 It is therefore possible to handle cases like this using the extended JSON
 schema validation which will allow only certain values for certain options.
@@ -119,8 +119,8 @@ to specify this for each ``raw_config`` using the ``schema_override`` option
 in the ``raw_config_urls`` ODCS option.
 
 The ``schema_override.json`` format is the same as the one used by Pungi
-for the default JSON schema in the ``make_schema`` method and can be found
-`here <https://pagure.io/pungi/blob/master/f/pungi/checks.py#_425>`_.
+for the default JSON schema. The default schema can be obtained by running
+``pungi-config-validate --dump-schema``.
 
 The ``schema_override.json`` is merged with this default JSON schema and
 overrides its values. For example, to allow only ``koji`` ``pkgset_source``,

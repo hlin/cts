@@ -59,7 +59,7 @@ class BasePungiConfig(object):
         raise NotImplementedError('Concrete config object must implement.')
 
     def validate(self, topdir, compose_dir):
-        """Validate configuration. Raises an exeption of error found."""
+        """Validate configuration. Raises an exception of error found."""
         pass
 
 class RawPungiConfig(BasePungiConfig):
