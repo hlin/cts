@@ -57,6 +57,7 @@ class MergeRepo(object):
         makedirs(os.path.join(path, "repodata"))
         with open(os.path.join(path, "repodata", filename), "wb") as f:
             f.write(r.content)
+        log.info("%r: Downloaded %d bytes from %s", self.compose, len(r.content), url)
         return r.content
 
     def _download_repodata(self, path, baseurl):
