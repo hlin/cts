@@ -47,7 +47,7 @@ class MergeRepo(object):
         :param str path: Path to store the file to.
         :param str url: URL of file to download.
         :rtype: str
-        :return: content of downloaded file.
+        :return: path to the downloaded file
         """
         log.info("%r: Downloading %s", self.compose, url)
         r = requests.get(url, timeout=conf.net_timeout)
@@ -55,10 +55,12 @@ class MergeRepo(object):
 
         filename = os.path.basename(url)
         makedirs(os.path.join(path, "repodata"))
-        with open(os.path.join(path, "repodata", filename), "wb") as f:
+        outfile = os.path.join(path, "repodata", filename)
+        with open(outfile, "wb") as f:
             f.write(r.content)
-        log.info("%r: Downloaded %d bytes from %s", self.compose, len(r.content), url)
-        return r.content
+        response_len = os.stat(outfile).st_size
+        log.info("%r: Downloaded %d bytes from %s", self.compose, response_len, url)
+        return outfile
 
     def _download_repodata(self, path, baseurl):
         """
@@ -78,7 +80,9 @@ class MergeRepo(object):
 
         # Download the repomd.xml.
         repomd_url = os.path.join(baseurl, "repodata", "repomd.xml")
-        repomd = self._download_file(path, repomd_url)
+        repomd_path = self._download_file(path, repomd_url)
+        with open(repomd_path) as f:
+            repomd = f.read()
         tree = ElementTree.fromstring(repomd)
 
         # In case the repomd.xml did not change since the last compose, use
