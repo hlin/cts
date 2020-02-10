@@ -50,14 +50,15 @@ class MergeRepo(object):
         :return: path to the downloaded file
         """
         log.info("%r: Downloading %s", self.compose, url)
-        r = requests.get(url, timeout=conf.net_timeout)
+        r = requests.get(url, timeout=conf.net_timeout, stream=True)
         r.raise_for_status()
 
         filename = os.path.basename(url)
         makedirs(os.path.join(path, "repodata"))
         outfile = os.path.join(path, "repodata", filename)
         with open(outfile, "wb") as f:
-            f.write(r.content)
+            for chunk in r.iter_content(chunk_size=None):
+                f.write(chunk)
         response_len = os.stat(outfile).st_size
         log.info("%r: Downloaded %d bytes from %s", self.compose, response_len, url)
         return outfile
