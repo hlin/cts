@@ -25,6 +25,8 @@ import os
 import requests
 import productmd.common
 
+from odcs.server import conf
+
 
 class PungiCompose(object):
     """Represents 3rd party Pungi Compose"""
@@ -47,7 +49,7 @@ class PungiCompose(object):
         """
         Fetches the json file represented by `url`.
         """
-        r = requests.get(url)
+        r = requests.get(url, timeout=conf.net_timeout)
         r.raise_for_status()
         return r.json()
 

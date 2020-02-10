@@ -26,6 +26,7 @@ import copy
 import json
 import requests
 
+from odcs.server import conf
 from odcs.server.mergerepo import MergeRepo
 from odcs.server.utils import retry
 
@@ -46,7 +47,9 @@ class Pulp(object):
         r = requests.post(
             '{0}{1}'.format(self.rest_api_root, endpoint.lstrip('/')),
             query_data,
-            auth=(self.username, self.password))
+            auth=(self.username, self.password),
+            timeout=conf.net_timeout,
+        )
         r.raise_for_status()
         return r.json()
 

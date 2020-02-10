@@ -50,7 +50,7 @@ class MergeRepo(object):
         :return: content of downloaded file.
         """
         log.info("%r: Downloading %s", self.compose, url)
-        r = requests.get(url)
+        r = requests.get(url, timeout=conf.net_timeout)
         r.raise_for_status()
 
         filename = os.path.basename(url)
