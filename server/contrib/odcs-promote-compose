@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+
+import shutil
+import argparse
+import sys
+import os
+import stat
+
+from productmd.composeinfo import ComposeInfo
+from productmd.rpms import Rpms
+
+
+class ComposeCheckError(Exception):
+    """"
+    Raised when compose check fails.
+    """
+    pass
+
+
+class ComposeCheck(object):
+    """
+    Checks the basic information about compose before promoting it.
+
+    This is not real Compose CI, but rather basic sanity check.
+    """
+    def __init__(self, path, target, allow_unsigned=False):
+        """
+        Creates new ComposeCheck instance.
+
+        :param str path: Path to Compose to check.
+        :param str target: Target path where the promoted compose should be
+            copied into.
+        :param bool allow_unsigned: If True, compose with unsigned packages
+            can be promoted.
+        """
+        self.path = path
+        self.target = target
+        self.allow_unsigned = allow_unsigned
+
+    def check_status(self):
+        """
+        Raises ComposeCheckError if Compose STATUS is not FINISHED.
+        """
+        print("Checking compose STATUS.")
+        status_path = os.path.join(self.path, "STATUS")
+        with open(status_path, "r") as f:
+            if f.readline() != "FINISHED\n":
+                raise ComposeCheckError('Compose is not in "FINISHED" status.')
+
+    def check_compose_info(self):
+        """
+        Raises ComposeCheckError if Compose type is not "production".
+        """
+        print("Checking compose type.")
+        ci = ComposeInfo()
+        ci.load(os.path.join(self.path, "compose", "metadata", "composeinfo.json"))
+        if ci.compose.type != "production":
+            raise ComposeCheckError('Compose type is not "production".')
+
+    def check_rpms(self):
+        """
+        Raises ComposeCheckError if there are unsigned packages in the Compose.
+        """
+        if self.allow_unsigned:
+            return
+
+        print("Checking for unsigned RPMs.")
+        rpms = Rpms()
+        rpms.load(os.path.join(self.path, "compose", "metadata", "rpms.json"))
+        for per_arch_rpms in rpms.rpms.values():
+            for per_build_rpms in per_arch_rpms.values():
+                for per_srpm_rpms in per_build_rpms.values():
+                    for rpm in per_srpm_rpms.values():
+                        if not rpm["sigkey"]:
+                            err_msg = "Some RPMs are not signed."
+                            raise ComposeCheckError(err_msg)
+
+    def check_symlinks(self):
+        """
+        Raises ComposeCheckError if some symlink in the Compose cannot be resolved
+        or if the symlink's target is not on the same device as Compose target
+        directory.
+        """
+        print("Checking symlinks.")
+        target_stat = os.stat(os.path.dirname(self.target))
+        for root, dirs, files in os.walk(self.path):
+            for p in dirs + files:
+                path = os.path.join(root, p)
+                path_stat = os.stat(path, follow_symlinks=False)
+                if not stat.S_ISLNK(path_stat.st_mode):
+                    continue
+
+                real_path = os.readlink(path)
+                abspath = os.path.normpath(os.path.join(os.path.dirname(path), real_path))
+                try:
+                    abspath_stat = os.stat(abspath)
+                except Exception as e:
+                    err_msg = "Symlink cannot be resolved: %s: %s." % (path, e)
+                    raise ComposeCheckError(err_msg)
+
+                if target_stat.st_dev != abspath_stat.st_dev:
+                    err_msg = ("Symlink's target is on different device than Compose "
+                            "target: %s" % abspath)
+                    raise ComposeCheckError(err_msg)
+
+    def run(self):
+        """
+        Runs the compose checks. Raises ComposeCheckError in case of failed check.
+        """
+        self.check_status()
+        self.check_compose_info()
+        self.check_rpms()
+        self.check_symlinks()
+
+
+def copy_and_replace_symlinks(src, dst):
+    """
+    Helper method to be used in `shutil.copytree` as `copy_function`.
+
+    Regular files are copied, but symlinks are replaced with hardlinks.
+    """
+    if os.path.islink(src):
+        real_path = os.readlink(src)
+        abspath = os.path.normpath(os.path.join(os.path.dirname(src), real_path))
+        os.link(abspath, dst)
+    else:
+        shutil.copy2(src, dst)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Promote ODCS compose.")
+    parser.add_argument("compose", help="Path to compose to promote.")
+    parser.add_argument("target", help="Path to target location")
+    parser.add_argument("--allow-unsigned", action="store_true",
+                        help="Allow unsigned RPMs.")
+    parser.add_argument("--no-checks", action="store_true",
+                    help="WARN: Promote the compose without any checks.")
+    args = parser.parse_args()
+
+    if not args.no_checks:
+        compose_check = ComposeCheck(args.compose, args.target, args.allow_unsigned)
+        try:
+            compose_check.run()
+        except ComposeCheckError as e:
+            print("Compose validation error: %s" % str(e))
+            sys.exit(1)
+
+    print("Copying %s to %s." % (args.compose, args.target))
+    shutil.copytree(args.compose, args.target,
+                    copy_function=copy_and_replace_symlinks)
