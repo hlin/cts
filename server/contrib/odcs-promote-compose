@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
 import shutil
 import argparse
 import sys
@@ -92,11 +93,18 @@ class ComposeCheck(object):
         directory.
         """
         print("Checking symlinks.")
-        target_stat = os.stat(os.path.dirname(self.target))
+        # The `self.target` can consist of multiple non-existing directories. We therefore
+        # need to check parent directories until we hit existing directory. The last possible
+        # path tried is "/" which should always exist.
+        target_dirname = os.path.dirname(self.target)
+        while not os.path.exists(target_dirname):
+            target_dirname = os.path.dirname(target_dirname)
+        target_stat = os.stat(target_dirname)
+
         for root, dirs, files in os.walk(self.path):
             for p in dirs + files:
                 path = os.path.join(root, p)
-                path_stat = os.stat(path, follow_symlinks=False)
+                path_stat = os.lstat(path)
                 if not stat.S_ISLNK(path_stat.st_mode):
                     continue
 
@@ -123,18 +131,59 @@ class ComposeCheck(object):
         self.check_symlinks()
 
 
-def copy_and_replace_symlinks(src, dst):
+class ComposePromotion(object):
     """
-    Helper method to be used in `shutil.copytree` as `copy_function`.
+    Contains methods and data to promote compose.
+    """
+    def __init__(self, compose, target):
+        """
+        Creates new ComposePromotion instance.
 
-    Regular files are copied, but symlinks are replaced with hardlinks.
-    """
-    if os.path.islink(src):
-        real_path = os.readlink(src)
-        abspath = os.path.normpath(os.path.join(os.path.dirname(src), real_path))
-        os.link(abspath, dst)
-    else:
-        shutil.copy2(src, dst)
+        :param str compose: Path to Compose to promote.
+        :param str target: Target path where the promoted compose should be
+            copied into.
+        """
+        self.compose = compose
+        self.target = target
+
+        # Tuple in (symlink_path, hardlink_path) format:
+        #  - symlink_path is full path to symlink in the `compose` tree.
+        #  - hardlink_path is full path to new hardlink in the `target` tree.
+        self.symlinks = []
+
+    def _copytree_ignore(self, path, names):
+        """
+        Helper method for `shutil.copytree` to ignore symlinks when copying compose.
+
+        This method also populates `self.symlinks`.
+        """
+        print("Copying files in %s." % path)
+        ignored = []
+        rel_path = os.path.relpath(path, self.compose)
+        for name in names:
+            file_path = os.path.join(path, name)
+            if os.path.islink(file_path):
+                ignored.append(name)
+                hardlink_path = os.path.join(self.target, rel_path, name)
+                self.symlinks.append((file_path, hardlink_path))
+        return ignored
+
+    def _replace_symlinks_with_hardlinks(self):
+        """
+        Copy symlinks from `compose` to `target` and replace them with hardlinks.
+        """
+        print("Replacing %d symlinks with hardlinks." % len(self.symlinks))
+        for symlink, hardlink_path in self.symlinks:
+            real_path = os.readlink(symlink)
+            abspath = os.path.normpath(os.path.join(os.path.dirname(symlink), real_path))
+            os.link(abspath, hardlink_path)
+
+    def promote(self):
+        """
+        Promotes the compose.
+        """
+        shutil.copytree(args.compose, args.target, ignore=self._copytree_ignore)
+        self._replace_symlinks_with_hardlinks()
 
 
 if __name__ == "__main__":
@@ -149,6 +198,9 @@ if __name__ == "__main__":
                     help="WARN: Promote the compose without any checks.")
     args = parser.parse_args()
 
+    args.compose = os.path.abspath(args.compose)
+    args.target = os.path.abspath(args.target)
+
     if not args.no_checks:
         compose_check = ComposeCheck(
             args.compose, args.target, args.allow_unsigned, args.allow_finished_incomplete)
@@ -158,6 +210,7 @@ if __name__ == "__main__":
             print("Compose validation error: %s" % str(e))
             sys.exit(1)
 
-    print("Copying %s to %s." % (args.compose, args.target))
-    shutil.copytree(args.compose, args.target,
-                    copy_function=copy_and_replace_symlinks)
+    print("Promoting compose")
+    compose_promotion = ComposePromotion(args.compose, args.target)
+    compose_promotion.promote()
+
