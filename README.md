@@ -151,7 +151,7 @@ If the `packages` is not set, all packages in Koji tag or all packages in a `bui
     - `ignore_absent_pulp_repos` - For `pulp` `source_type`, ignore any content set that does not exist in Pulp
 - `builds` - List of NVRs defining the Koji builds to include in a compose. Only valid for `tag` and `build` source types. For `tag` source type, the NVRs will be considered
 for inclusion in a compose on top of Koji tag defined by `source`. For `build` source type, only the Koji builds defined by the NVRs will be considered for inclusion. The `packages` still need to be set to include particular packages from the Koji builds in a compose.
-- `lookaside_repos` - List of base URLs of RPM repositories which should be considered when choosing packages for a compose.
+- `lookaside_repos` - List of URLs pointing to RPM repositories with packages which will be used by internal dependency resolver to resolve dependencies. Packages from these repositories will not appear in the resulting ODCS compose, but they are considered while checking whether the RPM dependencies are satisfied in the resulting compose when `check_deps` ODCS flag.
 - `module_defaults_url` - List with URL to git repository with Module defaults data and the branch name or commit hash. For example ["https://pagure.io/releng/fedora-module-defaults.git", "master"]. This is used only when creating modular compose including non-modular RPMs.
 - `modular_koji_tags` - List of Koji tags in which the modular Koji Content Generator builds are tagged. Such builds will be included in a compose.
 
