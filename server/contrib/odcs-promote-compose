@@ -23,7 +23,7 @@ class ComposeCheck(object):
 
     This is not real Compose CI, but rather basic sanity check.
     """
-    def __init__(self, path, target, allow_unsigned=False):
+    def __init__(self, path, target, allow_unsigned=False, allow_finished_incomplete=False):
         """
         Creates new ComposeCheck instance.
 
@@ -32,20 +32,30 @@ class ComposeCheck(object):
             copied into.
         :param bool allow_unsigned: If True, compose with unsigned packages
             can be promoted.
+        :param bool allow_finished_incomplete: If True, compose in FINISHED_INCOMPLETE
+            state can be promoted.
         """
         self.path = path
         self.target = target
         self.allow_unsigned = allow_unsigned
+        self.allow_finished_incomplete = allow_finished_incomplete
 
     def check_status(self):
         """
         Raises ComposeCheckError if Compose STATUS is not FINISHED.
         """
         print("Checking compose STATUS.")
+
+        allowed_statuses = ["FINISHED"]
+        if self.allow_finished_incomplete:
+            allowed_statuses.append("FINISHED_INCOMPLETE")
+
         status_path = os.path.join(self.path, "STATUS")
         with open(status_path, "r") as f:
-            if f.readline() != "FINISHED\n":
-                raise ComposeCheckError('Compose is not in "FINISHED" status.')
+            status = f.readline()[:-1]
+            if status not in allowed_statuses:
+                err_msg = 'Compose is not in %s status.' % (" or ".join(allowed_statuses))
+                raise ComposeCheckError(err_msg)
 
     def check_compose_info(self):
         """
@@ -133,12 +143,15 @@ if __name__ == "__main__":
     parser.add_argument("target", help="Path to target location")
     parser.add_argument("--allow-unsigned", action="store_true",
                         help="Allow unsigned RPMs.")
+    parser.add_argument("--allow-finished-incomplete", action="store_true",
+                        help="Allow compose in FINISHED_INCOMPLETE state.")
     parser.add_argument("--no-checks", action="store_true",
                     help="WARN: Promote the compose without any checks.")
     args = parser.parse_args()
 
     if not args.no_checks:
-        compose_check = ComposeCheck(args.compose, args.target, args.allow_unsigned)
+        compose_check = ComposeCheck(
+            args.compose, args.target, args.allow_unsigned, args.allow_finished_incomplete)
         try:
             compose_check.run()
         except ComposeCheckError as e:
