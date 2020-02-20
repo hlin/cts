@@ -53,7 +53,7 @@ with open('test-requirements.txt') as f:
 
 setup(name='odcs',
       description='On Demand Compose Service',
-      version='0.2.37',
+      version='0.2.38',
       classifiers=[
           "Programming Language :: Python",
           "Topic :: Software Development :: Build Tools"

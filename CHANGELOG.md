@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.38
+  - Release date: 2020-02-20
+  - Use correct ComposeInfo for raw configs
+  - Allow limiting which compose types a particular user can use
+  - Generate symlinks with real compose ID for easier consumption of raw config
+    composes
+  - Drop fedmsg for publishing events
+  - Add ignore_abset_pulp_repos flag.
+  - Run validation on raw configs with optional and configurable schema
+    overrides.
+  - Store dump of raw config in the database.
+  - Allow using regexes in routing_rules.
+  - Add timeouts to all download operations.
+
 ## 0.2.37
   - Release date: 2019-11-11
   - Handle two pulp repos with the same relative_url in single content set.
