@@ -691,7 +691,8 @@ gpgcheck=0
     def test_generate_compose_exception(
             self, get_error_string, generate_pungi_compose, resolve_compose):
         get_error_string.return_value = "Compose failed for unknown reason."
-        generate_pungi_compose.side_effect = RuntimeError("Expected exception")
+        generate_pungi_compose.side_effect = RuntimeError(
+            "Expected exception, see %s" % os.path.join(conf.target_dir, "foo.log"))
 
         c = Compose.create(
             db.session, "me", PungiSourceType.KOJI_TAG, "foo-1",
@@ -707,7 +708,8 @@ gpgcheck=0
         self.assertEqual(c1.state, COMPOSE_STATES["failed"])
         six.assertRegex(
             self, c1.state_reason,
-            r'Error while generating compose: Expected exception\n'
+            r'Error while generating compose: Expected exception, see '
+            'http://localhost/odcs/foo.log\n'
             'Compose failed for unknown reason*')
 
     @patch("odcs.server.backend.resolve_compose")

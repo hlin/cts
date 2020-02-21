@@ -892,6 +892,9 @@ def generate_compose(compose_id, lost_compose=False):
             except Exception:
                 log.exception("Exception raised when getting Pungi logs.")
 
+            # Be nice to end user and replace paths to logs or other files with URL
+            # accessible to the user.
+            state_reason = state_reason.replace(conf.target_dir, conf.target_dir_url)
             compose.transition(COMPOSE_STATES["failed"], state_reason)
 
         compose = Compose.query.filter(Compose.id == compose_id).one()
