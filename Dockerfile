@@ -1,4 +1,4 @@
-FROM fedora:29
+FROM fedora:31
 LABEL \
     name="ODCS application" \
     vendor="ODCS developers" \
