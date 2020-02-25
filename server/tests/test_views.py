@@ -117,6 +117,9 @@ class ViewBaseTest(ModelsBaseTest):
                 'dev2': {
                     'source_types': ['module', 'raw_config'],
                     'compose_types': ["test", "nightly"]
+                },
+                'dev3': {
+                    'source_types': ['tag']
                 }
             }
         }
@@ -1044,6 +1047,19 @@ class TestViews(ViewBaseTest):
         self.assertEqual(data['status'], 202)
         six.assertRegex(self, data['message'],
                         r"The delete request for compose \(id=%s\) has been accepted and will be processed by backend later." % c3.id)
+
+    def test_can_create_compose_with_permission_overriden_by_username(self):
+        with self.test_request_context(user='dev3', groups=['dev2']):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            resp = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule:rawhide'}}))
+        db.session.expire_all()
+
+        self.assertEqual(resp.status, '403 FORBIDDEN')
+        self.assertEqual(resp.status_code, 403)
 
     @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
     @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)

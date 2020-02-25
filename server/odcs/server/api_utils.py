@@ -46,29 +46,27 @@ def _set_default_client_allowed_attrs(ret_attrs, attrs):
 
 def _load_allowed_clients_attr(attrs):
     """
-    Loads attributes from the
-    conf.allowed_clients[key][user_name/group_name] dict. If the requested
-    attribute is not found in the loaded dict, the conf.allowed_$attr_name
-    is used as a default.
+    Loads attributes from the conf.allowed_clients dict based on the logged
+    in user and its groups. If the requested attribute is not found in
+    the loaded dict, the conf.allowed_$attr_name is used as a default.
 
     :param list attrs: List of attribute names to load from the dict.
     :return: Generator of Dicts with loaded attributes.
     """
-    for key in ["users", "groups"]:
-        clients = conf.allowed_clients.get(key, {})
-        if key == "users":
-            # Check if the user is defined in clients, if not, return None.
-            if flask.g.user.username in clients:
-                ret_attrs = dict(copy.deepcopy(clients[flask.g.user.username]))
+    # Check if logged user exists in "users" definition of allowed_clients.
+    clients = conf.allowed_clients.get("users", {})
+    if flask.g.user.username in clients:
+        ret_attrs = dict(copy.deepcopy(clients[flask.g.user.username]))
+        ret_attrs = _set_default_client_allowed_attrs(ret_attrs, attrs)
+        yield ret_attrs
+    else:
+        # Check if group is defined in allowed_clients "groups".
+        clients = conf.allowed_clients.get("groups", {})
+        for group in flask.g.groups:
+            if group in clients:
+                ret_attrs = dict(copy.deepcopy(clients[group]))
                 ret_attrs = _set_default_client_allowed_attrs(ret_attrs, attrs)
                 yield ret_attrs
-        else:
-            # Check if the group is defined in clients, if not, return None
-            for group in flask.g.groups:
-                if group in clients:
-                    ret_attrs = dict(copy.deepcopy(clients[group]))
-                    ret_attrs = _set_default_client_allowed_attrs(ret_attrs, attrs)
-                    yield ret_attrs
 
 
 def _enum_int_to_str_list(enum_dict, val):
@@ -116,7 +114,7 @@ def raise_if_input_not_allowed(**kwargs):
                     % (flask.g.user.username, name, values))
                 continue
 
-            # Conver integers from db format to string list.
+            # Convert integers from db format to string list.
             if name == "source_types":
                 values = INVERSE_PUNGI_SOURCE_TYPE_NAMES[values]
             elif name == "flags":
