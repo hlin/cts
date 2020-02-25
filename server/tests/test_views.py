@@ -105,6 +105,9 @@ class ViewBaseTest(ModelsBaseTest):
                 'composer': {},
                 'dev2': {
                     'source_types': ['module']
+                },
+                'dev3': {
+                    'source_types': ['raw_config']
                 }
             },
             'users': {
@@ -692,7 +695,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'User dev not allowed to operate with compose with source_types=repo')
+            'User dev not allowed to operate with compose with source_types=repo.')
 
     @patch.object(odcs.server.config.Config, 'raw_config_urls',
                   new={"pungi_cfg": "http://localhost/pungi.conf#%s"})
@@ -709,7 +712,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'User dev2 not allowed to operate with compose with compose_types=production')
+            'User dev2 not allowed to operate with compose with compose_types=production.')
 
     def test_submit_build_unknown_source_type(self):
         with self.test_request_context(user='dev'):
@@ -777,7 +780,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'User dev2 not allowed to operate with compose with source_types=tag')
+            'User dev2 not allowed to operate with compose with source_types=tag.')
 
     def test_submit_build_per_group_source_type_allowed(self):
         with self.test_request_context(user="unknown", groups=['dev2', "x"]):
@@ -804,7 +807,7 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(
             data['message'],
-            'User unknown not allowed to operate with compose with source_types=tag')
+            'User unknown not allowed to operate with compose with source_types=tag.')
 
     def test_query_compose(self):
         resp = self.client.get('/api/1/composes/1')
@@ -987,6 +990,38 @@ class TestViews(ViewBaseTest):
         self.assertEqual(resp.status_code, 200)
         c = db.session.query(Compose).filter(Compose.source == 'testmodule:rawhide').one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_can_create_compose_with_user_in_multiple_groups(self):
+        with self.test_request_context(user='another_user', groups=['dev3', 'dev2']):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            resp = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'module', 'source': 'testmodule:rawhide'}}))
+        db.session.expire_all()
+
+        self.assertEqual(resp.status, '200 OK')
+        self.assertEqual(resp.status_code, 200)
+        c = db.session.query(Compose).filter(Compose.source == 'testmodule:rawhide').one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_cannot_create_compose_with_user_in_multiple_groups(self):
+        with self.test_request_context(user='another_user', groups=['dev3', 'dev2']):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            resp = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'testmodule:rawhide'}}))
+            data = json.loads(resp.get_data(as_text=True))
+        db.session.expire_all()
+
+        self.assertEqual(resp.status, '403 FORBIDDEN')
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(
+            data['message'],
+            'User another_user not allowed to operate with compose with source_types=tag.')
 
     def test_can_delete_compose_with_user_in_configured_groups(self):
         c3 = Compose.create(
