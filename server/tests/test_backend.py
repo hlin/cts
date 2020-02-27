@@ -595,8 +595,7 @@ gpgcheck=0
         }
         pulp_rest_post.assert_called_once_with('repositories/search/',
                                                expected_query)
-        symlink.assert_called_once_with(
-            AnyStringWith("/odcs-1-2018-1"), AnyStringWith("/odcs-1"))
+        symlink.assert_not_called()
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
@@ -1034,9 +1033,9 @@ class TestGeneratePungiCompose(ModelsBaseTest):
 
         makedirs.assert_called_once_with(AnyStringWith("/test_composes/production"))
         symlink.assert_has_calls([
-            call('../odcs-1-2018-1',
+            call('../odcs-1',
                  AnyStringWith('/test_composes/production/compose-1-10-2020110.n.0')),
-            call('../odcs-1-2018-1',
+            call('../odcs-1',
                  AnyStringWith('/test_composes/production/latest-compose-1')),
         ])
         unlink.assert_called_with(
@@ -1053,6 +1052,10 @@ class TestValidatePungiCompose(ModelsBaseTest):
             db.session, "me", PungiSourceType.KOJI_TAG, "f26",
             COMPOSE_RESULTS["repository"], 60, packages='pkg1 pkg2 pkg3')
         db.session.commit()
+
+        # Remove any previous toplevel_dir.
+        if os.path.exists(self.c.toplevel_dir):
+            shutil.rmtree(self.c.toplevel_dir)
 
         compose_dir = os.path.join(self.c.toplevel_dir, 'compose')
         metadata_dir = os.path.join(compose_dir, 'metadata')

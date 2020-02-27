@@ -299,8 +299,8 @@ class TestViews(ViewBaseTest):
                          'state_reason': None,
                          'source': u'testmodule:master',
                          'owner': u'dev',
-                         'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
-                         'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
+                         'result_repo': 'http://localhost/odcs/odcs-%d/compose/Temporary' % data['id'],
+                         'result_repofile': 'http://localhost/odcs/odcs-%d/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_started': None,
                          'time_removed': None,
@@ -322,7 +322,8 @@ class TestViews(ViewBaseTest):
                          'label': None,
                          'compose_type': 'test',
                          'pungi_compose_id': None,
-                         'target_dir': 'default'}
+                         'target_dir': 'default',
+                         'toplevel_url': 'http://localhost/odcs/odcs-%d' % data['id']}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -1252,8 +1253,8 @@ class TestViews(ViewBaseTest):
                          'state_reason': None,
                          'source': u'testmodule:master',
                          'owner': u'unknown',
-                         'result_repo': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary' % data['id'],
-                         'result_repofile': 'http://localhost/odcs/latest-odcs-%d-1/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
+                         'result_repo': 'http://localhost/odcs/odcs-%d/compose/Temporary' % data['id'],
+                         'result_repofile': 'http://localhost/odcs/odcs-%d/compose/Temporary/odcs-%d.repo' % (data['id'], data['id']),
                          'time_submitted': data["time_submitted"], 'id': data['id'],
                          'time_started': None,
                          'time_removed': None,
@@ -1275,7 +1276,8 @@ class TestViews(ViewBaseTest):
                          'label': None,
                          'compose_type': 'test',
                          'pungi_compose_id': None,
-                         'target_dir': 'default'}
+                         'target_dir': 'default',
+                         'toplevel_url': 'http://localhost/odcs/odcs-%d' % data['id']}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()

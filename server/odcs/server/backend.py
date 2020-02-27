@@ -704,7 +704,7 @@ def generate_compose_symlink(compose):
     odcs.server.utils.makedirs(symlink_dir)
 
     # Generate the non-latest symlink.
-    compose_dir = os.path.relpath(compose.toplevel_work_dir, symlink_dir)
+    compose_dir = os.path.relpath(compose.toplevel_dir, symlink_dir)
     symlink = os.path.join(symlink_dir, compose.pungi_compose_id)
     log.info("%r: Generating %s symlink.", compose, symlink)
     os.symlink(compose_dir, symlink)
@@ -921,26 +921,6 @@ def generate_compose(compose_id, lost_compose=False):
             compose.transition(COMPOSE_STATES["failed"], state_reason)
 
         compose = Compose.query.filter(Compose.id == compose_id).one()
-
-        # Create `odcs-$COMPOSE_ID` symlink pointing to toplevel_dir (usually
-        # latest-odcs-$COMPOSE_ID-1 directory). This is needed for future
-        # to switch the directory layout - we need to ensure that
-        # `odcs-$COMPOSE_ID` directory exists for all the already generated
-        # composes.
-        # It also makes it easier to access generated compose, because the
-        # `odcs-$COMPOSE_ID` directory name can be predicted easily.
-        try:
-            symlink = os.path.join(compose.target_dir, compose.name)
-            os.symlink(compose.toplevel_dir, symlink)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                # This can happen in case the compose reused another compose. In this
-                # case, the `compose.name` and also the `compose.toplevel_dir` will point
-                # to another compose. We still need to create the symlink even for this old
-                # compose which is reused to ensure it has the `odcs-$COMPOSE_ID` directory.
-                pass
-            else:
-                raise
 
         koji_tag_cache = KojiTagCache(compose)
         koji_tag_cache.cleanup_reused(compose)

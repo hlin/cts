@@ -56,8 +56,8 @@ class TestModels(ModelsBaseTest):
                          'state_reason': None,
                          'source': u'testmodule-master',
                          'owner': u'me',
-                         'result_repo': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary',
-                         'result_repofile': 'http://localhost/odcs/latest-odcs-1-1/compose/Temporary/odcs-1.repo',
+                         'result_repo': 'http://localhost/odcs/odcs-1/compose/Temporary',
+                         'result_repofile': 'http://localhost/odcs/odcs-1/compose/Temporary/odcs-1.repo',
                          'time_submitted': c.json()["time_submitted"], 'id': 1,
                          'time_started': None,
                          'time_removed': None,
@@ -80,7 +80,8 @@ class TestModels(ModelsBaseTest):
                          'compose_type': None,
                          'pungi_compose_id': None,
                          'pungi_config_dump': 'test',
-                         'target_dir': 'default'}
+                         'target_dir': 'default',
+                         'toplevel_url': 'http://localhost/odcs/odcs-1'}
         self.assertEqual(c.json(True), expected_json)
 
     def test_target_dir_none(self):

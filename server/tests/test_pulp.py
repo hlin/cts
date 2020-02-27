@@ -186,7 +186,7 @@ class TestPulp(ModelsBaseTest):
             ret,
             {
                 "foo-1": {
-                    "url": "http://localhost/odcs/latest-odcs-1-1/compose/Temporary/foo-1/$basearch",
+                    "url": "http://localhost/odcs/odcs-1/compose/Temporary/foo-1/$basearch",
                     "arches": set(["x86_64", "ppc64le"]),
                     "sigkeys": ["SIG1", "SIG2"],
                 }

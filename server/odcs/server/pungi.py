@@ -449,22 +449,22 @@ class PungiLogs(object):
         """
         Returns the path to pungi.global.log if it exists.
         """
-        toplevel_work_dir = self.compose.toplevel_work_dir
-        if not toplevel_work_dir:
+        toplevel_dir = self.compose.toplevel_dir
+        if not toplevel_dir:
             return None
         return os.path.join(
-            toplevel_work_dir, "logs", "global", "pungi.global.log")
+            toplevel_dir, "logs", "global", "pungi.global.log")
 
     @property
     def config_dump_path(self):
         """
         Returns path to Pungi config dump.
         """
-        toplevel_work_dir = self.compose.toplevel_work_dir
-        if not toplevel_work_dir:
+        toplevel_dir = self.compose.toplevel_dir
+        if not toplevel_dir:
             return None
         return os.path.join(
-            toplevel_work_dir, "logs", "global", "config-dump.global.log")
+            toplevel_dir, "logs", "global", "config-dump.global.log")
 
     def _get_global_log_errors(self):
         """

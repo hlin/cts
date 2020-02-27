@@ -21,14 +21,12 @@
 #
 # Written by Chenxiong Qi <cqi@redhat.com>
 
-import os
 import unittest
 
 from odcs.server import db
 from sqlalchemy import event
 from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
-from odcs.server import conf
 
 from flask_sqlalchemy import SignallingSession
 from mock import patch
@@ -102,12 +100,6 @@ class ModelsBaseTest(unittest.TestCase):
             event.listen(SignallingSession, 'after_commit',
                          start_to_publish_messages)
 
-        # Make Compose.toplevel_work_dir to work everytime.
-        self.patch_glob = patch("odcs.server.models.glob.glob")
-        self.glob = self.patch_glob.start()
-        self.glob.return_value = [
-            os.path.join(conf.target_dir, "odcs-1-2018-1")]
-
     def tearDown(self):
         if not self.disable_event_handlers:
             event.remove(SignallingSession, 'after_flush',
@@ -125,5 +117,3 @@ class ModelsBaseTest(unittest.TestCase):
                      cache_composes_if_state_changed)
         event.listen(SignallingSession, 'after_commit',
                      start_to_publish_messages)
-
-        self.patch_glob.stop()

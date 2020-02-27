@@ -25,7 +25,6 @@
 """
 
 import os
-import glob
 
 from datetime import datetime, timedelta
 
@@ -269,30 +268,15 @@ class Compose(ODCSBase):
             return "odcs-%d" % self.id
 
     @property
-    def latest_dir(self):
-        return "latest-%s-1" % self.name
-
-    @property
-    def toplevel_work_dir(self):
-        # In case this compose failed, there won't be latest-* directory,
-        # but there might be the odcs-$id-1-$date.n.0 directory.
-        # The issue is that we cannot really know the date, because there is
-        # a race between we start Pungi and when Pungi generates that dir,
-        # so just use `glob` to find out the rigth directory.
-        glob_str = os.path.join(
-            self.target_dir, "odcs-%d-1-*.n.0" % self.id)
-        toplevel_dirs = glob.glob(glob_str)
-        if toplevel_dirs:
-            return toplevel_dirs[0]
-        return None
-
-    @property
     def toplevel_dir(self):
-        if self.state == COMPOSE_STATES["failed"]:
-            toplevel_dir = self.toplevel_work_dir
-            if toplevel_dir:
-                return toplevel_dir
-        return os.path.join(self.target_dir, self.latest_dir)
+        return os.path.join(conf.target_dir, self.name)
+
+    @property
+    def toplevel_url(self):
+        if not self.on_default_target_dir:
+            return ""
+
+        return conf.target_dir_url + "/" + self.name
 
     @property
     def result_repo_dir(self):
@@ -310,17 +294,15 @@ class Compose(ODCSBase):
         if not self.on_default_target_dir:
             return ""
 
-        target_dir_url = conf.target_dir_url
-
-        return target_dir_url + "/" \
-            + os.path.join(self.latest_dir, "compose", "Temporary")
+        return conf.target_dir_url + "/" \
+            + os.path.join(self.name, "compose", "Temporary")
 
     @property
     def result_repofile_path(self):
         """
         Returns path to .repo file.
         """
-        return os.path.join(self.toplevel_dir, "compose", "Temporary",
+        return os.path.join(self.name, "compose", "Temporary",
                             self.name + ".repo")
 
     @property
@@ -331,9 +313,8 @@ class Compose(ODCSBase):
         if not self.on_default_target_dir:
             return ""
 
-        target_dir_url = conf.target_dir_url
-        return target_dir_url + "/" \
-            + os.path.join(self.latest_dir, "compose", "Temporary",
+        return conf.target_dir_url + "/" \
+            + os.path.join(self.name, "compose", "Temporary",
                            self.name + ".repo")
 
     @validates('state')
@@ -381,6 +362,7 @@ class Compose(ODCSBase):
             'removed_by': self.removed_by,
             'result_repo': self.result_repo_url,
             'result_repofile': self.result_repofile_url,
+            'toplevel_url': self.toplevel_url,
             'flags': flags,
             'results': results,
             'sigkeys': self.sigkeys if self.sigkeys else "",
