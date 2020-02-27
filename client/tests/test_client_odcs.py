@@ -23,14 +23,15 @@
 
 import json
 import unittest
+import copy
 
 import mock
-from mock import patch, Mock
+from mock import patch, Mock, MagicMock
 
 from odcs.client.odcs import AuthMech
 from odcs.client.odcs import (
     ODCS, ComposeSourceTag, ComposeSourceModule, ComposeSourcePulp,
-    ComposeSourceRawConfig, ComposeSourceBuild)
+    ComposeSourceRawConfig, ComposeSourceBuild, ComposeLog)
 from odcs.client.odcs import validate_int
 
 
@@ -529,3 +530,67 @@ class TestWaitForCompose(unittest.TestCase):
 
         self.assertEqual(sleep.mock_calls,
                          [mock.call(1), mock.call(2), mock.call(3), mock.call(4)])
+
+    @patch("odcs.client.odcs.ComposeLog.read")
+    def test_wait_for_compose_watch_logs(self, log_read, get_compose, sleep):
+        get_compose.side_effect = [
+            {
+                "state_name": "wait",
+                "toplevel_url": "http://localhost/composes/odcs-1"
+            },
+            {
+                "state_name": "generating",
+                "toplevel_url": "http://localhost/composes/odcs-1"
+            },
+            {
+                "state_name": "done",
+                "toplevel_url": "http://localhost/composes/odcs-1"
+            },
+        ]
+        log_read.side_effect = [None, "line\n"]
+        self.odcs.wait_for_compose(1, watch_logs=True)
+
+        self.assertEqual(sleep.mock_calls,
+                         [mock.call(10)])
+        self.assertEqual(get_compose.mock_calls,
+                         [mock.call(1)] * 3)
+        self.assertEqual(len(log_read.mock_calls), 2)
+
+
+@patch('odcs.client.odcs.requests')
+class TestComposeLog(unittest.TestCase):
+    """Test ODCS.wait_for_compose"""
+
+    def setUp(self):
+        compose = {
+            'toplevel_url': 'http://localhost/composes/odcs-1'
+        }
+        self.compose_log = ComposeLog(compose)
+
+    def test_compose_log_404(self, requests):
+        requests.get.return_value.status_code = 404
+        ret = self.compose_log.read()
+        requests.get.assert_called_once_with(
+            'http://localhost/composes/odcs-1/pungi-stderr.log',
+            headers={'Range': 'bytes=0-'}
+        )
+        self.assertEqual(ret, None)
+
+    def test_compose_log_multiple_calls(self, requests):
+        responses = [
+            MagicMock(status_code=200, text="line\n"),
+            MagicMock(status_code=200, text="another line\n"),
+            MagicMock(status_code=416, text=""),
+            MagicMock(status_code=200, text="another line\n")
+        ]
+        requests.get.side_effect = responses
+        length = 0
+        for m in copy.copy(responses):
+            ret = self.compose_log.read()
+            self.assertEqual(ret, m.text)
+            requests.get.assert_called_once_with(
+                'http://localhost/composes/odcs-1/pungi-stderr.log',
+                headers={'Range': 'bytes=%d-' % length}
+            )
+            requests.get.reset_mock()
+            length += len(ret)

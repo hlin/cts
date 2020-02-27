@@ -21,6 +21,7 @@
 #
 # Written by Chenxiong Qi <cqi@redhat.com>
 
+import os
 import json
 import requests
 import time
@@ -38,6 +39,42 @@ class AuthMech(object):
     @classmethod
     def has(cls, mech):
         return mech in (cls.OpenIDC, cls.Kerberos, cls.Anonymous, cls.SSL)
+
+
+class ComposeLog(object):
+    def __init__(self, compose):
+        """
+        Creates new ComposeLog instance.
+        """
+        self.url = os.path.join(compose["toplevel_url"], "pungi-stderr.log")
+        self.offset = 0
+
+    def read(self):
+        """
+        Reads the Compose log from the ODCS server and returns its content.
+
+        This method can be called repeatedly to get the latest content in
+        the log. Similar to "tail -f log".
+
+        :return str: New log lines or None if log does not exist (yet) on the
+            ODCS server.
+        """
+        headers = {"Range": "bytes=%d-" % self.offset}
+        r = requests.get(self.url, headers=headers)
+
+        # Log does not exists yet on the ODCS server.
+        if r.status_code == 404:
+            return None
+
+        # 416 Range Not Satisfiable - nothing new in log.
+        if r.status_code == 416:
+            return ""
+
+        r.raise_for_status()
+
+        content = r.text
+        self.offset += len(content)
+        return content
 
 
 def validate_int(value, min=1, type_error=None, value_error=None):
@@ -484,7 +521,7 @@ class ODCS(object):
         r = self._get('composes/{0}'.format(compose_id))
         return r.json()
 
-    def wait_for_compose(self, compose_id, timeout=300):
+    def wait_for_compose(self, compose_id, timeout=300, watch_logs=False):
         """
         Polls the ODCS server repeatedly to find out whether the compose
         moved from "wait" or "generating" state to some final state. Blocks
@@ -498,14 +535,26 @@ class ODCS(object):
 
         :param int compose_id: compose ID.
         :param int timeout: Number of seconds to wait/block.
+        :param bool watch_logs: If True, this method prints the compose log to
+            stdout every 10 seconds while waiting for the compose to finish.
         :rtype: dict
         :return: a mapping representing a compose
         """
         elapsed = 0
-        sleep_time = 1
+        if watch_logs:
+            sleep_time = 10
+            compose = self.get_compose(compose_id)
+            log = ComposeLog(compose)
+        else:
+            sleep_time = 1
+            log = None
         start_time = time.time()
         while True:
             compose = self.get_compose(compose_id)
+            if log:
+                data = log.read()
+                if data:
+                    print(data)
             if compose['state_name'] not in ['wait', 'generating']:
                 return compose
 
@@ -520,6 +569,10 @@ class ODCS(object):
             # Increase the sleep time for next try. But do not try sleeping
             # longer than the `timeout`.
             elapsed = time.time() - start_time
-            sleep_time = round(sleep_time * 1.5)
+
+            # Do not increase sleep time in case we are watching logs.
+            if not watch_logs:
+                sleep_time = round(sleep_time * 1.5)
+
             if elapsed + sleep_time > timeout:
                 sleep_time = timeout - elapsed

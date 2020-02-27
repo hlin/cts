@@ -66,6 +66,9 @@ parser.add_argument(
 parser.add_argument(
     '-q', '--quiet', action='store_true',
     help='Run without detailed log messages')
+parser.add_argument(
+    '--watch', action='store_true',
+    help="Watch compose logs")
 
 subparsers = parser.add_subparsers(
     description='These commands you can use to operate composes with ODCS')
@@ -214,6 +217,9 @@ wait_parser.set_defaults(command='wait')
 wait_parser.add_argument(
     'compose_id', default=None,
     help="ODCS compose id")
+wait_parser.add_argument(
+    '--watch', action='store_true',
+    help="Watch compose logs")
 
 
 delete_parser = subparsers.add_parser(
@@ -356,5 +362,9 @@ else:
     if not args.quiet:
         print("Waiting for command %s on compose %d to finish." %
               (args.command, result["id"]))
-    result = client.wait_for_compose(result["id"], 3600)
+    try:
+        result = client.wait_for_compose(result["id"], 3600, watch_logs=args.watch)
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
     print(json.dumps(result, indent=4, sort_keys=True))
