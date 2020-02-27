@@ -42,6 +42,9 @@ from odcs.server.utils import makedirs, clone_repo, copytree
 
 class BasePungiConfig(object):
 
+    def __init__(self):
+        self.pungi_timeout = conf.pungi_timeout
+
     def _write(self, path, cfg):
         """
         Writes configuration string `cfg` to file defined by `path`.
@@ -66,6 +69,7 @@ class BasePungiConfig(object):
 class RawPungiConfig(BasePungiConfig):
 
     def __init__(self, compose_source):
+        super(RawPungiConfig, self).__init__()
         source_name, source_hash = compose_source.split("#")
 
         url_data = copy.deepcopy(conf.raw_config_urls[source_name])
@@ -74,6 +78,7 @@ class RawPungiConfig(BasePungiConfig):
         if "commit" not in url_data:
             url_data["commit"] = source_hash
 
+        self.pungi_timeout = url_data.get("pungi_timeout", conf.pungi_timeout)
         self.pungi_cfg = url_data
         self.pungi_koji_args = conf.raw_config_pungi_koji_args.get(
             source_name, conf.pungi_koji_args)
@@ -146,6 +151,7 @@ class PungiConfig(BasePungiConfig):
                  multilib_arches=None, multilib_method=0, builds=None,
                  flags=0, lookaside_repos=None, modular_koji_tags=None,
                  module_defaults_url=None):
+        super(PungiConfig, self).__init__()
         self.release_name = release_name
         self.release_version = release_version
         self.bootable = False
@@ -440,7 +446,7 @@ class Pungi(object):
             with open(log_out_path, "w") as log_out:
                 with open(log_err_path, "w") as log_err:
                     odcs.server.utils.execute_cmd(
-                        pungi_cmd, cwd=td, timeout=conf.pungi_timeout,
+                        pungi_cmd, cwd=td, timeout=self.pungi_cfg.pungi_timeout,
                         stdout=log_out, stderr=log_err)
         finally:
             try:

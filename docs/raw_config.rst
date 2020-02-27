@@ -88,6 +88,9 @@ defines the ``raw_config`` and can have following keys:
   - ``config_filename`` - Name of the main Pungi configuration file.
   - ``schema_override`` [optional] - If set, defines the path to JSON schema
     override file to be used when validating the main Pungi configuration file.
+  - ``pungi_timeout`` - [optional] - If set, defines the timeout in seconds in
+    which the compose must be finished, otherwise the compose is marked as
+    ``failed``.
 
 
 Enabling ``pungi-config-validate``

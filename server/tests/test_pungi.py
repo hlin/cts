@@ -514,6 +514,26 @@ class TestPungi(ModelsBaseTest):
             stderr=AnyStringWith("pungi-config-validate-stderr.log"),
             stdout=AnyStringWith("pungi-config-validate-stdout.log")))
 
+    @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_raw_config_custom_timeout(self, execute_cmd):
+        fake_raw_config_urls = {
+            'pungi.conf': {
+                "url": "http://localhost/test.git",
+                "config_filename": "pungi.conf",
+                "pungi_timeout": 7200,
+            }
+        }
+        with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+            pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
+            pungi.run(self.compose)
+
+        execute_cmd.assert_called_once_with(
+            ['pungi-koji', AnyStringWith('pungi.conf'),
+             AnyStringWith('--compose-dir='), '--nightly'],
+            cwd=AnyStringWith('/tmp/'), timeout=7200,
+            stderr=AnyStringWith("pungi-stderr.log"),
+            stdout=AnyStringWith("pungi-stdout.log"))
+
 
 class TestPungiLogs(ModelsBaseTest):
 
