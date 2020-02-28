@@ -69,6 +69,131 @@ def validate_per_page(value):
         value_error='per_page must be greater than or equal to 1.')
 
 
+class ComposeSourceGeneric(object):
+    def __init__(self, source, source_type, packages=None, builds=None, sigkeys=None,
+                 koji_event=None, modular_koji_tags=None, module_defaults_url=None,
+                 module_defaults_commit=None, **kwargs):
+        self.source = {'source': source, 'type': source_type}
+        if packages:
+            self.source['packages'] = packages
+        if builds:
+            self.source['builds'] = builds
+        if sigkeys:
+            self.source['sigkeys'] = sigkeys
+        if koji_event:
+            self.source['koji_event'] = koji_event
+        if modular_koji_tags:
+            self.source['modular_koji_tags'] = modular_koji_tags
+        if module_defaults_url:
+            self.source['module_defaults_url'] = module_defaults_url
+        if module_defaults_commit:
+            self.source['module_defaults_commit'] = module_defaults_commit
+        self.source.update(kwargs)
+
+
+class ComposeSourceTag(ComposeSourceGeneric):
+    """
+    Compose source taking Koji tag as input.
+    """
+    def __init__(self, tag, packages=None, builds=None, sigkeys=None,
+                 koji_event=None, modular_koji_tags=None, module_defaults_url=None,
+                 module_defaults_commit=None, **kwargs):
+        """
+        Creates new ComposeSourceTag instance.
+
+        :param str tag: Koji tag to use as a source for compose.
+        :param list packages: List of Koji packages to include in the compose. Note
+            that this is **not** a list of RPM names. If unset, all packages tagged in
+            the Koji ``tag`` will be included in a compose.
+        :param list builds: List of NVRs of Koji builds to be included in the compose
+            on top of the Koji builds directly tagged in the Koji ``tag``. If unset,
+            only Koji builds tagged in the Koji ``tag`` will be used.
+        :param list sigkeys: List of signature keys by which the RPMs in the compose must be
+            signed. Empty string in the list allows unsigned packages.
+        :param int koji_event: Particular Koji event id to generate compose from. If unset,
+            latest Koji event will be used.
+        :param list modular_koji_tags: List of Koji tags containing modules which should also
+            be included in the resulting compose on top of Koji builds tagged in the Koji ``tag``.
+        :param str module_defaults_url: URL of module defaults repository.
+        :param str module_defaults_commit: Commit or branch name defining particular point
+            module defaults repository.
+        """
+        super(ComposeSourceTag, self).__init__(
+            tag, "tag", packages, builds, sigkeys, koji_event, modular_koji_tags,
+            module_defaults_url, module_defaults_commit, **kwargs)
+
+
+class ComposeSourceModule(ComposeSourceGeneric):
+    """
+    Compose source taking list of modules as input.
+    """
+    def __init__(self, modules, sigkeys=None, module_defaults_url=None,
+                 module_defaults_commit=None, **kwargs):
+        """
+        Creates new ComposeSourceModule instance.
+
+        :param list modules: List of modules in N:S, N:S:V or N:S:V:C format.
+        :param list sigkeys: List of signature keys by which the RPMs in the compose must be
+            signed. Empty string in the list allows unsigned packages.
+        :param str module_defaults_url: URL of module defaults repository.
+        :param str module_defaults_commit: Commit or branch name defining particular point
+            module defaults repository.
+        """
+        super(ComposeSourceModule, self).__init__(
+            " ".join(modules), "module", sigkeys=sigkeys,
+            module_defaults_url=module_defaults_url,
+            module_defaults_commit=module_defaults_commit, **kwargs)
+
+
+class ComposeSourcePulp(ComposeSourceGeneric):
+    """
+    Compose source taking list of Pulp content_sets as input.
+    """
+    def __init__(self, content_sets, **kwargs):
+        """
+        Creates new ComposeSourcePulp instance.
+
+        :param list content_sets: List of Pulp content-sets. Repositories defined by these
+            content-sets will be included in the compose.
+        """
+        super(ComposeSourcePulp, self).__init__(
+            " ".join(content_sets), "pulp", **kwargs)
+
+
+class ComposeSourceRawConfig(ComposeSourceGeneric):
+    """
+    Compose source taking raw Pungi configuration file as input.
+    """
+    def __init__(self, config_name, commit, koji_event=None, **kwargs):
+        """
+        Creates new ComposeSourceRawConfig instance.
+
+        :param str config_name: The name of Raw Pungi configuration as configured in ODCS server.
+        :param str commit: The commit hash or branch to get the Pungi configuration from.
+        :param int koji_event: Particular Koji event id to generate compose from. If unset,
+            latest Koji event will be used.
+        """
+        super(ComposeSourceRawConfig, self).__init__(
+            "%s#%s" % (config_name, commit), "raw_config", koji_event=koji_event,
+            **kwargs)
+
+
+class ComposeSourceBuild(ComposeSourceGeneric):
+    """
+    Compose source taking list of Koji builds as input.
+    """
+    def __init__(self, builds, sigkeys=None, **kwargs):
+        """
+        Creates new ComposeSourceModule instance.
+
+        :param list builds: List of NVRs of Koji builds to be included in the compose.
+        :param list sigkeys: List of signature keys by which the RPMs in the compose must be
+            signed. Empty string in the list allows unsigned packages.
+        """
+        super(ComposeSourceBuild, self).__init__(
+            "", "build", builds=builds, sigkeys=sigkeys, **kwargs)
+
+
 class ODCS(object):
     """Client API to interact with ODCS APIs"""
 
@@ -217,6 +342,9 @@ class ODCS(object):
                     lookaside_repos=None, label=None, compose_type=None):
         """Request a new compose
 
+        .. warning::
+            This method is deprecated. Please use ``request_compose`` instead.
+
         :param str source: from where to grab and make new compose, different
             value for different ``source_type``. For ``tag`` source type, name
             of the tag. For ``module`` source type, white-space separated list
@@ -277,6 +405,29 @@ class ODCS(object):
             request_data['arches'] = arches
 
         r = self._post('composes/', request_data)
+        return r.json()
+
+    def request_compose(self, source, **kwargs):
+        """
+        Request new compose.
+
+        **Example**:
+
+        .. sourcecode:: python
+
+            source = ComposeSourceTag("f32-updates", packages="httpd")
+            odcs = ODCS(...)
+            compose = odcs.request_compose(source, arches="x86_64", flags=["nodeps"])
+            odcs.wait_for_compose(compose["id"])
+
+        :param ComposeSourceGeneric source: The source of compose.
+        :param kwargs: Extra arguments passed to "/api/1/composes" POST JSON data.
+        :return: the requested Compose object.
+        :rtype: dict
+        """
+        request_data = {"source": source.source}
+        request_data.update(kwargs)
+        r = self._post("composes/", request_data)
         return r.json()
 
     def renew_compose(self, compose_id, seconds_to_live=None):

@@ -36,7 +36,7 @@ id_provider_config = {
 
 parser = argparse.ArgumentParser(
     description='''\
-%(prog)s - Submit a test compose.
+%(prog)s - Command line client.
 
 If you have problems authenticating with OpenID Connect, try:
 
@@ -44,10 +44,6 @@ If you have problems authenticating with OpenID Connect, try:
 
 Example usage:
 
-  # Assume a Python virtual environment is activated
-  export PYTHONPATH=client
-  %(prog)s --staging --source f26 --source-type tag --flag no_deps \\
-    python-requests python-urllib3
 ''',
     formatter_class=argparse.RawDescriptionHelpFormatter,
 )
@@ -76,7 +72,7 @@ subparsers = parser.add_subparsers(
 
 
 create_parser = subparsers.add_parser(
-    'create', help='create a new compose')
+    'create', help='Low-level command to create a new compose')
 create_parser.set_defaults(command='create')
 create_parser.add_argument(
     'source_type', default=None,
@@ -130,6 +126,123 @@ create_parser.add_argument(
 create_parser.add_argument(
     '--compose-type', default=None,
     help="Compose type for raw_config compose.")
+
+create_tag_parser = subparsers.add_parser(
+    'create-tag', help='Create new compose from Koji tag.')
+create_tag_parser.set_defaults(command='create-tag')
+create_tag_parser.add_argument(
+    'tag', default="",
+    help="Koji tag name.")
+create_tag_parser.add_argument(
+    '--flag', default=[], action='append',
+    help="Flag to pass to influence the compose.")
+create_tag_parser.add_argument(
+    '--sigkey', default=[], action='append',
+    help="Signing key ID using which the packages must be signed - "
+    "\none\" for no signing key.")
+create_tag_parser.add_argument(
+    '--koji-event', default=None,
+    help="Koji event for populating package set")
+create_tag_parser.add_argument(
+    '--arch', default=[], action='append',
+    help="Koji arch to build the compose for.")
+create_tag_parser.add_argument(
+    'packages', metavar='package', nargs='*',
+    help='Koji packages to be included in the compose.')
+create_tag_parser.add_argument(
+    '--build', default=[], action='append',
+    help='Builds to be included in the compose.')
+create_tag_parser.add_argument(
+    '--module-defaults-url', default="",
+    metavar='module_defaults_url',
+    help="URL to git repository with module defaults.")
+create_tag_parser.add_argument(
+    '--module-defaults-commit', default="",
+    metavar='module_defaults_commit',
+    help="Git commit/branch from which to take the module defaults.")
+create_tag_parser.add_argument(
+    '--modular-tag', default=[], action='append',
+    metavar="modular_koji_tags",
+    help="Koji tag with module builds.")
+create_tag_parser.add_argument(
+    '--lookaside-repo', default=[], action='append',
+    metavar="lookaside_repos",
+    help="Koji tag with module builds.")
+
+create_module_parser = subparsers.add_parser(
+    'create-module', help='Create new compose from modules.')
+create_module_parser.set_defaults(command='create-module')
+create_module_parser.add_argument(
+    '--flag', default=[], action='append',
+    help="Flag to pass to influence the compose.")
+create_module_parser.add_argument(
+    '--sigkey', default=[], action='append',
+    help="Signing key ID using which the packages must be signed - "
+    "\none\" for no signing key.")
+create_module_parser.add_argument(
+    '--arch', default=[], action='append',
+    help="Koji arch to build the compose for.")
+create_module_parser.add_argument(
+    'modules', metavar='nsvc', nargs='+',
+    help='Modules to be included in the compose.')
+create_module_parser.add_argument(
+    '--module-defaults-url', default="",
+    metavar='module_defaults_url',
+    help="URL to git repository with module defaults.")
+create_module_parser.add_argument(
+    '--module-defaults-commit', default="",
+    metavar='module_defaults_commit',
+    help="Git commit/branch from which to take the module defaults.")
+create_module_parser.add_argument(
+    '--lookaside-repo', default=[], action='append',
+    metavar="lookaside_repos",
+    help="Koji tag with module builds.")
+
+create_pulp_parser = subparsers.add_parser(
+    'create-pulp', help='Create new compose from Pulp content_sets.')
+create_pulp_parser.set_defaults(command='create-pulp')
+create_pulp_parser.add_argument(
+    '--flag', default=[], action='append',
+    help="Flag to pass to influence the compose.")
+create_pulp_parser.add_argument(
+    'content_sets', metavar='content_set', nargs='+',
+    help='Content sets to be included in the compose.')
+
+create_raw_config_parser = subparsers.add_parser(
+    'create-raw-config', help='Create new compose from Pungi raw configuration.')
+create_raw_config_parser.set_defaults(command='create-raw-config')
+create_raw_config_parser.add_argument(
+    'raw_config_name',
+    help='Name of raw_config compose as defined in ODCS Server.')
+create_raw_config_parser.add_argument(
+    'raw_config_commit',
+    help='Commit or branch name to get raw_config from.')
+create_raw_config_parser.add_argument(
+    '--flag', default=[], action='append',
+    help="Flag to pass to influence the compose.")
+create_raw_config_parser.add_argument(
+    '--label', default=None,
+    help="Label for raw_config compose.")
+create_raw_config_parser.add_argument(
+    '--compose-type', default=None,
+    help="Compose type for raw_config compose.")
+create_raw_config_parser.add_argument(
+    '--koji-event', default=None,
+    help="Koji event for populating package set")
+
+create_build_parser = subparsers.add_parser(
+    'create-build', help='Create new compose from Koji builds.')
+create_build_parser.set_defaults(command='create-build')
+create_build_parser.add_argument(
+    '--flag', default=[], action='append',
+    help="Flag to pass to influence the compose.")
+create_build_parser.add_argument(
+    'builds', metavar='NVR', nargs='+',
+    help='Koji builds NVRs.')
+create_build_parser.add_argument(
+    '--sigkey', default=[], action='append',
+    help="Signing key ID using which the packages must be signed - "
+    "\none\" for no signing key.")
 
 wait_parser = subparsers.add_parser(
     'wait', help='wait for a compose to finish')
@@ -207,9 +320,22 @@ else:
         odcs_url,
         auth_mech=odcs.client.odcs.AuthMech.Kerberos,
     )
+
+request_args = {}
+if getattr(args, "flag", False):
+    request_args["flags"] = args.flag
+if getattr(args, "arch", False):
+    request_args["arches"] = args.arch
+if getattr(args, "lookaside_repo", False):
+    request_args["lookaside_repos"] = args.lookaside_repo
+if getattr(args, "label", False):
+    request_args["label"] = args.label
+if getattr(args, "compose_type", False):
+    request_args["compose_type"] = args.compose_type
+
 try:
+    args.sigkey = [key.replace('none', '') for key in getattr(args, "sigkey", [])]
     if args.command == "create":
-        args.sigkey = [key.replace('none', '') for key in args.sigkey]
         result = client.new_compose(
             source=args.source,
             source_type=args.source_type,
@@ -217,16 +343,32 @@ try:
             results=args.result,
             sigkeys=args.sigkey,
             koji_event=args.koji_event,
-            flags=args.flag,
-            arches=args.arch,
             builds=args.builds,
             modular_koji_tags=args.modular_tag,
             module_defaults_url=args.module_defaults_url,
             module_defaults_commit=args.module_defaults_commit,
-            lookaside_repos=args.lookaside_repo,
-            label=args.label,
-            compose_type=args.compose_type
+            **request_args
         )
+    elif args.command == "create-tag":
+        source = odcs.client.odcs.ComposeSourceTag(
+            args.tag, args.packages, args.build, args.sigkey, args.koji_event,
+            args.modular_tag, args.module_defaults_url, args.module_defaults_commit)
+        result = client.request_compose(source, **request_args)
+    elif args.command == "create-module":
+        source = odcs.client.odcs.ComposeSourceModule(
+            args.modules, args.sigkey, args.module_defaults_url, args.module_defaults_commit)
+        result = client.request_compose(source, **request_args)
+    elif args.command == "create-pulp":
+        source = odcs.client.odcs.ComposeSourcePulp(args.content_sets)
+        result = client.request_compose(source, **request_args)
+    elif args.command == "create-raw-config":
+        source = odcs.client.odcs.ComposeSourceRawConfig(
+            args.raw_config_name, args.raw_config_commit, args.koji_event)
+        result = client.request_compose(source, **request_args)
+    elif args.command == "create-build":
+        source = odcs.client.odcs.ComposeSourceBuild(
+            args.builds, args.sigkey)
+        result = client.request_compose(source, **request_args)
     elif args.command == "wait":
         result = {"id": int(args.compose_id)}
     elif args.command == "delete":

@@ -192,6 +192,9 @@ issuetracker = None
 issuetracker_url = 'https://pagure.io/'
 issuetracker_project = 'odcs'
 
+# To show __init__ in automodule docs.
+autoclass_content = 'both'
+
 # Until Pagure support is merged: https://github.com/ignatenkobrain/sphinxcontrib-issuetracker/pull/15
 import requests  # noqa
 from sphinxcontrib.issuetracker import Issue  # noqa
