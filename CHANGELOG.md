@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.39
+  - Release date: TBD
+  - The `seconds-to-live` API argument has been renamed to `seconds_to_live`
+    to make the API consistent. The `seconds-to-live` name is still supported,
+    but it is not mentioned in documentation anymore.
+
 ## 0.2.38
   - Release date: 2020-02-20
   - Use correct ComposeInfo for raw configs

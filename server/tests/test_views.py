@@ -1064,29 +1064,32 @@ class TestViews(ViewBaseTest):
     @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
     @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)
     def test_use_seconds_to_live_in_request(self, mock_seconds_to_live, mock_max_seconds_to_live):
-        # if we have 'seconds-to-live' in request < conf.max_seconds_to_live
-        # the value from request will be used
-        mock_seconds_to_live.return_value = 60 * 60 * 24
-        mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
+        # Test that seconds-to-live is still supported to keep backward compatibility.
+        for seconds_to_live in ["seconds-to-live", "seconds_to_live"]:
+            # if we have 'seconds_to_live' in request < conf.max_seconds_to_live
+            # the value from request will be used
+            mock_seconds_to_live.return_value = 60 * 60 * 24
+            mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
 
-        with self.test_request_context(user='dev'):
-            flask.g.oidc_scopes = [
-                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
-            ]
+            with self.test_request_context(user='dev'):
+                flask.g.oidc_scopes = [
+                    '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+                ]
 
-            rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule:master'}, 'seconds-to-live': 60 * 60 * 12}))
-            data = json.loads(rv.get_data(as_text=True))
+                rv = self.client.post('/api/1/composes/', data=json.dumps(
+                    {'source': {'type': 'module', 'source': 'testmodule:master'},
+                     'seconds_to_live': 60 * 60 * 12}))
+                data = json.loads(rv.get_data(as_text=True))
 
-        time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
-        time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
-        delta = timedelta(hours=12)
-        self.assertEqual(time_to_expire - time_submitted, delta)
+            time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
+            time_to_expire = datetime.strptime(data['time_to_expire'], "%Y-%m-%dT%H:%M:%SZ")
+            delta = timedelta(hours=12)
+            self.assertEqual(time_to_expire - time_submitted, delta)
 
     @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
     @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)
     def test_use_max_seconds_to_live_in_conf(self, mock_seconds_to_live, mock_max_seconds_to_live):
-        # if we have 'seconds-to-live' in request > conf.max_seconds_to_live
+        # if we have 'seconds_to_live' in request > conf.max_seconds_to_live
         # conf.max_seconds_to_live will be used
         mock_seconds_to_live.return_value = 60 * 60 * 24
         mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
@@ -1097,7 +1100,7 @@ class TestViews(ViewBaseTest):
             ]
 
             rv = self.client.post('/api/1/composes/', data=json.dumps(
-                {'source': {'type': 'module', 'source': 'testmodule:master'}, 'seconds-to-live': 60 * 60 * 24 * 7}))
+                {'source': {'type': 'module', 'source': 'testmodule:master'}, 'seconds_to_live': 60 * 60 * 24 * 7}))
             data = json.loads(rv.get_data(as_text=True))
 
         time_submitted = datetime.strptime(data['time_submitted'], "%Y-%m-%dT%H:%M:%SZ")
@@ -1108,7 +1111,7 @@ class TestViews(ViewBaseTest):
     @patch.object(odcs.server.config.Config, 'max_seconds_to_live', new_callable=PropertyMock)
     @patch.object(odcs.server.config.Config, 'seconds_to_live', new_callable=PropertyMock)
     def test_use_seconds_to_live_in_conf(self, mock_seconds_to_live, mock_max_seconds_to_live):
-        # if we don't have 'seconds-to-live' in request, conf.seconds_to_live will be used
+        # if we don't have 'seconds_to_live' in request, conf.seconds_to_live will be used
         mock_seconds_to_live.return_value = 60 * 60 * 24
         mock_max_seconds_to_live.return_value = 60 * 60 * 24 * 3
 
@@ -1214,7 +1217,7 @@ class TestExtendExpiration(ViewBaseTest):
     @patch.object(conf, 'auth_backend', new='noauth')
     def test_bad_request_if_seconds_to_live_is_invalid(self):
         post_data = json.dumps({
-            'seconds-to-live': '600s'
+            'seconds_to_live': '600s'
         })
         with self.test_request_context():
             rv = self.client.patch('/api/1/composes/{0}'.format(self.c1.id),
@@ -1223,7 +1226,7 @@ class TestExtendExpiration(ViewBaseTest):
 
             self.assertEqual(400, data['status'])
             self.assertEqual('Bad Request', data['error'])
-            self.assertIn('Invalid seconds-to-live specified in request',
+            self.assertIn('Invalid seconds_to_live specified in request',
                           data['message'])
 
     @patch.object(conf, 'auth_backend', new='noauth')
@@ -1240,7 +1243,7 @@ class TestExtendExpiration(ViewBaseTest):
     @patch.object(conf, 'oidc_base_namespace', new='http://example.com/')
     def test_fail_if_extend_non_existing_compose(self):
         post_data = json.dumps({
-            'seconds-to-live': 600
+            'seconds_to_live': 600
         })
         with self.test_request_context():
             flask.g.oidc_scopes = ['http://example.com/new-compose',
@@ -1256,7 +1259,7 @@ class TestExtendExpiration(ViewBaseTest):
         db.session.commit()
 
         post_data = json.dumps({
-            'seconds-to-live': 600
+            'seconds_to_live': 600
         })
         with self.test_request_context():
             flask.g.oidc_scopes = [
@@ -1281,7 +1284,7 @@ class TestExtendExpiration(ViewBaseTest):
         expected_time_to_expire = fake_utcnow + timedelta(
             seconds=expected_seconds_to_live)
         post_data = json.dumps({
-            'seconds-to-live': expected_seconds_to_live
+            'seconds_to_live': expected_seconds_to_live
         })
 
         with self.test_request_context():

@@ -101,12 +101,15 @@ class ODCSAPI(MethodView):
             return g.user.username
 
     def _get_seconds_to_live(self, request_data):
-        if "seconds-to-live" in request_data:
+        seconds_to_live = request_data.get("seconds_to_live")
+        # Fallback to old name of this variable to keep backward compatibility.
+        if seconds_to_live is None:
+            seconds_to_live = request_data.get("seconds-to-live")
+        if seconds_to_live:
             try:
-                return min(int(request_data['seconds-to-live']),
-                           conf.max_seconds_to_live)
+                return min(int(seconds_to_live), conf.max_seconds_to_live)
             except ValueError:
-                err = 'Invalid seconds-to-live specified in request: %s' % \
+                err = 'Invalid seconds_to_live specified in request: %s' % \
                     request_data
                 log.error(err)
                 raise ValueError(err)
@@ -162,7 +165,7 @@ class ODCSAPI(MethodView):
         """ Extends the compose expiration time or regenerates expired compose.
 
         :query number id: :ref:`ID<id>` of the compose to update/regenerate.
-        :jsonparam number seconds-to-live: Number of seconds before the compoose expires.
+        :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
 
         :statuscode 200: Compose updated and returned.
         :statuscode 401: User is unathorized.
@@ -243,7 +246,7 @@ class ODCSAPI(MethodView):
     def post(self):
         """ Creates new ODCS compose request.
 
-        :jsonparam number seconds-to-live: Number of seconds before the compoose expires.
+        :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
         :jsonparam list flags: List of :ref:`compose flags<flags>` defined as strings.
         :jsonparam list arches: List of :ref:`arches<arches>` the compose should be generated for.
         :jsonparam list multilib_arches: List of :ref:`multilib arches<multilib_arches>`.
@@ -257,7 +260,7 @@ class ODCSAPI(MethodView):
         :jsonparam list source["packages"]: List defining the :ref:`packages<packages>`.
         :jsonparam list source["builds"]: List defining the :ref:`builds<builds>`.
         :jsonparam list source["sigkeys"]: List defining the :ref:`sigkeys<sigkeys>`.
-        :jsonparam list source["koji_event"]: List defining the :ref:`sigkeys<sigkeys>`.
+        :jsonparam list source["koji_event"]: Number defining the :ref:`koji_event<koji_event>`.
         :jsonparam list source["modular_koji_tags"]: List defining the :ref:`modular_koji_tags<modular_koji_tags>`.
 
         :statuscode 200: Compose request created and returned.
