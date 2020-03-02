@@ -28,7 +28,9 @@ import mock
 from mock import patch, Mock
 
 from odcs.client.odcs import AuthMech
-from odcs.client.odcs import ODCS
+from odcs.client.odcs import (
+    ODCS, ComposeSourceTag, ComposeSourceModule, ComposeSourcePulp,
+    ComposeSourceRawConfig, ComposeSourceBuild)
 from odcs.client.odcs import validate_int
 
 
@@ -223,6 +225,7 @@ class TestDeleteCompose(unittest.TestCase):
             self.odcs._make_endpoint('composes/1'))
 
 
+@patch('odcs.client.odcs.requests')
 class TestNewCompose(unittest.TestCase):
     """Test ODCS.new_compose"""
 
@@ -230,7 +233,6 @@ class TestNewCompose(unittest.TestCase):
         self.server_url = 'http://localhost/'
         self.odcs = ODCS(self.server_url)
 
-    @patch('odcs.client.odcs.requests')
     def test_create_a_new_compose(self, requests):
         fake_new_compose = {
             'flags': [],
@@ -267,6 +269,67 @@ class TestNewCompose(unittest.TestCase):
                            'sigkeys': ['123', '456'],
                            'koji_event': 123456},
                 'results': ['boot.iso'],
+            }),
+            headers={'Content-Type': 'application/json'}
+        )
+
+    def test_request_compose_source_tag(self, requests):
+        source = ComposeSourceTag("f32")
+        self.odcs.request_compose(source)
+        requests.post.assert_called_once_with(
+            self.odcs._make_endpoint('composes/'),
+            data=json.dumps({
+                'source': {'source': 'f32',
+                           'type': 'tag'},
+            }),
+            headers={'Content-Type': 'application/json'}
+        )
+
+    def test_request_compose_source_module(self, requests):
+        source = ComposeSourceModule(["testmodule:master", "foo:bar"])
+        self.odcs.request_compose(source)
+        requests.post.assert_called_once_with(
+            self.odcs._make_endpoint('composes/'),
+            data=json.dumps({
+                'source': {'source': 'testmodule:master foo:bar',
+                           'type': 'module'},
+            }),
+            headers={'Content-Type': 'application/json'}
+        )
+
+    def test_request_compose_source_pulp(self, requests):
+        source = ComposeSourcePulp(["content-set1", "content-set2"])
+        self.odcs.request_compose(source)
+        requests.post.assert_called_once_with(
+            self.odcs._make_endpoint('composes/'),
+            data=json.dumps({
+                'source': {'source': 'content-set1 content-set2',
+                           'type': 'pulp'},
+            }),
+            headers={'Content-Type': 'application/json'}
+        )
+
+    def test_request_compose_source_raw_config(self, requests):
+        source = ComposeSourceRawConfig("name", "commit")
+        self.odcs.request_compose(source)
+        requests.post.assert_called_once_with(
+            self.odcs._make_endpoint('composes/'),
+            data=json.dumps({
+                'source': {'source': 'name#commit',
+                           'type': 'raw_config'},
+            }),
+            headers={'Content-Type': 'application/json'}
+        )
+
+    def test_request_compose_source_build(self, requests):
+        source = ComposeSourceBuild(["foo-1-1", "bar-1-1"])
+        self.odcs.request_compose(source)
+        requests.post.assert_called_once_with(
+            self.odcs._make_endpoint('composes/'),
+            data=json.dumps({
+                'source': {'source': '',
+                           'type': 'build',
+                           'builds': ['foo-1-1', 'bar-1-1']},
             }),
             headers={'Content-Type': 'application/json'}
         )
