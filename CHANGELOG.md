@@ -3,10 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 ## 0.2.39
-  - Release date: TBD
+  - Release date: 2020-03-04
   - The `seconds-to-live` API argument has been renamed to `seconds_to_live`
     to make the API consistent. The `seconds-to-live` name is still supported,
     but it is not mentioned in documentation anymore.
+  - Show URLs to error logs in state_reason in case compose fails.
+  - Fix checking of compose input if user is in multiple groups with
+    different permissions.
+  - Allow setting pungi_timeout per raw_config.
+  - Introduce new odcs.client.odcs.ODCS.request_compose method to make
+    requests easier.
 
 ## 0.2.38
   - Release date: 2020-02-20
