@@ -439,9 +439,13 @@ class ODCSAPI(MethodView):
 
         if CELERY_AVAILABLE and conf.celery_broker_url:
             if source_type == PungiSourceType.PULP:
-                generate_pulp_compose.delay(compose.id)
+                result = generate_pulp_compose.delay(compose.id)
             else:
-                generate_pungi_compose.delay(compose.id)
+                result = generate_pungi_compose.delay(compose.id)
+
+            compose.celery_task_id = result.id
+            db.session.add(compose)
+            db.session.commit()
 
         return jsonify(compose.json()), 200
 

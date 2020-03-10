@@ -157,6 +157,8 @@ class Compose(ODCSBase):
     pungi_compose_id = db.Column(db.String, nullable=True)
     # Full Pungi configuration dump, used only for raw_config source type.
     pungi_config_dump = db.Column(db.String, nullable=True)
+    # UUID of the celery task.
+    celery_task_id = db.Column(db.String, nullable=True)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
@@ -227,6 +229,8 @@ class Compose(ODCSBase):
             # Set pungi_compose_id to None, because it is regenerated once
             # this copied Compose is started.
             pungi_compose_id=None,
+            # Also reset celery task_id
+            celery_task_id=None,
         )
         session.add(compose)
         return compose

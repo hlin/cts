@@ -117,7 +117,7 @@ class TestModels(ModelsBaseTest):
             if c.name in ["id", "state", "state_reason", "time_to_expire",
                           "time_done", "time_submitted", "time_removed",
                           "removed_by", "reused_id", "koji_task_id",
-                          "time_started", "pungi_compose_id"]:
+                          "time_started", "pungi_compose_id", "celery_task_id"]:
                 assertMethod = self.assertNotEqual
             else:
                 assertMethod = self.assertEqual
