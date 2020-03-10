@@ -798,6 +798,12 @@ def generate_pungi_compose(compose):
             koji_tag_cache.reuse_cached(compose)
             old_compose = koji_tag_cache.cache_dir
 
+        # For Raw config composes, ODCS generates symlinks named according
+        # to Pungi COMPOSE_ID. We can use directory with these symlinks to
+        # find out previous old compose.
+        if compose.source_type == PungiSourceType.RAW_CONFIG:
+            old_compose = os.path.join(conf.target_dir, compose.compose_type)
+
         pungi = Pungi(compose.id, pungi_cfg, koji_event, old_compose)
         pungi.run(compose)
 

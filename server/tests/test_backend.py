@@ -886,9 +886,11 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         # Mocked method to store Pungi.pungi_cfg to self.pungi_cfg, so we can
         # run asserts against it.
         self.pungi_config = None
+        self.old_compose = None
 
         def fake_pungi_run(pungi_cls, compose):
             self.pungi_config = pungi_cls.pungi_cfg
+            self.old_compose = pungi_cls.old_compose
 
         self.patch_pungi_run = patch("odcs.server.pungi.Pungi.run", autospec=True)
         self.pungi_run = self.patch_pungi_run.start()
@@ -1019,6 +1021,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
             'config_filename': 'pungi.conf',
             'commit': 'hash'
         })
+        self.assertEqual(self.old_compose, AnyStringWith("/test_composes/production"))
 
         makedirs.assert_called_once_with(AnyStringWith("/test_composes/production"))
         symlink.assert_has_calls([
