@@ -30,7 +30,7 @@ import flask
 
 from werkzeug.exceptions import BadRequest
 from freezegun import freeze_time
-from mock import patch, PropertyMock
+from mock import patch, PropertyMock, call
 
 import odcs.server.auth
 
@@ -913,7 +913,7 @@ class TestViews(ViewBaseTest):
 
     def test_delete_not_allowed_states_compose(self):
         for state in COMPOSE_STATES.keys():
-            if state not in ['done', 'failed']:
+            if state not in ['wait', 'done', 'failed']:
                 new_c = Compose.create(
                     db.session, "unknown", PungiSourceType.MODULE, "testmodule:master",
                     COMPOSE_RESULTS["repository"], 60)
@@ -951,6 +951,9 @@ class TestViews(ViewBaseTest):
         self.assertEqual(data['error'], 'Not Found')
 
     def test_delete_compose_with_non_admin_user(self):
+        self.c1.state = COMPOSE_STATES["failed"]
+        db.session.commit()
+
         with self.test_request_context(user='dev'):
             flask.g.oidc_scopes = [
                 '{0}{1}'.format(conf.oidc_base_namespace, 'delete-compose')
@@ -1441,3 +1444,58 @@ class TestViewsRawConfig(ViewBaseTest):
         self.assertEqual(c.source, 'pungi_cfg#hash')
         self.assertEqual(c.label, 'Beta-1.2')
         self.assertEqual(c.compose_type, 'nightly')
+
+
+class TestViewsCancelCompose(ViewBaseTest):
+    maxDiff = None
+
+    def setup_test_data(self):
+        self.initial_datetime = datetime(
+            year=2016, month=1, day=1, hour=0, minute=0, second=0
+        )
+        with freeze_time(self.initial_datetime):
+            self.c1 = Compose.create(
+                db.session, "dev2", PungiSourceType.MODULE, "testmodule:master",
+                COMPOSE_RESULTS["repository"], 60)
+            db.session.commit()
+            self.task_id = "71267f28-5194-4720-b57b-a665fabdb012"
+            self.c1.celery_task_id = self.task_id
+            db.session.commit()
+            self.c1_id = self.c1.id
+
+    @patch("odcs.server.views.CELERY_AVAILABLE", new=False)
+    def test_no_celery(self):
+        with self.test_request_context(user='dev2'):
+            resp = self.client.delete("/api/1/composes/%s" % self.c1.id)
+        # Without celery we can't cancel, so the code should try to delete the
+        # compose and fail on user not being an admin.
+        self.assertEqual(resp.status_code, 403)
+        data = json.loads(resp.get_data(as_text=True))
+        self.assertEqual(data["status"], 403)
+        self.assertEqual(data["message"], "User dev2 is not in role admins.")
+
+    def test_bad_owner(self):
+        with self.test_request_context(user='dev1'):
+            resp = self.client.delete("/api/1/composes/%s" % self.c1.id)
+        self.assertEqual(resp.status_code, 403)
+        data = json.loads(resp.get_data(as_text=True))
+        self.assertEqual(data["status"], 403)
+        self.assertEqual(
+            data["message"],
+            "Compose (id=%s) can not be canceled, it's owned by someone else.",
+        )
+
+    @patch("odcs.server.views.celery_app")
+    def test_cancel(self, app):
+        with self.test_request_context(user='dev2'):
+            resp = self.client.delete("/api/1/composes/%s" % self.c1_id)
+        self.assertEqual(resp.status_code, 202)
+        self.assertEqual(app.mock_calls, [call.control.revoke(self.task_id)])
+        data = json.loads(resp.get_data(as_text=True))
+        self.assertEqual(data["status"], 202)
+        self.assertEqual(
+            data["message"], "Compose (id=%s) has been canceled" % self.c1_id
+        )
+        c1 = db.session.query(Compose).filter(Compose.id == self.c1_id).first()
+        self.assertEqual(c1.state, COMPOSE_STATES["failed"])
+        self.assertEqual(c1.state_reason, "Canceled by dev2")

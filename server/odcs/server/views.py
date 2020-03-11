@@ -28,7 +28,7 @@ from flask import request, jsonify, g
 from werkzeug.exceptions import BadRequest
 
 from odcs.server import app, db, log, conf, version
-from odcs.server.errors import NotFound
+from odcs.server.errors import NotFound, Forbidden
 from odcs.server.models import Compose
 from odcs.common.types import (
     COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES,
@@ -36,12 +36,12 @@ from odcs.common.types import (
 from odcs.server.api_utils import (
     pagination_metadata, filter_composes, validate_json_data,
     raise_if_input_not_allowed)
-from odcs.server.auth import requires_role, login_required
+from odcs.server.auth import requires_role, login_required, has_role
 from odcs.server.auth import require_scopes
 
 try:
     from odcs.server.celery_tasks import (
-        generate_pulp_compose, generate_pungi_compose)
+        celery_app, generate_pulp_compose, generate_pungi_compose)
     CELERY_AVAILABLE = True
 except ImportError:
     log.exception(
@@ -451,41 +451,71 @@ class ODCSAPI(MethodView):
 
     @login_required
     @require_scopes('delete-compose')
-    @requires_role('admins')
     def delete(self, id):
-        """ Marks compose as expired to be removed later from ODCS storage.
-        The compose metadata are still stored in the ODCS database, only the
-        composed files stored in ODCS storage are removed.
+        """Cancels waiting compose or marks finished compose as expired to be
+        removed later from ODCS storage. The compose metadata are still stored
+        in the ODCS database, only the composed files stored in ODCS storage
+        are removed.
+
+        Users are allowed to cancel their own composes. Deleting is limited to
+        admins. Admins can also cancel any compose.
 
         :query number id: :ref:`ID<id>` of the compose to delete.
 
-        :statuscode 200: Compose updated and returned.
-        :statuscode 400: Compose is not in done or failed :ref:`state<state>`.
+        :statuscode 202: Compose updated and returned.
+        :statuscode 400: Compose is not in wait, done or failed :ref:`state<state>`.
         :statuscode 401: User is unathorized.
+        :statuscode 402: User doesn't own the compose to be cancelled or is not admin
         :statuscode 404: Compose not found.
         """
         compose = Compose.query.filter_by(id=id).first()
-        if compose:
-            # can remove compose that is in state of 'done' or 'failed'
-            deletable_states = {n: COMPOSE_STATES[n] for n in ['done', 'failed']}
-            if compose.state not in deletable_states.values():
-                raise BadRequest('Compose (id=%s) can not be removed, its state need to be in %s.' %
-                                 (id, deletable_states.keys()))
+        if not compose:
+            raise NotFound('No such compose found.')
 
-            # change compose.time_to_expire to now, so backend will
-            # delete this compose as it's an expired compose now
-            compose.time_to_expire = datetime.datetime.utcnow()
-            compose.removed_by = g.user.username
-            db.session.add(compose)
-            db.session.commit()
-            message = ("The delete request for compose (id=%s) has been accepted and will be"
-                       " processed by backend later." % compose.id)
-            response = jsonify({'status': 202,
-                                'message': message})
+        is_admin = has_role("admins")
+
+        # First try to cancel the compose
+        if CELERY_AVAILABLE and compose.state == COMPOSE_STATES["wait"]:
+            if not is_admin and compose.owner != g.user.username:
+                raise Forbidden(
+                    "Compose (id=%s) can not be canceled, it's owned by someone else."
+                )
+
+            # Revoke the task
+            if compose.celery_task_id:
+                celery_app.control.revoke(compose.celery_task_id)
+            # Change compose status to failed
+            compose.transition(
+                COMPOSE_STATES["failed"], "Canceled by %s" % g.user.username
+            )
+            message = "Compose (id=%s) has been canceled" % id
+            response = jsonify({"status": 202, "message": message})
             response.status_code = 202
             return response
-        else:
-            raise NotFound('No such compose found.')
+
+        # Compose was not eligible for cancellation, try to delete it instead.
+        # Only admins can do this.
+        if not is_admin:
+            raise Forbidden("User %s is not in role admins." % g.user.username)
+
+        # can remove compose that is in state of 'done' or 'failed'
+        deletable_states = {n: COMPOSE_STATES[n] for n in ['done', 'failed']}
+        if compose.state not in deletable_states.values():
+            raise BadRequest('Compose (id=%s) can not be removed, its state need to be in %s.' %
+                             (id, deletable_states.keys()))
+
+        # change compose.time_to_expire to now, so backend will
+        # delete this compose as it's an expired compose now
+        compose.time_to_expire = datetime.datetime.utcnow()
+        compose.removed_by = g.user.username
+        db.session.add(compose)
+        db.session.commit()
+        message = ("The delete request for compose (id=%s) has been accepted and will be"
+                   " processed by backend later." % compose.id)
+        response = jsonify({'status': 202,
+                            'message': message})
+        response.status_code = 202
+        return response
 
 
 class AboutAPI(MethodView):

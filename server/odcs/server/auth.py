@@ -249,6 +249,30 @@ def init_auth(login_manager, backend):
         raise ValueError('Unknown backend name {0}.'.format(backend))
 
 
+def has_role(role):
+    """Check if current user has given role. With noauth all users have all
+    roles.
+
+    :returns: bool
+    """
+    if conf.auth_backend == 'noauth':
+        return True
+
+    groups = []
+    for group in getattr(conf, role).get('groups', []):
+        groups.append(group)
+
+    users = []
+    for user in getattr(conf, role).get('users', []):
+        users.append(user)
+
+    in_groups = bool(set(flask.g.groups) & set(groups))
+    in_users = flask.g.user.username in users
+    if in_groups or in_users:
+        return True
+    return False
+
+
 def requires_role(role):
     """Check if user is in the configured role.
 
@@ -261,21 +285,9 @@ def requires_role(role):
     def wrapper(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            if conf.auth_backend == 'noauth':
+            if has_role(role):
                 return f(*args, **kwargs)
 
-            groups = []
-            for group in getattr(conf, role).get('groups', []):
-                groups.append(group)
-
-            users = []
-            for user in getattr(conf, role).get('users', []):
-                users.append(user)
-
-            in_groups = bool(set(flask.g.groups) & set(groups))
-            in_users = flask.g.user.username in users
-            if in_groups or in_users:
-                return f(*args, **kwargs)
             msg = "User %s is not in role %s." % (flask.g.user.username, role)
             log.error(msg)
             raise Forbidden(msg)
