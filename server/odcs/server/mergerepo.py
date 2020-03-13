@@ -145,7 +145,7 @@ class MergeRepo(object):
         # Generate the pulp_repo_cache structure and locks for each repo.
         for repo in repos:
             repo_path = os.path.join(
-                conf.target_dir, "pulp_repo_cache", repo.replace(repo_prefix, ""))
+                self.compose.target_dir, "pulp_repo_cache", repo.replace(repo_prefix, ""))
             repo_paths.append(repo_path)
             makedirs(repo_path)
 
@@ -169,7 +169,7 @@ class MergeRepo(object):
 
             args = [mergerepo_exe, "--method", "nvr", "-o",
                     result_repo_dir]
-            args += ["--repo-prefix-search", os.path.join(conf.target_dir, "pulp_repo_cache")]
+            args += ["--repo-prefix-search", os.path.join(self.compose.target_dir, "pulp_repo_cache")]
             args += ["--repo-prefix-replace", repo_prefix]
             for repo in repo_paths:
                 args.append("-r")

@@ -121,6 +121,12 @@ def raise_if_input_not_allowed(**kwargs):
                 values = _enum_int_to_str_list(COMPOSE_FLAGS, values)
             elif name == "results":
                 values = _enum_int_to_str_list(COMPOSE_RESULTS, values)
+            elif name == "target_dirs":
+                # The default conf.target_dir is always allowed.
+                if values == conf.target_dir:
+                    continue
+                inverse_extra_target_dirs = {v: k for k, v in conf.extra_target_dirs.items()}
+                values = inverse_extra_target_dirs[values]
 
             if type(values) == int:
                 values = [values]

@@ -159,6 +159,9 @@ class Compose(ODCSBase):
     pungi_config_dump = db.Column(db.String, nullable=True)
     # UUID of the celery task.
     celery_task_id = db.Column(db.String, nullable=True)
+    # Target directory in which the compose is stored. This is `conf.target_dir`
+    # by default.
+    target_dir = db.Column(db.String)
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
@@ -166,7 +169,7 @@ class Compose(ODCSBase):
                koji_event=None, arches=None, multilib_arches=None,
                multilib_method=None, builds=None, lookaside_repos=None,
                modular_koji_tags=None, module_defaults_url=None,
-               label=None, compose_type=None):
+               label=None, compose_type=None, target_dir=None):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -189,6 +192,7 @@ class Compose(ODCSBase):
             module_defaults_url=module_defaults_url,
             label=label,
             compose_type=compose_type,
+            target_dir=target_dir or conf.target_dir,
         )
         session.add(compose)
         return compose
@@ -231,6 +235,7 @@ class Compose(ODCSBase):
             pungi_compose_id=None,
             # Also reset celery task_id
             celery_task_id=None,
+            target_dir=compose.target_dir,
         )
         session.add(compose)
         return compose
@@ -254,7 +259,7 @@ class Compose(ODCSBase):
         # a race between we start Pungi and when Pungi generates that dir,
         # so just use `glob` to find out the rigth directory.
         glob_str = os.path.join(
-            conf.target_dir, "odcs-%d-1-*.n.0" % self.id)
+            self.target_dir, "odcs-%d-1-*.n.0" % self.id)
         toplevel_dirs = glob.glob(glob_str)
         if toplevel_dirs:
             return toplevel_dirs[0]
@@ -266,7 +271,7 @@ class Compose(ODCSBase):
             toplevel_dir = self.toplevel_work_dir
             if toplevel_dir:
                 return toplevel_dir
-        return os.path.join(conf.target_dir, self.latest_dir)
+        return os.path.join(self.target_dir, self.latest_dir)
 
     @property
     def result_repo_dir(self):
@@ -281,6 +286,9 @@ class Compose(ODCSBase):
         """
         Returns public URL to compose directory with per-arch repositories.
         """
+        if self.target_dir != conf.target_dir:
+            return ""
+
         target_dir_url = conf.target_dir_url
 
         return target_dir_url + "/" \
@@ -299,6 +307,9 @@ class Compose(ODCSBase):
         """
         Returns public URL to repofile.
         """
+        if self.target_dir != conf.target_dir:
+            return ""
+
         target_dir_url = conf.target_dir_url
         return target_dir_url + "/" \
             + os.path.join(self.latest_dir, "compose", "Temporary",

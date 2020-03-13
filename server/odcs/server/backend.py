@@ -208,6 +208,10 @@ class RemoveExpiredComposesThread(BackendThread):
 
         composes = Compose.composes_to_expire()
         for compose in composes:
+            # Check if target_dir is accessible on this backend and if not, skip it.
+            if not os.path.exists(compose.target_dir):
+                continue
+
             log.info("%r: Removing compose", compose)
             if compose.removed_by:
                 state_reason = "Removed by {}.".format(compose.removed_by)
@@ -228,8 +232,9 @@ class RemoveExpiredComposesThread(BackendThread):
         # by ODCS.
         odcs_paths = []
         for dirname in ["latest-odcs-*", "odcs-*"]:
-            path = os.path.join(conf.target_dir, dirname)
-            odcs_paths += glob.glob(path)
+            for target_dir in [conf.target_dir] + list(conf.extra_target_dirs.values()):
+                path = os.path.join(target_dir, dirname)
+                odcs_paths += glob.glob(path)
 
         # Then try removing them if they are left there by some error.
         for path in odcs_paths:
@@ -257,8 +262,7 @@ class RemoveExpiredComposesThread(BackendThread):
                 continue
 
         # Remove old Koji tag data from Koji tag cache.
-        koji_tag_cache = KojiTagCache()
-        koji_tag_cache.remove_old_koji_tag_cache_data()
+        KojiTagCache.remove_old_koji_tag_cache_data()
 
 
 def create_koji_session():
@@ -678,13 +682,13 @@ def generate_compose_symlink(compose):
     Generates symlink(s) for compose based on its `compose.pungi_compose_id`.
 
     It generates following symlinks pointing to the compose:
-      - $conf.target_dir/$compose.compose_type/$compose.pungi_compose_id
-      - $conf.target_dir/$compose.compose_type/latest-$name-version
+      - $compose.target_dir/$compose.compose_type/$compose.pungi_compose_id
+      - $compose.target_dir/$compose.compose_type/latest-$name-version
 
     If the latest-* symlink exists, it is replaced with new one pointing to
     the `composes`.
     """
-    symlink_dir = os.path.join(conf.target_dir, compose.compose_type)
+    symlink_dir = os.path.join(compose.target_dir, compose.compose_type)
     odcs.server.utils.makedirs(symlink_dir)
 
     # Generate the non-latest symlink.
@@ -714,7 +718,7 @@ def remove_compose_symlink(compose):
     if not compose.compose_type or not compose.pungi_compose_id:
         return
 
-    symlink_dir = os.path.join(conf.target_dir, compose.compose_type)
+    symlink_dir = os.path.join(compose.target_dir, compose.compose_type)
     symlink = os.path.join(symlink_dir, compose.pungi_compose_id)
 
     # Check if latest_symlink points to the same directory as the non-latest
@@ -745,7 +749,7 @@ def generate_pungi_compose(compose):
     """
     Generates the compose of KOJI, TAG, or REPO type using the Pungi tool.
     """
-    koji_tag_cache = KojiTagCache()
+    koji_tag_cache = KojiTagCache(compose)
 
     # Resolve the general data in the compose.
     resolve_compose(compose)
@@ -802,7 +806,7 @@ def generate_pungi_compose(compose):
         # to Pungi COMPOSE_ID. We can use directory with these symlinks to
         # find out previous old compose.
         if compose.source_type == PungiSourceType.RAW_CONFIG:
-            old_compose = os.path.join(conf.target_dir, compose.compose_type)
+            old_compose = os.path.join(compose.target_dir, compose.compose_type)
 
         pungi = Pungi(compose.id, pungi_cfg, koji_event, old_compose)
         pungi.run(compose)
@@ -900,12 +904,13 @@ def generate_compose(compose_id, lost_compose=False):
 
             # Be nice to end user and replace paths to logs or other files with URL
             # accessible to the user.
-            state_reason = state_reason.replace(conf.target_dir, conf.target_dir_url)
+            if compose.target_dir == conf.target_dir:
+                state_reason = state_reason.replace(conf.target_dir, conf.target_dir_url)
             compose.transition(COMPOSE_STATES["failed"], state_reason)
 
         compose = Compose.query.filter(Compose.id == compose_id).one()
 
-        koji_tag_cache = KojiTagCache()
+        koji_tag_cache = KojiTagCache(compose)
         koji_tag_cache.cleanup_reused(compose)
 
         # Commit the session to ensure that database transaction is closed and

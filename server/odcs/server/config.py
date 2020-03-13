@@ -149,6 +149,12 @@ class Config(object):
             'type': str,
             'default': "http://localhost/odcs",
             'desc': 'Public facing URL to target_dir.'},
+        'extra_target_dirs': {
+            'type': dict,
+            'default': {},
+            'desc': 'Extra target_dirs to optionally store the compose on '
+                    'instead of the conf.target_dir. Key is the name '
+                    'of volume, value if path to target_dir.'},
         'seconds_to_live': {
             'type': int,
             'default': 24 * 60 * 60,

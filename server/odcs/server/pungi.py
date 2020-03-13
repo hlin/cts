@@ -403,9 +403,9 @@ class Pungi(object):
         try:
             td = tempfile.mkdtemp()
             self._write_cfgs(td)
-            compose_dir = self._prepare_compose_dir(compose, td, conf.target_dir)
+            compose_dir = self._prepare_compose_dir(compose, td, compose.target_dir)
             self.pungi_cfg.validate(td, compose_dir)
-            pungi_cmd = self.get_pungi_cmd(td, conf.target_dir, compose_dir)
+            pungi_cmd = self.get_pungi_cmd(td, compose.target_dir, compose_dir)
 
             # Commit the session to ensure that all the `compose` changes are
             # stored database before executing the compose and are not just
@@ -511,8 +511,9 @@ class PungiLogs(object):
                 continue
             errors += error
 
-        errors = errors.replace(
-            conf.target_dir, conf.target_dir_url)
+        if self.compose.target_dir == conf.target_dir:
+            errors = errors.replace(
+                conf.target_dir, conf.target_dir_url)
         return errors
 
     def get_config_dump(self):

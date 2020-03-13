@@ -119,7 +119,8 @@ class ViewBaseTest(ModelsBaseTest):
                     'compose_types': ["test", "nightly"]
                 },
                 'dev3': {
-                    'source_types': ['tag']
+                    'source_types': ['tag'],
+                    'target_dirs': ["releng-private"]
                 }
             }
         }
@@ -533,6 +534,58 @@ class TestViews(ViewBaseTest):
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    def test_submit_build_target_dir_unknown(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26'},
+                 'target_dir': 'foo'}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['status'], 400)
+        self.assertEqual(data['error'], 'Bad Request')
+        self.assertEqual(data['message'], 'Unknown "target_dir" "foo"')
+
+    @patch.object(odcs.server.config.Config, 'extra_target_dirs',
+                  new={"releng-private": "/tmp/private"})
+    def test_submit_build_target_not_allowed(self):
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26'},
+                 'target_dir': 'releng-private'}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['status'], 403)
+        self.assertEqual(data['error'], 'Forbidden')
+        self.assertEqual(
+            data['message'],
+            'User dev not allowed to operate with compose with target_dirs=releng-private.')
+
+    @patch.object(odcs.server.config.Config, 'extra_target_dirs',
+                  new={"releng-private": "/tmp/private"})
+    def test_submit_build_target_dir(self):
+        with self.test_request_context(user='dev3'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'tag', 'source': 'f26'},
+                 'target_dir': 'releng-private'}))
+            self.assertEqual(rv.status, '200 OK')
+
+        db.session.expire_all()
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.state, COMPOSE_STATES["wait"])
+        self.assertEqual(c.target_dir, "/tmp/private")
 
     def test_submit_build_module_defaults_url(self):
         with self.test_request_context(user='dev'):

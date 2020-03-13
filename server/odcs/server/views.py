@@ -414,9 +414,18 @@ class ODCSAPI(MethodView):
         label = data.get("label", None)
         compose_type = data.get("compose_type", "test")
 
+        target_dir = data.get("target_dir")
+        if target_dir:
+            if target_dir not in conf.extra_target_dirs:
+                raise ValueError('Unknown "target_dir" "%s"' % target_dir)
+            target_dir = conf.extra_target_dirs[target_dir]
+        else:
+            target_dir = conf.target_dir
+
         raise_if_input_not_allowed(
             source_types=source_type, sources=source, results=results,
-            flags=flags, arches=arches, compose_types=compose_type)
+            flags=flags, arches=arches, compose_types=compose_type,
+            target_dirs=target_dir)
 
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
@@ -429,7 +438,8 @@ class ODCSAPI(MethodView):
             modular_koji_tags=modular_koji_tags,
             module_defaults_url=module_defaults,
             label=label,
-            compose_type=compose_type)
+            compose_type=compose_type,
+            target_dir=target_dir)
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to
         # send message and before_commit can be called before flush and

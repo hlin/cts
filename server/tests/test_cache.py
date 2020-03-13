@@ -22,9 +22,10 @@
 
 import time
 import os
-from mock import patch
+from mock import patch, MagicMock, call
 
 from .utils import ModelsBaseTest
+import odcs.server
 from odcs.server import db, conf
 from odcs.server.cache import KojiTagCache
 from odcs.server.models import Compose
@@ -36,7 +37,9 @@ class TestKojiTagCache(ModelsBaseTest):
 
     def setUp(self):
         super(TestKojiTagCache, self).setUp()
-        self.cache = KojiTagCache()
+        compose = MagicMock()
+        compose.target_dir = conf.target_dir
+        self.cache = KojiTagCache(compose)
 
     def test_cached_compose_dir(self):
         c = Compose.create(
@@ -142,22 +145,30 @@ class TestKojiTagCache(ModelsBaseTest):
     @patch("os.listdir")
     @patch("os.path.getmtime")
     @patch("shutil.rmtree")
-    def test_remove_old_koji_tag_cache_data(self, rmtree, getmtime, listdir):
+    @patch("os.path.exists")
+    @patch.object(odcs.server.config.Config, 'extra_target_dirs',
+                  new={"releng-private": "/tmp/private"})
+    def test_remove_old_koji_tag_cache_data(self, exists, rmtree, getmtime, listdir):
+        exists.return_value = True
         now = time.time()
-        listdir.return_value = ["foo", "bar"]
+        listdir.side_effect = [["foo", "bar"], ["foo", "bar"]]
         # Default timeout is 30 days, so set 31 for first dir and 29 for
         # second dir.
-        getmtime.side_effect = [now - 31 * 24 * 3600, now - 29 * 24 * 3600]
+        getmtime.side_effect = [now - 31 * 24 * 3600, now - 29 * 24 * 3600] * 2
 
         self.cache.remove_old_koji_tag_cache_data()
-        rmtree.assert_called_once_with(
-            os.path.join(self.cache.cache_dir, "foo"))
+        self.assertEqual(
+            rmtree.call_args_list,
+            [call(os.path.join(self.cache.cache_dir, "foo")),
+             call("/tmp/private/koji_tag_cache/foo")])
 
     @patch("os.listdir")
     @patch("os.path.getmtime")
     @patch("shutil.rmtree")
+    @patch("os.path.exists")
     def test_remove_old_koji_tag_cache_data_getmtime_raises(
-            self, rmtree, getmtime, listdir):
+            self, exists, rmtree, getmtime, listdir):
+        exists.return_value = True
         listdir.return_value = ["foo", "bar"]
         getmtime.side_effect = OSError("path does not exist")
 

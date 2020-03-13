@@ -371,6 +371,7 @@ class TestPungi(ModelsBaseTest):
         self.ci_dump = self.patch_ci_dump.start()
 
         self.compose = MagicMock()
+        self.compose.target_dir = conf.target_dir
         self.compose.compose_type = "test"
 
     def tearDown(self):

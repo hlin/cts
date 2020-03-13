@@ -44,11 +44,12 @@ class KojiTagCache(object):
     ODCS compose attributes which influences the repodata.
     """
 
-    def __init__(self):
-        self.cache_dir = os.path.join(conf.target_dir, "koji_tag_cache")
+    def __init__(self, compose):
+        self.cache_dir = os.path.join(compose.target_dir, "koji_tag_cache")
         makedirs(self.cache_dir)
 
-    def remove_old_koji_tag_cache_data(self):
+    @classmethod
+    def remove_old_koji_tag_cache_data(klass):
         """
         Removes the old unused Koji tag cache directories which has not been
         used for more than `conf.koji_tag_cache_cleanup_timeout` days.
@@ -58,24 +59,29 @@ class KojiTagCache(object):
         older_than_seconds = conf.koji_tag_cache_cleanup_timeout * 24 * 3600
         threshold = time.time() - older_than_seconds
 
-        for cached_dir in os.listdir(self.cache_dir):
-            path = os.path.join(self.cache_dir, cached_dir)
-            try:
-                mtime = os.path.getmtime(path)
-            except OSError:
-                # Directory might have been removed in meantime by some
-                # 3rd party process.
-                log.exception(
-                    "Old koji tag cache directory %s removed while checking "
-                    "Koji cache." % path)
+        for target_dir in [conf.target_dir] + list(conf.extra_target_dirs.values()):
+            cache_dir = os.path.join(target_dir, "koji_tag_cache")
+            if not os.path.exists(cache_dir):
                 continue
 
-            if mtime > threshold:
-                # Koji tag directory is not old enough to be removed.
-                continue
+            for cached_dir in os.listdir(cache_dir):
+                path = os.path.join(cache_dir, cached_dir)
+                try:
+                    mtime = os.path.getmtime(path)
+                except OSError:
+                    # Directory might have been removed in meantime by some
+                    # 3rd party process.
+                    log.exception(
+                        "Old koji tag cache directory %s removed while checking "
+                        "Koji cache." % path)
+                    continue
 
-            log.info("Removing old Koji tag cache data in %s." % path)
-            shutil.rmtree(path)
+                if mtime > threshold:
+                    # Koji tag directory is not old enough to be removed.
+                    continue
+
+                log.info("Removing old Koji tag cache data in %s." % path)
+                shutil.rmtree(path)
 
     def cached_compose_dir(self, compose):
         """

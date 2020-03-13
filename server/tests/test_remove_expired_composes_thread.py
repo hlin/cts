@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import odcs.server
 from odcs.server import db, conf
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
@@ -141,6 +142,22 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
             remove_compose_dir.call_args_list,
             [mock.call(os.path.join(conf.target_dir, "latest-odcs-96-1")),
              mock.call(os.path.join(conf.target_dir, "odcs-96-1-20171005.n.0"))])
+
+    @patch("os.path.isdir")
+    @patch("glob.glob")
+    @patch("odcs.server.backend.RemoveExpiredComposesThread._remove_compose_dir")
+    @patch.object(odcs.server.config.Config, 'extra_target_dirs',
+                  new={"releng-private": "/tmp/private"})
+    def test_remove_left_composes_extra_target_dir(self, remove_compose_dir, glob, isdir):
+        isdir.return_value = True
+        self.thread.do_work()
+        print(glob.call_args_list)
+        self.assertEqual(
+            glob.call_args_list,
+            [mock.call(os.path.join(conf.target_dir, "latest-odcs-*")),
+             mock.call("/tmp/private/latest-odcs-*"),
+             mock.call(os.path.join(conf.target_dir, "odcs-*")),
+             mock.call("/tmp/private/odcs-*")])
 
     @patch("os.path.isdir")
     @patch("glob.glob")
