@@ -332,12 +332,9 @@ class TestPungiConfig(unittest.TestCase):
                 "MBS-512", "1", PungiSourceType.MODULE,
                 "foo:1:1:1 foo-devel:1:1:1 bar-devel:1:1:1")
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
             self.assertEqual(
-                cfg["include_devel_modules"],
-                {"Temporary": ["foo-devel:1"]})
-            self.assertEqual(pungi_cfg.source, "foo:1:1:1 bar-devel:1:1:1")
+                pungi_cfg.source, "foo:1:1:1 foo-devel:1:1:1 bar-devel:1:1:1"
+            )
 
 
 class TestPungi(ModelsBaseTest):
