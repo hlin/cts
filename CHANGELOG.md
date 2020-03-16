@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.40
+  - Release date: 2020-03-16
+  - Allow reusing old raw config composes to make their generation faster.
+  - Store Celery task ID in the database.
+  - Support canceling waiting composes by their owners.
+  - Allow configuring multiple target directories.
+
 ## 0.2.39
   - Release date: 2020-03-04
   - The `seconds-to-live` API argument has been renamed to `seconds_to_live`
