@@ -338,6 +338,12 @@ class Compose(ODCSBase):
             if self.results & value:
                 results.append(name)
 
+        if self.target_dir == conf.target_dir:
+            target_dir = "default"
+        else:
+            inverse_extra_target_dirs = {v: k for k, v in conf.extra_target_dirs.items()}
+            target_dir = inverse_extra_target_dirs.get(self.target_dir, "unknown")
+
         ret = {
             'id': self.id,
             'owner': self.owner,
@@ -370,6 +376,7 @@ class Compose(ODCSBase):
             'label': self.label,
             'compose_type': self.compose_type,
             'pungi_compose_id': self.pungi_compose_id,
+            'target_dir': target_dir,
         }
 
         if full:

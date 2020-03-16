@@ -319,7 +319,8 @@ class TestViews(ViewBaseTest):
                          'module_defaults_url': None,
                          'label': None,
                          'compose_type': 'test',
-                         'pungi_compose_id': None}
+                         'pungi_compose_id': None,
+                         'target_dir': 'default'}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()
@@ -581,6 +582,9 @@ class TestViews(ViewBaseTest):
                 {'source': {'type': 'tag', 'source': 'f26'},
                  'target_dir': 'releng-private'}))
             self.assertEqual(rv.status, '200 OK')
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['target_dir'], 'releng-private')
 
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 3).one()
@@ -1221,7 +1225,8 @@ class TestViews(ViewBaseTest):
                          'module_defaults_url': None,
                          'label': None,
                          'compose_type': 'test',
-                         'pungi_compose_id': None}
+                         'pungi_compose_id': None,
+                         'target_dir': 'default'}
         self.assertEqual(data, expected_json)
 
         db.session.expire_all()

@@ -254,6 +254,7 @@ class ODCSAPI(MethodView):
         :jsonparam list lookaside_repos: List of :ref:`lookaside_repos<lookaside_repos>`.
         :jsonparam string label: String defining the :ref:`label<label>`.
         :jsonparam string compose_type: String defining the :ref:`compose_type<compose_type>`.
+        :jsonparam string target_dir: String defining the :ref:`target_dir<target_dir>`.
         :jsonparam object source: The JSON object defining the source of compose.
         :jsonparam string source["type"]: String defining the :ref:`source type<source_type>`.
         :jsonparam string source["source"]: String defining the :ref:`source<source>`.
@@ -415,7 +416,7 @@ class ODCSAPI(MethodView):
         compose_type = data.get("compose_type", "test")
 
         target_dir = data.get("target_dir")
-        if target_dir:
+        if target_dir and target_dir != "default":
             if target_dir not in conf.extra_target_dirs:
                 raise ValueError('Unknown "target_dir" "%s"' % target_dir)
             target_dir = conf.extra_target_dirs[target_dir]

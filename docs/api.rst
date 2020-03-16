@@ -136,10 +136,16 @@ The fields used in the ODCS compose JSON have following meaning:
 *result_repo* - ``(string)``
     The URL to top directory where per-architecture repositories are stored. Only set for composes which generate such repositories on ODCS server.
 
+    .. note::
+        If ``target_dir`` is set to non-default value, then the ``result_repo`` might be an empty string, because ODCS might not have enough data to generate the URL.
+
 .. _result_repofile:
 
 *result_repofile* - ``(string)``
     The URL to .repo file which points to resulting compose. Only set for composes which generate such single repository.
+
+    .. note::
+        If ``target_dir`` is set to non-default value, then the ``result_repofile`` might be an empty string, because ODCS might not have enough data to generate the URL.
 
 .. _sigkeys:
 
@@ -179,6 +185,14 @@ The fields used in the ODCS compose JSON have following meaning:
 
 *state_name* - ``(string)``
     Name of the state the compose is currently in. See ``state`` for more info.
+
+.. _target_dir:
+
+*target_dir* - ``(string)``
+    Name of the target directory for the compose. No value or the ``default`` value means that default target directory is used. This default target directory is always served using the ODCS Frontend. Other possible values depend on the ODCS server configuration.
+
+    .. note::
+        If ``target_dir`` is set to non-default value, then the ``result_repo`` and ``result_repofile`` might be an empty string, because ODCS might not have enough data to generate the URL.
 
 .. _time_done:
 

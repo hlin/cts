@@ -79,7 +79,8 @@ class TestModels(ModelsBaseTest):
                          'label': None,
                          'compose_type': None,
                          'pungi_compose_id': None,
-                         'pungi_config_dump': 'test'}
+                         'pungi_config_dump': 'test',
+                         'target_dir': 'default'}
         self.assertEqual(c.json(True), expected_json)
 
     def test_create_copy(self):
