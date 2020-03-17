@@ -163,6 +163,13 @@ class Compose(ODCSBase):
     # by default.
     target_dir = db.Column(db.String)
 
+    @property
+    def on_default_target_dir(self):
+        """
+        True if this compose is stored on default `conf.target_dir`.
+        """
+        return self.target_dir is None or self.target_dir == conf.target_dir
+
     @classmethod
     def create(cls, session, owner, source_type, source, results,
                seconds_to_live, packages=None, flags=0, sigkeys=None,
@@ -286,7 +293,7 @@ class Compose(ODCSBase):
         """
         Returns public URL to compose directory with per-arch repositories.
         """
-        if self.target_dir != conf.target_dir:
+        if not self.on_default_target_dir:
             return ""
 
         target_dir_url = conf.target_dir_url
@@ -307,7 +314,7 @@ class Compose(ODCSBase):
         """
         Returns public URL to repofile.
         """
-        if self.target_dir != conf.target_dir:
+        if not self.on_default_target_dir:
             return ""
 
         target_dir_url = conf.target_dir_url
@@ -338,7 +345,7 @@ class Compose(ODCSBase):
             if self.results & value:
                 results.append(name)
 
-        if self.target_dir == conf.target_dir:
+        if self.on_default_target_dir:
             target_dir = "default"
         else:
             inverse_extra_target_dirs = {v: k for k, v in conf.extra_target_dirs.items()}

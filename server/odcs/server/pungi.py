@@ -511,7 +511,7 @@ class PungiLogs(object):
                 continue
             errors += error
 
-        if self.compose.target_dir == conf.target_dir:
+        if self.compose.on_default_target_dir:
             errors = errors.replace(
                 conf.target_dir, conf.target_dir_url)
         return errors

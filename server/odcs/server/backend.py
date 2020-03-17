@@ -911,7 +911,7 @@ def generate_compose(compose_id, lost_compose=False):
 
             # Be nice to end user and replace paths to logs or other files with URL
             # accessible to the user.
-            if compose.target_dir == conf.target_dir:
+            if compose.on_default_target_dir:
                 state_reason = state_reason.replace(conf.target_dir, conf.target_dir_url)
             compose.transition(COMPOSE_STATES["failed"], state_reason)
 
