@@ -12,11 +12,10 @@ down_revision = 'a855c39e2a0f'
 
 from alembic import op
 import sqlalchemy as sa
-from odcs.server import conf
 
 
 def upgrade():
-    op.add_column('composes', sa.Column('target_dir', sa.String(), nullable=True, default=conf.target_dir))
+    op.add_column('composes', sa.Column('target_dir', sa.String(), nullable=True))
 
 
 def downgrade():

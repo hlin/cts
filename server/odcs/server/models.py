@@ -161,7 +161,7 @@ class Compose(ODCSBase):
     celery_task_id = db.Column(db.String, nullable=True)
     # Target directory in which the compose is stored. This is `conf.target_dir`
     # by default.
-    target_dir = db.Column(db.String)
+    target_dir = db.Column(db.String, nullable=True)
 
     @property
     def on_default_target_dir(self):
