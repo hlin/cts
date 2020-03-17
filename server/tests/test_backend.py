@@ -459,6 +459,7 @@ class TestBackend(ModelsBaseTest):
         attrs["lookaside_repos"] = "foo bar"
         attrs["modular_koji_tags"] = "f26-modules"
         attrs["module_defaults_url"] = "git://localhost/x.git#branch"
+        attrs["target_dir"] = "private"
         for attr, value in attrs.items():
             c = Compose.create(
                 db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),

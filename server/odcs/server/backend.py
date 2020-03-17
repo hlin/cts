@@ -544,6 +544,13 @@ def get_reusable_compose(compose):
                       old_compose)
             continue
 
+        target_dir = compose.target_dir
+        old_target_dir = old_compose.target_dir
+        if target_dir != old_target_dir:
+            log.debug("%r: Cannot reuse %r - target_dir not same", compose,
+                      old_compose)
+            continue
+
         # In case of compose renewal, the compose.koji_event will be actually
         # lower than the "old_compose"'s one - the `compose` might have been for
         # example submitted 1 year ago, so koji_event will be one year old.
