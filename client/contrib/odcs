@@ -71,6 +71,70 @@ subparsers = parser.add_subparsers(
     description='These commands you can use to operate composes with ODCS')
 
 
+def _add_arguments(parser, *args):
+    for arg in args:
+        if arg == "--flag":
+            parser.add_argument(
+                '--flag', default=[], action='append',
+                help="Flag to pass to influence the compose.")
+        elif arg == "--target-dir":
+            parser.add_argument(
+                '--target-dir', default="",
+                help="Name of the server-side target directory.")
+        elif arg == "--result":
+            parser.add_argument(
+                '--result', default=[], action='append',
+                help="Results of a compose to influence the compose.")
+        elif arg == "--sigkey":
+            parser.add_argument(
+                '--sigkey', default=[], action='append',
+                help="Signing key ID using which the packages must be signed - "
+                "\none\" for no signing key.")
+        elif arg == "--koji-event":
+            parser.add_argument(
+                '--koji-event', default=None,
+                help="Koji event for populating package set")
+        elif arg == "--arch":
+            parser.add_argument(
+                '--arch', default=[], action='append',
+                help="Koji arch to build the compose for.")
+        elif arg == "--module-defaults-url":
+            parser.add_argument(
+                '--module-defaults-url', default="",
+                metavar='module_defaults_url',
+                help="URL to git repository with module defaults.")
+        elif arg == "--module-defaults-commit":
+            parser.add_argument(
+                '--module-defaults-commit', default="",
+                metavar='module_defaults_commit',
+                help="Git commit/branch from which to take the module defaults.")
+        elif arg == "--modular-tag":
+            parser.add_argument(
+                '--modular-tag', default=[], action='append',
+                metavar="modular_koji_tags",
+                help="Koji tag with module builds.")
+        elif arg == "--lookaside-repo":
+            parser.add_argument(
+                '--lookaside-repo', default=[], action='append',
+                metavar="lookaside_repos",
+                help="Koji tag with module builds.")
+        elif arg == "--label":
+            parser.add_argument(
+                '--label', default=None,
+                help="Label for raw_config compose.")
+        elif arg == "--compose-type":
+            parser.add_argument(
+                '--compose-type', default=None,
+                help="Compose type for raw_config compose.")
+        elif arg == "--build":
+            parser.add_argument(
+                '--build', default=[], action='append',
+                help='Builds to be included in the compose.')
+        else:
+            raise ValueError("Unknown argument %s." % arg)
+    return parser
+
+
 create_parser = subparsers.add_parser(
     'create', help='Low-level command to create a new compose')
 create_parser.set_defaults(command='create')
@@ -83,49 +147,17 @@ create_parser.add_argument(
     help="Source for the compose. May be a koji tag or a "
     "whitespace separated list of modules.")
 create_parser.add_argument(
-    '--flag', default=[], action='append',
-    help="Flag to pass to influence the compose.")
-create_parser.add_argument(
-    '--result', default=[], action='append',
-    help="Results of a compose to influence the compose.")
-create_parser.add_argument(
-    '--sigkey', default=[], action='append',
-    help="Signing key ID using which the packages must be signed - "
-    "\none\" for no signing key.")
-create_parser.add_argument(
-    '--koji-event', default=None,
-    help="Koji event for populating package set")
-create_parser.add_argument(
-    '--arch', default=[], action='append',
-    help="Koji arch to build the compose for.")
-create_parser.add_argument(
     'packages', metavar='package', nargs='*',
     help='Packages to be included in the compose.')
 create_parser.add_argument(
     'builds', metavar='build', nargs='*',
     help='Builds to be included in the compose.')
-create_parser.add_argument(
-    '--module-defaults-url', default="",
-    metavar='module_defaults_url',
-    help="URL to git repository with module defaults.")
-create_parser.add_argument(
-    '--module-defaults-commit', default="",
-    metavar='module_defaults_commit',
-    help="Git commit/branch from which to take the module defaults.")
-create_parser.add_argument(
-    '--modular-tag', default=[], action='append',
-    metavar="modular_koji_tags",
-    help="Koji tag with module builds.")
-create_parser.add_argument(
-    '--lookaside-repo', default=[], action='append',
-    metavar="lookaside_repos",
-    help="Koji tag with module builds.")
-create_parser.add_argument(
-    '--label', default=None,
-    help="Label for raw_config compose.")
-create_parser.add_argument(
-    '--compose-type', default=None,
-    help="Compose type for raw_config compose.")
+_add_arguments(create_parser, "--result", "--sigkey", "--koji-event",
+               "--arch", "--module-defaults-url", "--module-defaults-commit",
+               "--modular-tag", "--lookaside-repo", "--label", "--compose-type",
+               "--target-dir", "--flag")
+
+
 
 create_tag_parser = subparsers.add_parser(
     'create-tag', help='Create new compose from Koji tag.')
@@ -134,79 +166,30 @@ create_tag_parser.add_argument(
     'tag', default="",
     help="Koji tag name.")
 create_tag_parser.add_argument(
-    '--flag', default=[], action='append',
-    help="Flag to pass to influence the compose.")
-create_tag_parser.add_argument(
-    '--sigkey', default=[], action='append',
-    help="Signing key ID using which the packages must be signed - "
-    "\none\" for no signing key.")
-create_tag_parser.add_argument(
-    '--koji-event', default=None,
-    help="Koji event for populating package set")
-create_tag_parser.add_argument(
-    '--arch', default=[], action='append',
-    help="Koji arch to build the compose for.")
-create_tag_parser.add_argument(
     'packages', metavar='package', nargs='*',
     help='Koji packages to be included in the compose.')
-create_tag_parser.add_argument(
-    '--build', default=[], action='append',
-    help='Builds to be included in the compose.')
-create_tag_parser.add_argument(
-    '--module-defaults-url', default="",
-    metavar='module_defaults_url',
-    help="URL to git repository with module defaults.")
-create_tag_parser.add_argument(
-    '--module-defaults-commit', default="",
-    metavar='module_defaults_commit',
-    help="Git commit/branch from which to take the module defaults.")
-create_tag_parser.add_argument(
-    '--modular-tag', default=[], action='append',
-    metavar="modular_koji_tags",
-    help="Koji tag with module builds.")
-create_tag_parser.add_argument(
-    '--lookaside-repo', default=[], action='append',
-    metavar="lookaside_repos",
-    help="Koji tag with module builds.")
+_add_arguments(
+    create_tag_parser, "--sigkey", "--koji-event", "--arch", "--module-defaults-url",
+    "--module-defaults-commit", "--modular-tag", "--lookaside-repo", "--target-dir",
+    "--build", "--flag")
+
 
 create_module_parser = subparsers.add_parser(
     'create-module', help='Create new compose from modules.')
 create_module_parser.set_defaults(command='create-module')
-create_module_parser.add_argument(
-    '--flag', default=[], action='append',
-    help="Flag to pass to influence the compose.")
-create_module_parser.add_argument(
-    '--sigkey', default=[], action='append',
-    help="Signing key ID using which the packages must be signed - "
-    "\none\" for no signing key.")
-create_module_parser.add_argument(
-    '--arch', default=[], action='append',
-    help="Koji arch to build the compose for.")
-create_module_parser.add_argument(
-    'modules', metavar='nsvc', nargs='+',
-    help='Modules to be included in the compose.')
-create_module_parser.add_argument(
-    '--module-defaults-url', default="",
-    metavar='module_defaults_url',
-    help="URL to git repository with module defaults.")
-create_module_parser.add_argument(
-    '--module-defaults-commit', default="",
-    metavar='module_defaults_commit',
-    help="Git commit/branch from which to take the module defaults.")
-create_module_parser.add_argument(
-    '--lookaside-repo', default=[], action='append',
-    metavar="lookaside_repos",
-    help="Koji tag with module builds.")
+_add_arguments(
+    create_module_parser, "--sigkey", "--arch", "--module-defaults-url",
+    "--module-defaults-commit", "--lookaside-repo", "--target-dir", "--flag")
+
 
 create_pulp_parser = subparsers.add_parser(
     'create-pulp', help='Create new compose from Pulp content_sets.')
 create_pulp_parser.set_defaults(command='create-pulp')
 create_pulp_parser.add_argument(
-    '--flag', default=[], action='append',
-    help="Flag to pass to influence the compose.")
-create_pulp_parser.add_argument(
     'content_sets', metavar='content_set', nargs='+',
     help='Content sets to be included in the compose.')
+_add_arguments(create_pulp_parser, "--target-dir", "--flag")
+
 
 create_raw_config_parser = subparsers.add_parser(
     'create-raw-config', help='Create new compose from Pungi raw configuration.')
@@ -217,32 +200,19 @@ create_raw_config_parser.add_argument(
 create_raw_config_parser.add_argument(
     'raw_config_commit',
     help='Commit or branch name to get raw_config from.')
-create_raw_config_parser.add_argument(
-    '--flag', default=[], action='append',
-    help="Flag to pass to influence the compose.")
-create_raw_config_parser.add_argument(
-    '--label', default=None,
-    help="Label for raw_config compose.")
-create_raw_config_parser.add_argument(
-    '--compose-type', default=None,
-    help="Compose type for raw_config compose.")
-create_raw_config_parser.add_argument(
-    '--koji-event', default=None,
-    help="Koji event for populating package set")
+_add_arguments(
+    create_raw_config_parser, "--sigkey", "--label", "--compose-type", "--koji-event",
+    "--target-dir")
+
 
 create_build_parser = subparsers.add_parser(
     'create-build', help='Create new compose from Koji builds.')
 create_build_parser.set_defaults(command='create-build')
 create_build_parser.add_argument(
-    '--flag', default=[], action='append',
-    help="Flag to pass to influence the compose.")
-create_build_parser.add_argument(
     'builds', metavar='NVR', nargs='+',
     help='Koji builds NVRs.')
-create_build_parser.add_argument(
-    '--sigkey', default=[], action='append',
-    help="Signing key ID using which the packages must be signed - "
-    "\none\" for no signing key.")
+_add_arguments(create_build_parser, "--sigkey", "--flag", "--target-dir")
+
 
 wait_parser = subparsers.add_parser(
     'wait', help='wait for a compose to finish')
@@ -332,6 +302,8 @@ if getattr(args, "label", False):
     request_args["label"] = args.label
 if getattr(args, "compose_type", False):
     request_args["compose_type"] = args.compose_type
+if getattr(args, "target_dir", False):
+    request_args["target_dir"] = args.target_dir
 
 try:
     args.sigkey = [key.replace('none', '') for key in getattr(args, "sigkey", [])]
