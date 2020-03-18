@@ -71,65 +71,62 @@ subparsers = parser.add_subparsers(
     description='These commands you can use to operate composes with ODCS')
 
 
+KNOWN_ARGS = {
+    "--flag": dict(
+        default=[], action="append", help="Flag to pass to influence the compose."
+    ),
+    "--target-dir": dict(default="", help="Name of the server-side target directory."),
+    "--result": dict(
+        default=[],
+        action="append",
+        help="Results of a compose to influence the compose.",
+    ),
+    "--sigkey": dict(
+        default=[],
+        action="append",
+        help='Signing key ID using which the packages must be signed - "none" for no signing key.',  # noqa: E501
+    ),
+    "--koji-event": dict(default=None, help="Koji event for populating package set"),
+    "--arch": dict(
+        default=[], action="append", help="Koji arch to build the compose for."
+    ),
+    "--module-defaults-url": dict(
+        default="",
+        metavar="module_defaults_url",
+        help="URL to git repository with module defaults.",
+    ),
+    "--module-defaults-commit": dict(
+        default="",
+        metavar="module_defaults_commit",
+        help="Git commit/branch from which to take the module defaults.",
+    ),
+    "--modular-tag": dict(
+        default=[],
+        action="append",
+        metavar="modular_koji_tags",
+        help="Koji tag with module builds.",
+    ),
+    "--lookaside-repo": dict(
+        default=[],
+        action="append",
+        metavar="lookaside_repos",
+        help="Koji tag with module builds.",
+    ),
+    "--label": dict(default=None, help="Label for raw_config compose."),
+    "--compose-type": dict(default=None, help="Compose type for raw_config compose."),
+    "--build": dict(
+        default=[], action="append", help="Builds to be included in the compose."
+    ),
+}
+
+
 def _add_arguments(parser, *args):
     for arg in args:
-        if arg == "--flag":
-            parser.add_argument(
-                '--flag', default=[], action='append',
-                help="Flag to pass to influence the compose.")
-        elif arg == "--target-dir":
-            parser.add_argument(
-                '--target-dir', default="",
-                help="Name of the server-side target directory.")
-        elif arg == "--result":
-            parser.add_argument(
-                '--result', default=[], action='append',
-                help="Results of a compose to influence the compose.")
-        elif arg == "--sigkey":
-            parser.add_argument(
-                '--sigkey', default=[], action='append',
-                help="Signing key ID using which the packages must be signed - "
-                "\none\" for no signing key.")
-        elif arg == "--koji-event":
-            parser.add_argument(
-                '--koji-event', default=None,
-                help="Koji event for populating package set")
-        elif arg == "--arch":
-            parser.add_argument(
-                '--arch', default=[], action='append',
-                help="Koji arch to build the compose for.")
-        elif arg == "--module-defaults-url":
-            parser.add_argument(
-                '--module-defaults-url', default="",
-                metavar='module_defaults_url',
-                help="URL to git repository with module defaults.")
-        elif arg == "--module-defaults-commit":
-            parser.add_argument(
-                '--module-defaults-commit', default="",
-                metavar='module_defaults_commit',
-                help="Git commit/branch from which to take the module defaults.")
-        elif arg == "--modular-tag":
-            parser.add_argument(
-                '--modular-tag', default=[], action='append',
-                metavar="modular_koji_tags",
-                help="Koji tag with module builds.")
-        elif arg == "--lookaside-repo":
-            parser.add_argument(
-                '--lookaside-repo', default=[], action='append',
-                metavar="lookaside_repos",
-                help="Koji tag with module builds.")
-        elif arg == "--label":
-            parser.add_argument(
-                '--label', default=None,
-                help="Label for raw_config compose.")
-        elif arg == "--compose-type":
-            parser.add_argument(
-                '--compose-type', default=None,
-                help="Compose type for raw_config compose.")
-        elif arg == "--build":
-            parser.add_argument(
-                '--build', default=[], action='append',
-                help='Builds to be included in the compose.')
+        try:
+            parser.add_argument(arg, **KNOWN_ARGS[arg])
+        except KeyError:
+            raise ValueError("Unknown argument %s." % arg)
+
         else:
             raise ValueError("Unknown argument %s." % arg)
     return parser
