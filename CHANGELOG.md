@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.41
+  - Release date: 2020-03-19
+  - Do not reuse old compose with different target directory.
+  - Add --target-dir to ODCS client.
+  - Fix API response when older composes have target directories set to None.
+
 ## 0.2.40
   - Release date: 2020-03-16
   - Allow reusing old raw config composes to make their generation faster.
