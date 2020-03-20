@@ -126,9 +126,6 @@ def _add_arguments(parser, *args):
             parser.add_argument(arg, **KNOWN_ARGS[arg])
         except KeyError:
             raise ValueError("Unknown argument %s." % arg)
-
-        else:
-            raise ValueError("Unknown argument %s." % arg)
     return parser
 
 
