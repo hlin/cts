@@ -481,7 +481,7 @@ class PungiLogs(object):
         try:
             with open(global_log_path, "r") as global_log:
                 error = ""
-                for line in global_log.readlines():
+                for line in global_log:
                     idx = line.find("[ERROR   ]")
                     if idx == -1:
                         if error:
