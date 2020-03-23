@@ -510,6 +510,10 @@ class PungiLogs(object):
             if error.startswith("Extended traceback in:"):
                 continue
             errors += error
+            if len(errors) > 2000:
+                errors = errors[:2000]
+                errors += " ...\n Too many errors, see Pungi log for more information."
+                break
 
         if self.compose.on_default_target_dir:
             errors = errors.replace(

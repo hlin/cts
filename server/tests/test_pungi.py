@@ -570,6 +570,20 @@ For more details see {0}/odcs-717-1-20180323.n.0/work/x86_64/pungi/Temporary.x86
             "For more details see http://localhost/odcs/odcs-717-1-20180323.n.0/work/x86_64/pungi/Temporary.x86_64.log\n")
 
     @patch("odcs.server.pungi.open", create=True)
+    def test_error_string_too_many_errors(self, patched_open):
+        pungi_log = """
+2018-03-23 03:38:42 [INFO    ] Writing pungi config
+2018-03-22 17:10:49 [ERROR   ] Compose run failed: No such entry in table tag: tag
+        """ * 100
+        patched_open.return_value = mock_open(
+            read_data=pungi_log).return_value
+
+        pungi_logs = PungiLogs(self.compose)
+        errors = pungi_logs.get_error_string()
+        self.assertTrue("Too many errors" in errors)
+        self.assertEqual(len(errors), 2058)
+
+    @patch("odcs.server.pungi.open", create=True)
     def test_error_string_no_error(self, patched_open):
         pungi_log = """
 2018-03-23 03:38:42 [INFO    ] Writing pungi config
