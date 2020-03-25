@@ -32,13 +32,14 @@ from distutils.spawn import find_executable
 from flufl.lock import Lock
 
 from odcs.server import log, conf
-from odcs.server.utils import makedirs, execute_cmd
+from odcs.server.utils import makedirs, execute_cmd, retry
 
 
 class MergeRepo(object):
     def __init__(self, compose):
         self.compose = compose
 
+    @retry(wait_on=(requests.ConnectionError, ), logger=log)
     def _download_file(self, path, url):
         """
         Downloads repodata file, stores it into `path`/repodata and returns
