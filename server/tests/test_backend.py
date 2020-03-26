@@ -557,8 +557,9 @@ gpgcheck=0
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
+    @patch("os.symlink")
     def test_generate_pulp_compose_include_inpublished_pulp_repos_passed(
-            self, _write_repo_file, pulp_rest_post):
+            self, symlink, _write_repo_file, pulp_rest_post):
         pulp_rest_post.return_value = [
             {
                 "notes": {
@@ -591,6 +592,8 @@ gpgcheck=0
         }
         pulp_rest_post.assert_called_once_with('repositories/search/',
                                                expected_query)
+        symlink.assert_called_once_with(
+            AnyStringWith("/odcs-1-2018-1"), AnyStringWith("/odcs-1"))
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")

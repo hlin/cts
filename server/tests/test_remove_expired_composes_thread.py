@@ -70,7 +70,8 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
 
     @patch("os.unlink")
     @patch("os.path.realpath")
-    def test_a_compose_which_state_is_done_is_removed(self, realpath, unlink):
+    @patch("os.path.exists")
+    def test_a_compose_which_state_is_done_is_removed(self, exists, realpath, unlink):
         """
         Test that we do remove a compose in done state.
         """
@@ -89,7 +90,8 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         self.assertEqual(c.state_reason, 'Compose is expired.')
         unlink.assert_has_calls([
             mock.call(AnyStringWith("test_composes/nightly/compose-1-10-2020110.n.0")),
-            mock.call(AnyStringWith("test_composes/nightly/latest-compose-1"))])
+            mock.call(AnyStringWith("test_composes/nightly/latest-compose-1")),
+            mock.call(AnyStringWith("test_composes/odcs-1"))])
 
     def test_a_compose_which_state_is_done_is_removed_keep_state_reason(self):
         """

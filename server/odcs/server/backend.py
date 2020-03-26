@@ -225,6 +225,11 @@ class RemoveExpiredComposesThread(BackendThread):
                 self._remove_compose_dir(compose.toplevel_dir)
                 remove_compose_symlink(compose)
 
+                # Remove the `odcs-$COMPOSE_ID` symlink if it's there.
+                symlink = os.path.join(compose.target_dir, compose.name)
+                if os.path.exists(symlink) and os.path.realpath(symlink) != symlink:
+                    os.unlink(symlink)
+
         # In case of ODCS error, there might be left-over directories
         # belonging to already expired composes. Try to find them in the
         # target_dir.
@@ -916,6 +921,26 @@ def generate_compose(compose_id, lost_compose=False):
             compose.transition(COMPOSE_STATES["failed"], state_reason)
 
         compose = Compose.query.filter(Compose.id == compose_id).one()
+
+        # Create `odcs-$COMPOSE_ID` symlink pointing to toplevel_dir (usually
+        # latest-odcs-$COMPOSE_ID-1 directory). This is needed for future
+        # to switch the directory layout - we need to ensure that
+        # `odcs-$COMPOSE_ID` directory exists for all the already generated
+        # composes.
+        # It also makes it easier to access generated compose, because the
+        # `odcs-$COMPOSE_ID` directory name can be predicted easily.
+        try:
+            symlink = os.path.join(compose.target_dir, compose.name)
+            os.symlink(compose.toplevel_dir, symlink)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                # This can happen in case the compose reused another compose. In this
+                # case, the `compose.name` and also the `compose.toplevel_dir` will point
+                # to another compose. We still need to create the symlink even for this old
+                # compose which is reused to ensure it has the `odcs-$COMPOSE_ID` directory.
+                pass
+            else:
+                raise
 
         koji_tag_cache = KojiTagCache(compose)
         koji_tag_cache.cleanup_reused(compose)
