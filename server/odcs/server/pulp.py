@@ -24,9 +24,10 @@
 
 import copy
 import json
+import re
 import requests
 
-from odcs.server import conf
+from odcs.server import conf, log
 from odcs.server.mergerepo import MergeRepo
 from odcs.server.utils import retry
 
@@ -183,10 +184,55 @@ class Pulp(object):
                 "url": url,
                 "arches": set([arch]),
                 "sigkeys": sigkeys,
+                "product_versions": notes["product_versions"],
             })
 
         ret = {}
         for cs, repos in per_content_set_repos.items():
+            can_sort = True
+            version_len = None
+            arches = None
+            for repo in repos:
+                if arches and arches != repo["arches"]:
+                    log.debug("Skipping sorting repos: arch mismatch.")
+                    can_sort = False
+                    break
+                arches = repo["arches"]
+                try:
+                    product_versions = json.loads(repo["product_versions"])
+                except ValueError:
+                    log.debug(
+                        "Skipping sorting repos: invalid JSON in product_versions."
+                    )
+                    can_sort = False
+                    break
+                if len(product_versions) != 1:
+                    log.debug(
+                        "Skipping sorting repos: more than one version for a repo."
+                    )
+                    can_sort = False
+                    break
+                if not re.match(r"\d+(\.\d+)*$", product_versions[0]):
+                    log.debug("Skipping sorting repos: unparsable version string.")
+                    can_sort = False
+                    break
+                # Parse the version into a tuple.
+                ver_len = product_versions[0].count(".")
+                if version_len and version_len != ver_len:
+                    log.debug("Skipping sorting repos: incompatible versions.")
+                    can_sort = False
+                    break
+                version_len = ver_len
+            if can_sort:
+                repos = [
+                    sorted(
+                        repos,
+                        key=lambda k: tuple(
+                            json.loads(k["product_versions"])[0].split(".")
+                        ),
+                        reverse=True,
+                    )[0]
+                ]
             # In case there are multiple repos, at first try merging them
             # by replacing arch in repository baseurl with $basearch.
             merged_repos = self._try_arch_merge(repos)

@@ -86,6 +86,7 @@ class TestPulp(ModelsBaseTest):
                     "content_set": "foo-1",
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 },
             },
             {
@@ -94,6 +95,7 @@ class TestPulp(ModelsBaseTest):
                     "content_set": "foo-1",
                     "arch": "ppc64le",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 }
             },
             {
@@ -102,6 +104,7 @@ class TestPulp(ModelsBaseTest):
                     "content_set": "foo-2",
                     "arch": "ppc64",
                     "signatures": "SIG1,SIG3",
+                    "product_versions": "",
                 }
             }
         ]
@@ -115,11 +118,13 @@ class TestPulp(ModelsBaseTest):
                     "url": "http://localhost/content/1/$basearch/os",
                     "arches": set(["x86_64", "ppc64le"]),
                     "sigkeys": ["SIG1", "SIG2"],
+                    "product_versions": "",
                 },
                 "foo-2": {
                     "url": "http://localhost/content/3/ppc64/os",
                     "arches": set(["ppc64"]),
                     "sigkeys": ["SIG1", "SIG3"],
+                    "product_versions": "",
                 }
             })
 
@@ -141,6 +146,7 @@ class TestPulp(ModelsBaseTest):
                     "content_set": "foo-1",
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 },
             },
             # Test two same relative_urls here.
@@ -150,6 +156,7 @@ class TestPulp(ModelsBaseTest):
                     "content_set": "foo-1",
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 },
             },
             {
@@ -158,6 +165,7 @@ class TestPulp(ModelsBaseTest):
                     "content_set": "foo-1",
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 }
             },
             {
@@ -166,6 +174,7 @@ class TestPulp(ModelsBaseTest):
                     "content_set": "foo-1",
                     "arch": "ppc64le",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 },
             },
         ]
@@ -210,3 +219,55 @@ class TestPulp(ModelsBaseTest):
         download_repodata.assert_any_call(
             repo_prefix + "1.0/ppc64le/os",
             "http://localhost/content/1.0/ppc64le/os")
+
+    @patch("odcs.server.mergerepo.execute_cmd")
+    @patch("odcs.server.mergerepo.makedirs")
+    @patch("odcs.server.mergerepo.Lock")
+    @patch("odcs.server.mergerepo.MergeRepo._download_repodata")
+    def test_pulp_compose_find_latest_version(
+            self, download_repodata, lock, makedirs, execute_cmd,
+            pulp_rest_post):
+        c = Compose.create(
+            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        db.session.commit()
+
+        pulp_rest_post.return_value = [
+            {
+                "notes": {
+                    "relative_url": "content/1.0/x86_64/os",
+                    "content_set": "foo-1",
+                    "arch": "x86_64",
+                    "signatures": "SIG1,SIG2",
+                    "product_versions": '["1.0"]',
+                },
+            },
+            {
+                "notes": {
+                    "relative_url": "content/1.1/x86_64/os",
+                    "content_set": "foo-1",
+                    "arch": "x86_64",
+                    "signatures": "SIG1,SIG2",
+                    "product_versions": '["1.1"]',
+                }
+            },
+        ]
+
+        pulp = Pulp("http://localhost/", "user", "pass", c)
+        ret = pulp.get_repos_from_content_sets(["foo-1"])
+
+        self.assertEqual(
+            ret,
+            {
+                "foo-1": {
+                    "url": "http://localhost/content/1.1/x86_64/os",
+                    "arches": set(["x86_64"]),
+                    "sigkeys": ["SIG1", "SIG2"],
+                    "product_versions": '["1.1"]',
+                }
+            })
+
+        makedirs.assert_not_called()
+
+        execute_cmd.assert_not_called()
+
+        download_repodata.assert_not_called()

@@ -488,6 +488,7 @@ class TestBackend(ModelsBaseTest):
                     "content_set": "foo-1",
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 },
             },
             {
@@ -496,6 +497,7 @@ class TestBackend(ModelsBaseTest):
                     "content_set": "foo-2",
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 }
             },
             {
@@ -504,6 +506,7 @@ class TestBackend(ModelsBaseTest):
                     "content_set": "foo-3",
                     "arch": "ppc64",
                     "signatures": "SIG1,SIG3",
+                    "product_versions": "",
                 }
             }
         ]
@@ -605,7 +608,8 @@ gpgcheck=0
                     "relative_url": "content/1/x86_64/os",
                     "content_set": "foo-1",
                     "arch": "ppc64",
-                    "signatures": "SIG1,SIG2"
+                    "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 },
             },
         ]
@@ -648,7 +652,8 @@ gpgcheck=0
                     "relative_url": "content/1/x86_64/os",
                     "content_set": "foo-1",
                     "arch": "ppc64",
-                    "signatures": "SIG1,SIG2"
+                    "signatures": "SIG1,SIG2",
+                    "product_versions": "",
                 },
             },
         ]
