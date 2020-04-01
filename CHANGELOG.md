@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.42
+  - Release date: 2020-04-01
+  - Fix bad merge resolution in client
+  - Limit Pungi log parsing output to 2kB and stop loading the entire file into
+    memory at once.
+  - Create `odcs-$ID` symlink pointing to compose top level directory
+  - Retry downloading repodata from Pulp
+
 ## 0.2.41
   - Release date: 2020-03-19
   - Do not reuse old compose with different target directory.
