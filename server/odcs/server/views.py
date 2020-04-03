@@ -542,15 +542,19 @@ class AboutAPI(MethodView):
             - ``openidc`` - OpenIDC authorization is required.
             - ``kerberos_or_ssl`` - Kerberos or SSL authorization is required.
             - ``ssl`` - SSL authorization is required.
+        :resjson dict allowed_clients: Allowed clients in the same format as
+            in the ODCS server configuration file.
+        :resjson dict raw_config_urls: Raw config URLs in the same format as
+            in the ODCS server configuration file.
         :statuscode 200: Compose updated and returned.
         """
         json = {'version': version}
-        config_items = ['auth_backend']
+        config_items = ['auth_backend', 'allowed_clients', 'raw_config_urls']
         for item in config_items:
             config_item = getattr(conf, item)
             # All config items have a default, so if doesn't exist it is
             # an error
-            if not config_item:
+            if config_item is None:
                 raise ValueError(
                     'An invalid config item of "%s" was specified' % item)
             json[item] = config_item
