@@ -745,6 +745,53 @@ class TestViews(ViewBaseTest):
 
         self.assertEqual(data['message'], 'No compose with id 100 found')
 
+    def test_submit_build_resurrection_removed_new_sigkeys(self):
+        self.c1.state = COMPOSE_STATES["removed"]
+        self.c1.reused_id = 1
+        db.session.commit()
+
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
+            rv = self.client.patch('/api/1/composes/1', data=json.dumps(
+                {"sigkeys": ["123", "456"]}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['id'], 3)
+        self.assertEqual(data['state_name'], 'wait')
+        self.assertEqual(data['source'], 'testmodule:master')
+        self.assertEqual(data['sigkeys'], '123 456')
+        self.assertEqual(data['time_removed'], None)
+
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.reused_id, None)
+
+    def test_submit_build_resurrection_done_new_sigkeys(self):
+        self.c1.state = COMPOSE_STATES["done"]
+        self.c1.reused_id = 1
+        self.c1.sigkeys = "012 345"
+        db.session.commit()
+
+        with self.test_request_context(user='dev'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
+            rv = self.client.patch('/api/1/composes/1', data=json.dumps(
+                {"sigkeys": ["123", "456"]}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['id'], 3)
+        self.assertEqual(data['state_name'], 'wait')
+        self.assertEqual(data['source'], 'testmodule:master')
+        self.assertEqual(data['sigkeys'], '123 456')
+        self.assertEqual(data['time_removed'], None)
+
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.reused_id, None)
+
     def test_submit_build_not_allowed_source_type(self):
         with self.test_request_context(user='dev'):
             flask.g.oidc_scopes = [

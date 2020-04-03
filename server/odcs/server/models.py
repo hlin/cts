@@ -205,7 +205,7 @@ class Compose(ODCSBase):
         return compose
 
     @classmethod
-    def create_copy(cls, session, compose, owner=None, seconds_to_live=None):
+    def create_copy(cls, session, compose, owner=None, seconds_to_live=None, sigkeys=None):
         """
         Creates new compose with all the options influencing the resulting
         compose copied from the `compose`. The `owner` and `seconds_to_live`
@@ -230,7 +230,7 @@ class Compose(ODCSBase):
             arches=compose.arches,
             multilib_arches=compose.multilib_arches,
             multilib_method=compose.multilib_method,
-            sigkeys=compose.sigkeys,
+            sigkeys=sigkeys if sigkeys is not None else compose.sigkeys,
             lookaside_repos=compose.lookaside_repos,
             modular_koji_tags=compose.modular_koji_tags,
             module_defaults_url=compose.module_defaults_url,

@@ -166,6 +166,8 @@ class ODCSAPI(MethodView):
 
         :query number id: :ref:`ID<id>` of the compose to update/regenerate.
         :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
+        :jsonparam list sigkeys: Optional list defining the :ref:`sigkeys<sigkeys>`.
+            If not defined, original :ref:`sigkeys<sigkeys>` will be used.
 
         :statuscode 200: Compose updated and returned.
         :statuscode 401: User is unathorized.
@@ -196,19 +198,27 @@ class ODCSAPI(MethodView):
         # when regenerating them.
         compose_type = old_compose.compose_type or "test"
 
+        sigkeys = ""
+        if "sigkeys" in data:
+            sigkeys = ' '.join(data["sigkeys"])
+        else:
+            sigkeys = old_compose.sigkeys
+
         raise_if_input_not_allowed(
             source_types=old_compose.source_type, sources=old_compose.source,
             results=old_compose.results, flags=old_compose.flags,
             arches=old_compose.arches, compose_types=compose_type)
 
-        has_to_create_a_copy = old_compose.state in (
-            COMPOSE_STATES['removed'], COMPOSE_STATES['failed'])
+        has_to_create_a_copy = (
+            old_compose.state in (COMPOSE_STATES['removed'], COMPOSE_STATES['failed']) or
+            sigkeys != old_compose.sigkeys)
         if has_to_create_a_copy:
             log.info("%r: Going to regenerate the compose", old_compose)
             compose = Compose.create_copy(db.session,
                                           old_compose,
                                           self._get_compose_owner(),
-                                          seconds_to_live)
+                                          seconds_to_live,
+                                          sigkeys=sigkeys)
             db.session.add(compose)
             # Flush is needed, because we use `before_commit` SQLAlchemy
             # event to send message and before_commit can be called before
