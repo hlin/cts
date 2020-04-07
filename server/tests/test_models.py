@@ -23,7 +23,7 @@
 from datetime import datetime
 from datetime import timedelta
 
-from odcs.server import db
+from odcs.server import db, conf
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_RESULTS, COMPOSE_STATES
 from odcs.server.models import User
@@ -82,6 +82,14 @@ class TestModels(ModelsBaseTest):
                          'pungi_config_dump': 'test',
                          'target_dir': 'default'}
         self.assertEqual(c.json(True), expected_json)
+
+    def test_target_dir_none(self):
+        compose = Compose.create(
+            db.session, "me", PungiSourceType.MODULE, "testmodule-master",
+            COMPOSE_RESULTS["repository"], 3600)
+        compose.target_dir = None
+        db.session.commit()
+        self.assertEqual(compose.target_dir, conf.target_dir)
 
     def test_create_copy(self):
         """

@@ -161,7 +161,7 @@ class Compose(ODCSBase):
     celery_task_id = db.Column(db.String, nullable=True)
     # Target directory in which the compose is stored. This is `conf.target_dir`
     # by default.
-    target_dir = db.Column(db.String, nullable=True)
+    _target_dir = db.Column("target_dir", db.String, nullable=True)
 
     @property
     def on_default_target_dir(self):
@@ -169,6 +169,20 @@ class Compose(ODCSBase):
         True if this compose is stored on default `conf.target_dir`.
         """
         return self.target_dir is None or self.target_dir == conf.target_dir
+
+    @property
+    def target_dir(self):
+        """
+        Returns the `self._target_dir` if set, otherwise `conf.target_dir`.
+
+        This is needed to keep backward compatibility with composes which do
+        not have the `Compose.target_dir` set.
+        """
+        return self._target_dir or conf.target_dir
+
+    @target_dir.setter
+    def target_dir(self, value):
+        self._target_dir = value
 
     @classmethod
     def create(cls, session, owner, source_type, source, results,
