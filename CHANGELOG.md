@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.43
+  - Release date: 2020-04-07
+  - Include raw_config_urls and allowed_clients in /api/1/about response.
+  - Allow setting `sigkeys` when renewing the compose.
+  - Fix traceback when renewing old compose.
+
 ## 0.2.42
   - Release date: 2020-04-01
   - Fix bad merge resolution in client
