@@ -91,6 +91,8 @@ The fields used in the ODCS compose JSON have following meaning:
 
     This is useful for example when creating compose from small Koji tag which is for example based on Fedora RPM repository and verifying that the dependencies of RPMs in the small tag are satisfied when used together with the Fedora repository.
 
+    It is possible to use the ``$basearch`` variable in the lookaside repository which is later expanded to the particular compose architecture.
+
 .. _modular_koji_tags:
 
 *modular_koji_tags* - ``(white-space separated list of strings or null)``
