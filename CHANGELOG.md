@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.44
+  - Release date: 2020-04-20
+  - NOTE: Before upgrading to this version, at first update to
+    0.2.43 and run it for some time so all the composes have symlinks
+    generated in the new `odcs-$COMPOSE_ID` format.
+  - Store composes in directories in `odcs-$COMPOSE_ID` format.
+  - Find and use only latest repository from Pulp.
+  - Allow limiting the users/groups to execute just particular raw_configs.
+
 ## 0.2.43
   - Release date: 2020-04-07
   - Include raw_config_urls and allowed_clients in /api/1/about response.
