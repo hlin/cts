@@ -40,7 +40,12 @@ def _set_default_client_allowed_attrs(ret_attrs, attrs):
     """
     for attr in attrs:
         if attr not in ret_attrs:
-            ret_attrs[attr] = getattr(conf, "allowed_%s" % attr, [])
+            # If raw_config_keys is not set, it means all the `raw_config_urls` keys
+            # are allowed for this client.
+            if attr == "raw_config_keys":
+                ret_attrs[attr] = conf.raw_config_urls.keys()
+            else:
+                ret_attrs[attr] = getattr(conf, "allowed_%s" % attr, [])
     return ret_attrs
 
 
@@ -96,6 +101,7 @@ def raise_if_input_not_allowed(**kwargs):
       - sources - compose.source
       - arches - compose.arches
       - compose_types - compose.compose_type
+      - raw_config_keys - compose.source.split("#")[0]
 
     The decision whether the user is allowed or not is done based on
     conf.allowed_clients value.
@@ -133,6 +139,11 @@ def raise_if_input_not_allowed(**kwargs):
             elif isinstance(values, six.string_types):
                 # `arches` and `sources` are white-space separated lists.
                 values = values.split(" ")
+            elif values is None:
+                # If value is not set, it means it is not available for this compose
+                # type and we need to skip its check later. Set the values to empty
+                # list to do that.
+                values = []
 
             for value in values:
                 allowed_values = attrs[name]

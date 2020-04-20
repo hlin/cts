@@ -92,6 +92,17 @@ defines the ``raw_config`` and can have following keys:
     which the compose must be finished, otherwise the compose is marked as
     ``failed``.
 
+For example:
+
+.. sourcecode:: none
+
+    RAW_CONFIG_URLS = {
+        "releng_fedora": {
+            "url": "https://pagure.io/pungi-fedora.git",
+            "config_filename": "fedora.conf"
+        }
+    }
+
 
 Enabling ``pungi-config-validate``
 -------------------------------------
@@ -144,13 +155,18 @@ Allowing users/groups to generate ``raw_config`` composes
 ---------------------------------------------------------
 
 This is done by setting the ``raw_config`` source_type in
-the ``allowed_clients`` ODCS option like this:
+the ``allowed_clients`` as well as particular ``raw_config_keys`` in
+the ODCS option like this:
 
 
 .. sourcecode:: none
 
     allowed_clients = {
-        "some_username": {"source_types": ["raw_config", ...]}
+        "some_username": {
+            "source_types": ["raw_config", ...],
+            "raw_config_keys": ["releng_fedora", ...]
+        }
     }
 
-
+If ``raw_config_keys`` is not specified, the user/group is able to generate
+any ``raw_config`` compose.

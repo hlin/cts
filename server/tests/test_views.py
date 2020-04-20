@@ -121,7 +121,11 @@ class ViewBaseTest(ModelsBaseTest):
                 'dev3': {
                     'source_types': ['tag'],
                     'target_dirs': ["releng-private"]
-                }
+                },
+                'dev4': {
+                    'source_types': ['raw_config'],
+                    'raw_config_keys': ["pungi_cfg2"]
+                },
             }
         }
         patched_admins = {'groups': ['admin'], 'users': ['root']}
@@ -703,6 +707,43 @@ class TestViews(ViewBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 3).one()
         self.assertEqual(c.reused_id, None)
 
+    def test_submit_build_resurrection_not_allowed_raw_config_key(self):
+        self.c1.state = COMPOSE_STATES["removed"]
+        self.c1.reused_id = 1
+        self.c1.source_type = 5
+        self.c1.source = "pungi_cfg#hash"
+        db.session.commit()
+
+        with self.test_request_context(user='dev4'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
+            rv = self.client.patch('/api/1/composes/1')
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(
+            data["message"],
+            "User dev4 not allowed to operate with compose with raw_config_keys=pungi_cfg.")
+
+    def test_submit_build_resurrection_allowed_raw_config_key(self):
+        self.c1.state = COMPOSE_STATES["removed"]
+        self.c1.reused_id = 1
+        self.c1.source_type = 5
+        self.c1.source = "pungi_cfg2#hash"
+        db.session.commit()
+
+        with self.test_request_context(user='dev4'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'renew-compose')
+            ]
+
+            rv = self.client.patch('/api/1/composes/1')
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data['id'], 3)
+        self.assertEqual(data['state_name'], 'wait')
+
     def test_submit_build_resurrection_failed(self):
         self.c1.state = COMPOSE_STATES["failed"]
         self.c1.reused_id = 1
@@ -823,6 +864,38 @@ class TestViews(ViewBaseTest):
         self.assertEqual(
             data['message'],
             'User dev2 not allowed to operate with compose with compose_types=production.')
+
+    @patch.object(odcs.server.config.Config, 'raw_config_urls',
+                  new={"pungi_cfg": "http://localhost/pungi.conf#%s"})
+    def test_submit_build_not_allowed_raw_config_key(self):
+        with self.test_request_context(user='dev4'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config', 'source': 'pungi_cfg#hash'},
+                 'compose_type': 'production'}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(
+            data['message'],
+            'User dev4 not allowed to operate with compose with raw_config_keys=pungi_cfg.')
+
+    @patch.object(odcs.server.config.Config, 'raw_config_urls',
+                  new={"pungi_cfg2": "http://localhost/pungi.conf#%s"})
+    def test_submit_build_allowed_raw_config_key(self):
+        with self.test_request_context(user='dev4'):
+            flask.g.oidc_scopes = [
+                '{0}{1}'.format(conf.oidc_base_namespace, 'new-compose')
+            ]
+
+            rv = self.client.post('/api/1/composes/', data=json.dumps(
+                {'source': {'type': 'raw_config', 'source': 'pungi_cfg2#hash'},
+                 'compose_type': 'production'}))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data["source"], "pungi_cfg2#hash")
 
     def test_submit_build_unknown_source_type(self):
         with self.test_request_context(user='dev'):

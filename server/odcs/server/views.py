@@ -204,10 +204,16 @@ class ODCSAPI(MethodView):
         else:
             sigkeys = old_compose.sigkeys
 
+        # Get the raw_config_key if this compose is RAW_CONFIG.
+        raw_config_key = None
+        if old_compose.source_type == PungiSourceType.RAW_CONFIG:
+            raw_config_key = old_compose.source.split("#")[0]
+
         raise_if_input_not_allowed(
             source_types=old_compose.source_type, sources=old_compose.source,
             results=old_compose.results, flags=old_compose.flags,
-            arches=old_compose.arches, compose_types=compose_type)
+            arches=old_compose.arches, compose_types=compose_type,
+            raw_config_keys=raw_config_key)
 
         has_to_create_a_copy = (
             old_compose.state in (COMPOSE_STATES['removed'], COMPOSE_STATES['failed']) or
@@ -318,6 +324,7 @@ class ODCSAPI(MethodView):
             raise ValueError(err)
 
         # Validate `source` based on `source_type`.
+        raw_config_key = None
         if source_type == PungiSourceType.RAW_CONFIG:
             if len(source) > 1:
                 raise ValueError(
@@ -336,6 +343,7 @@ class ODCSAPI(MethodView):
                 raise ValueError(
                     'Source "%s" does not exist in server configuration.' %
                     source_name)
+            raw_config_key = source_name
         elif source_type == PungiSourceType.MODULE:
             for module_str in source:
                 nsvc = module_str.split(":")
@@ -436,7 +444,7 @@ class ODCSAPI(MethodView):
         raise_if_input_not_allowed(
             source_types=source_type, sources=source, results=results,
             flags=flags, arches=arches, compose_types=compose_type,
-            target_dirs=target_dir)
+            target_dirs=target_dir, raw_config_keys=raw_config_key)
 
         compose = Compose.create(
             db.session, self._get_compose_owner(), source_type, source,
