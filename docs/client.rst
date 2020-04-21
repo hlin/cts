@@ -27,7 +27,7 @@ Generating compose with cherry-picked modules
 =============================================
 
 ODCS is used quite often to test modules after they are built. You only
-need to know ``NAME:STREAM``, ``NAME:STREA:VERSION`` or
+need to know ``NAME:STREAM``, ``NAME:STREAM:VERSION`` or
 ``NAME:STREAM:VERSION:CONTEXT`` of the module you want to include in the
 compose.
 
