@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.45
+  - Release date: 2020-04-21
+  - Set celery task ID for regenerated composes.
+  - Really generate the composes in the `odcs-$COMPOSE_ID` directorires.
+
 ## 0.2.44
   - Release date: 2020-04-20
   - NOTE: Before upgrading to this version, at first update to
