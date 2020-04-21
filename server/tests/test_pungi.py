@@ -372,6 +372,7 @@ class TestPungi(ModelsBaseTest):
 
         self.compose = MagicMock()
         self.compose.target_dir = conf.target_dir
+        self.compose.toplevel_dir = os.path.join(conf.target_dir, "odcs-1")
         self.compose.compose_type = "test"
 
     def tearDown(self):
@@ -389,7 +390,7 @@ class TestPungi(ModelsBaseTest):
         pungi.run(self.compose)
 
         self.makedirs.assert_called_with(
-            AnyStringWith("test_composes/odcs-1-1-"))
+            AnyStringWith("test_composes/odcs-1/"))
         self.makedirs.assert_called_with(
             AnyStringWith("work/global"))
         self.ci_dump.assert_called_once_with(
@@ -422,7 +423,7 @@ class TestPungi(ModelsBaseTest):
             pungi.run(self.compose)
 
         self.makedirs.assert_called_with(
-            AnyStringWith("test_composes/odcs-1-1-"))
+            AnyStringWith("test_composes/odcs-1/"))
         self.makedirs.assert_called_with(
             AnyStringWith("work/global"))
         self.ci_dump.assert_called_once_with(
@@ -441,6 +442,8 @@ class TestPungi(ModelsBaseTest):
         compose = Compose.create(
             db.session, "me", PungiSourceType.RAW_CONFIG, "foo",
             COMPOSE_RESULTS["repository"], 3600)
+        db.session.add(compose)
+        db.session.commit()
 
         def mocked_execute_cmd(*args, **kwargs):
             topdir = kwargs["cwd"]

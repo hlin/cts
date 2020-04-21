@@ -347,15 +347,12 @@ class Pungi(object):
             pungi_cmd += ["--old-composes", self.old_compose]
         return pungi_cmd
 
-    def _prepare_compose_dir(self, compose, conf_topdir, targetdir):
+    def _prepare_compose_dir(self, compose, conf_topdir):
         """
         Creates the compose directory and returns the full path to it.
         """
         compose_date = time.strftime("%Y%m%d", time.localtime())
-        compose_id = "odcs-%s-1-%s.n.0" % (
-            self.compose_id, compose_date)
-        compose_dir = os.path.join(targetdir, compose_id)
-        makedirs(compose_dir)
+        makedirs(compose.toplevel_dir)
 
         conf = PyConfigParser()
         conf.load_from_file(os.path.join(conf_topdir, "pungi.conf"))
@@ -387,13 +384,13 @@ class Pungi(object):
             ci.compose.respin += 1
 
         # Dump the compose info to work/global/composeinfo-base.json.
-        work_dir = os.path.join(compose_dir, "work", "global")
+        work_dir = os.path.join(compose.toplevel_dir, "work", "global")
         makedirs(work_dir)
         ci.dump(os.path.join(work_dir, "composeinfo-base.json"))
 
         compose.pungi_compose_id = ci.compose.id
 
-        return compose_dir
+        return compose.toplevel_dir
 
     def run_locally(self, compose):
         """
@@ -403,7 +400,7 @@ class Pungi(object):
         try:
             td = tempfile.mkdtemp()
             self._write_cfgs(td)
-            compose_dir = self._prepare_compose_dir(compose, td, compose.target_dir)
+            compose_dir = self._prepare_compose_dir(compose, td)
             self.pungi_cfg.validate(td, compose_dir)
             pungi_cmd = self.get_pungi_cmd(td, compose.target_dir, compose_dir)
 

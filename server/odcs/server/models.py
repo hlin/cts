@@ -269,7 +269,7 @@ class Compose(ODCSBase):
 
     @property
     def toplevel_dir(self):
-        return os.path.join(conf.target_dir, self.name)
+        return os.path.join(self.target_dir, self.name)
 
     @property
     def toplevel_url(self):
