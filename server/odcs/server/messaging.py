@@ -67,7 +67,7 @@ def _fedora_messaging_send_msg(msgs):
     for msg in msgs:
         # "event" is typically just "state-changed"
         event = msg.get('event', 'event')
-        topic = "compose.%s" % event
+        topic = "odcs.compose.%s" % event
 
         api.publish(api.Message(topic=topic, body=msg))
 
