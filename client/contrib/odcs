@@ -113,7 +113,7 @@ KNOWN_ARGS = {
         default=[],
         action="append",
         metavar="lookaside_repos",
-        help="Koji tag with module builds.",
+        help="Specify lookaside repositories.",
     ),
     "--label": dict(default=None, help="Label for raw_config compose."),
     "--compose-type": dict(default=None, help="Compose type for raw_config compose."),
