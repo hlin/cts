@@ -398,10 +398,38 @@ class TestPungi(ModelsBaseTest):
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
-             AnyStringWith('--compose-dir='), '--nightly'],
+             AnyStringWith('--compose-dir='), '--test'],
             cwd=AnyStringWith('/tmp/'), timeout=3600,
             stderr=AnyStringWith("pungi-stderr.log"),
             stdout=AnyStringWith("pungi-stdout.log"))
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_compose_type(self, execute_cmd):
+        for compose_type in [None, "test", "ci", "nightly", "production"]:
+            self.makedirs.reset_mock()
+            self.ci_dump.reset_mock()
+            execute_cmd.reset_mock()
+
+            self.compose.compose_type = compose_type
+            pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
+                                    "testmodule:master:1:1")
+            pungi = Pungi(1, pungi_cfg)
+            pungi.run(self.compose)
+
+            self.makedirs.assert_called_with(
+                AnyStringWith("test_composes/odcs-1/"))
+            self.makedirs.assert_called_with(
+                AnyStringWith("work/global"))
+            self.ci_dump.assert_called_once_with(
+                AnyStringWith("work/global/composeinfo-base.json"))
+
+            execute_cmd.assert_called_once_with(
+                ['pungi-koji', AnyStringWith('pungi.conf'),
+                 AnyStringWith('--compose-dir='),
+                 '--%s' % (compose_type or "test")],
+                cwd=AnyStringWith('/tmp/'), timeout=3600,
+                stderr=AnyStringWith("pungi-stderr.log"),
+                stdout=AnyStringWith("pungi-stdout.log"))
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run_raw_config(self, execute_cmd):
@@ -530,7 +558,7 @@ class TestPungi(ModelsBaseTest):
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
-             AnyStringWith('--compose-dir='), '--nightly'],
+             AnyStringWith('--compose-dir='), '--test'],
             cwd=AnyStringWith('/tmp/'), timeout=7200,
             stderr=AnyStringWith("pungi-stderr.log"),
             stdout=AnyStringWith("pungi-stdout.log"))

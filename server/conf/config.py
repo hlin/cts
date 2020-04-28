@@ -143,7 +143,7 @@ class BaseConfiguration(object):
     # }
 
     # Command line arguments used to construct pungi-koji command.
-    PUNGI_KOJI_ARGS = ['--nightly']
+    PUNGI_KOJI_ARGS = []
 
     # Command line argument for raw_config source type, which overwrite
     # arguments listed PUNGI_KOJI_ARGS.

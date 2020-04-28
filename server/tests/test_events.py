@@ -136,7 +136,7 @@ class TestFedoraMessagingSendMessageWhenComposeIsCreated(ModelsBaseTest):
         db.session.commit()
 
         Message.assert_called_once_with(
-            topic="compose.state-changed",
+            topic="odcs.compose.state-changed",
             body={'event': 'state-changed', 'compose': compose.json()})
 
         publish.assert_called_once_with(Message.return_value)

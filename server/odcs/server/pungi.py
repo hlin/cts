@@ -312,7 +312,7 @@ class Pungi(object):
         """
         self.pungi_cfg.write_config_files(topdir)
 
-    def get_pungi_cmd(self, conf_topdir, targetdir, compose_dir=None):
+    def get_pungi_cmd(self, conf_topdir, compose, compose_dir=None):
         """
         Returns list with pungi command line arguments needed to generate
         the compose.
@@ -332,7 +332,7 @@ class Pungi(object):
         if compose_dir:
             pungi_cmd.append("--compose-dir=%s" % compose_dir)
         else:
-            pungi_cmd.append("--target-dir=%s" % targetdir)
+            pungi_cmd.append("--target-dir=%s" % compose.target_dir)
 
         if isinstance(self.pungi_cfg, RawPungiConfig):
             pungi_cmd += self.pungi_cfg.pungi_koji_args
@@ -340,6 +340,20 @@ class Pungi(object):
             pungi_cmd += conf.pungi_koji_args
         else:
             raise RuntimeError('Unknown pungi config type to handle.')
+
+        compose_type_to_arg = {
+            "test": "--test",
+            "ci": "--ci",
+            "nightly": "--nightly",
+            "production": "--production",
+        }
+        compose_type = compose.compose_type or "test"
+
+        # Add compose_type arg to pungi_cmd only if it's not set already
+        # directly in the configuration.
+        if not set(pungi_cmd).intersection(set(compose_type_to_arg.values())):
+            # For unknown compose_type, fallback to --test to be safe.
+            pungi_cmd.append(compose_type_to_arg.get(compose_type, "--test"))
 
         if self.koji_event:
             pungi_cmd += ["--koji-event", str(self.koji_event)]
@@ -402,7 +416,7 @@ class Pungi(object):
             self._write_cfgs(td)
             compose_dir = self._prepare_compose_dir(compose, td)
             self.pungi_cfg.validate(td, compose_dir)
-            pungi_cmd = self.get_pungi_cmd(td, compose.target_dir, compose_dir)
+            pungi_cmd = self.get_pungi_cmd(td, compose, compose_dir)
 
             # Commit the session to ensure that all the `compose` changes are
             # stored database before executing the compose and are not just
