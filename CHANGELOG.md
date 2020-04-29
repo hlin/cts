@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.46
+  - Release date: 2020-04-29
+  - ODCS client: Add --watch argument to watch the compose log.
+  - Add missing 'odcs.' prefix for fedora-messaging messages. 
+  - Install odcs-promote-compose script.
+  - Add the --nightly/--ci/--test/--production Pungi options according to compose_type. 
+  - Reschedule compose task in case it is stuck in 'wait' state.
+
 ## 0.2.45
   - Release date: 2020-04-21
   - Set celery task ID for regenerated composes.
