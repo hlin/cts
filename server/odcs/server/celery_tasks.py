@@ -26,14 +26,16 @@ import os
 import re
 from celery import Celery
 from six.moves.urllib.parse import urlparse
+from datetime import datetime, timedelta
 
-from odcs.server import conf, db
+from odcs.server import conf, db, log
 from odcs.server.backend import (
     generate_compose as backend_generate_compose,
     ComposerThread,
     RemoveExpiredComposesThread)
 from odcs.server.utils import retry
 from odcs.server.models import Compose, COMPOSE_STATES
+from odcs.server.pungi import PungiSourceType
 
 
 # Prepare the instances of classes with worker methods.
@@ -203,6 +205,90 @@ def generate_pulp_compose(compose_id):
     generate_compose(compose_id)
 
 
+def get_current_celery_task_ids():
+    """
+    Returns a set with currently registered task IDs.
+    """
+    inspection = celery_app.control.inspect()
+
+    # Active tasks are currently running tasks.
+    active = []
+    act_obj = inspection.active()
+    if act_obj is not None:
+        for i in act_obj.values():
+            active += i
+    active = [i['id'] for i in active]
+
+    # Reserved tasks are assigned to particular worker, but
+    # are not running yet.
+    reserved = []
+    res_obj = inspection.reserved()
+    if res_obj is not None:
+        for i in res_obj.values():
+            reserved += i
+    reserved = [i['id'] for i in reserved]
+
+    return set(reserved + active)
+
+
+def schedule_compose(compose):
+    """
+    Schedules the compose task and sets the `compose.celery_task_id`.
+    Returns the updated `compose`.
+    """
+    if compose.source_type == PungiSourceType.PULP:
+        result = generate_pulp_compose.delay(compose.id)
+    else:
+        result = generate_pungi_compose.delay(compose.id)
+    compose.celery_task_id = result.id
+    db.session.add(compose)
+    db.session.commit()
+    return compose
+
+
+def reschedule_waiting_composes():
+    """
+    Gets all the composes stuck in the "wait" state and reschedules them.
+
+    This method exists to pro-actively generate "wait" composes in case
+    the Celery message from frontend to backend is lost from whatever reason.
+    """
+    # Composes transition from 'wait' to 'generating' quite fast.
+    # The frontend changes the state of compose to 'wait', sends a message
+    # to the bus and once some backend receives it, it moves it to
+    # 'generating'. This should not take more than 3 minutes, so that's
+    # the limit we will use to find out the stuck composes.
+    # On the other hand, we don't want to regenerate composes older than
+    # 3 days, because nobody is probably waiting for them. Just mark
+    # them as "failed".
+    now = datetime.utcnow()
+    from_time = now - timedelta(days=3)
+    to_time = now - timedelta(minutes=3)
+
+    # Get composes which are in 'wait' state for too long.
+    composes = Compose.query.filter(
+        Compose.state == COMPOSE_STATES["wait"],
+        Compose.time_submitted < to_time).order_by(
+            Compose.id).all()
+
+    # Get the current task ids registered by the workers.
+    task_ids = get_current_celery_task_ids()
+
+    for compose in composes:
+        # Check if the task is already planned.
+        if compose.celery_task_id in task_ids:
+            continue
+
+        if compose.time_submitted < from_time:
+            compose.transition(
+                COMPOSE_STATES["failed"],
+                "Compose stuck in 'wait' state for longer than 3 days.")
+            continue
+
+        log.info("%r: Rescheduling compose stuck in 'wait' state.", compose)
+        schedule_compose(compose)
+
+
 @celery_app.task
 def run_cleanup():
     """
@@ -210,3 +296,4 @@ def run_cleanup():
     """
     remove_expired_compose_thread.do_work()
     composer_thread.fail_lost_generating_composes()
+    reschedule_waiting_composes()

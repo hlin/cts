@@ -24,7 +24,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-from mock import patch, MagicMock, call
+from mock import patch, MagicMock
 
 import odcs.server
 from odcs.server import db, app, conf
@@ -387,64 +387,6 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
         db.session.add(compose)
         db.session.commit()
         return compose
-
-    def test_pickup_waiting_composes_generating_state(self):
-        time_submitted = datetime.utcnow() - timedelta(minutes=5)
-        composes = []
-        for i in range(10):
-            composes.append(self._add_test_compose(
-                COMPOSE_STATES["wait"], time_submitted=time_submitted))
-        composes = sorted(composes, key=lambda c: c.id)
-        self.composer.pickup_waiting_composes()
-        self.generate_new_compose.assert_has_calls([
-            call(composes[0]), call(composes[1]), call(composes[2]),
-            call(composes[3])])
-
-    def test_pickup_waiting_composes_generating_state_not_old_enough(self):
-        composes = []
-        for i in range(10):
-            composes.append(self._add_test_compose(
-                COMPOSE_STATES["wait"]))
-        composes = sorted(composes, key=lambda c: c.id)
-        self.composer.pickup_waiting_composes()
-        self.generate_new_compose.assert_not_called()
-
-    def test_pickup_waiting_composes_generating_state_old(self):
-        time_submitted = datetime.utcnow() - timedelta(days=5)
-        composes = []
-        for i in range(10):
-            composes.append(self._add_test_compose(
-                COMPOSE_STATES["wait"], time_submitted=time_submitted))
-        composes = sorted(composes, key=lambda c: c.id)
-        self.composer.pickup_waiting_composes()
-        self.generate_new_compose.assert_not_called()
-
-    def test_generate_lost_composes_generating_state(self):
-        composes = []
-        for i in range(10):
-            composes.append(self._add_test_compose(COMPOSE_STATES["generating"]))
-        composes = sorted(composes, key=lambda c: c.id)
-        self.composer.pickup_waiting_composes()
-        self.generate_new_compose.assert_not_called()
-
-    def test_pickup_waiting_composes_no_limit_for_pulp(self):
-        time_submitted = datetime.utcnow() - timedelta(minutes=5)
-        composes = []
-        for i in range(10):
-            composes.append(self._add_test_compose(
-                COMPOSE_STATES["wait"], time_submitted=time_submitted))
-        for i in range(10):
-            composes.append(self._add_test_compose(
-                COMPOSE_STATES["wait"], time_submitted=time_submitted,
-                source_type=PungiSourceType.PULP))
-        composes = sorted(composes, key=lambda c: c.id)
-        self.composer.pickup_waiting_composes()
-        self.generate_new_compose.assert_has_calls([
-            call(composes[0]), call(composes[1]), call(composes[2]),
-            call(composes[3]), call(composes[10]), call(composes[11]),
-            call(composes[12]), call(composes[13]), call(composes[14]),
-            call(composes[15]), call(composes[16]), call(composes[17]),
-            call(composes[18]), call(composes[19])])
 
     def test_fail_lost_generating_composes(self):
         t = datetime.utcnow() - timedelta(seconds=2 * conf.pungi_timeout)

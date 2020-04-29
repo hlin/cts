@@ -977,56 +977,6 @@ class ComposerThread(BackendThread):
             log.info("%r: Going to start compose generation.", compose)
             self.generate_new_compose(compose)
 
-    def pickup_waiting_composes(self):
-        """
-        Gets all the composes in "wait" state and starts generating them.
-
-        This method exists to pro-actively generate "wait" composes in case
-        the UMB message from frontend to backend is lost from whatever reason.
-        """
-        # Composes transition from 'wait' to 'generating' quite fast.
-        # The frontend changes the state of compose to 'wait', sends a message
-        # to the bus and once some backend receives it, it moves it to
-        # 'generating'. This should not take more than 3 minutes, so that's
-        # the limit we will use to find out the stuck composes.
-        # On the other hand, we don't want to regenerate composes older than
-        # 3 days, because nobody is probably waiting for them. Just mark
-        # them as "failed".
-        now = datetime.utcnow()
-        from_time = now - timedelta(days=3)
-        to_time = now - timedelta(minutes=3)
-
-        # Get composes which are in 'wait' state for too long.
-        composes = Compose.query.filter(
-            Compose.state == COMPOSE_STATES["wait"],
-            Compose.time_submitted < to_time).order_by(
-                Compose.id).all()
-
-        # We don't want to be to greedy here, because there are other backends
-        # which can handle the lost composes too later, so just take few non-Pulp
-        # composes each time.
-        # Pulp composes are much cheaper to generate - usually just single call to
-        # Pulp, so get all of them.
-        non_pulp_composes_count = 0
-
-        for compose in composes:
-            if compose.time_submitted < from_time:
-                compose.transition(
-                    COMPOSE_STATES["failed"],
-                    "Compose stuck in 'wait' state for longer than 3 days.")
-                continue
-
-            # Take only num_concurrent_pungi * 2 non-Pulp composes to keep some queue
-            # but left something for other backends.
-            if compose.source_type != PungiSourceType.PULP:
-                non_pulp_composes_count += 1
-                if non_pulp_composes_count > conf.num_concurrent_pungi * 2:
-                    continue
-
-            log.info("%r: Going to regenerate compose stuck in 'wait' "
-                     "state.", compose)
-            self.generate_new_compose(compose)
-
     def fail_lost_generating_composes(self):
         """
         Fails the composes in `generating` state in case they are in this
