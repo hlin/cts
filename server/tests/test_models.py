@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import os
 from datetime import datetime
 from datetime import timedelta
 
@@ -83,6 +84,21 @@ class TestModels(ModelsBaseTest):
                          'target_dir': 'default',
                          'toplevel_url': 'http://localhost/odcs/odcs-1'}
         self.assertEqual(c.json(True), expected_json)
+
+    def test_compose_paths(self):
+        compose = Compose.create(
+            db.session, "me", PungiSourceType.MODULE, "testmodule-master",
+            COMPOSE_RESULTS["repository"], 3600)
+        compose.id = 1
+        self.assertEqual(compose.toplevel_dir, os.path.join(conf.target_dir, "odcs-1"))
+        self.assertEqual(
+            compose.result_repofile_path,
+            os.path.join(conf.target_dir, "odcs-1/compose/Temporary/odcs-1.repo")
+        )
+        self.assertEqual(
+            compose.result_repo_dir,
+            os.path.join(conf.target_dir, "odcs-1/compose/Temporary")
+        )
 
     def test_target_dir_none(self):
         compose = Compose.create(

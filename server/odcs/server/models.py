@@ -302,7 +302,7 @@ class Compose(ODCSBase):
         """
         Returns path to .repo file.
         """
-        return os.path.join(self.name, "compose", "Temporary",
+        return os.path.join(self.toplevel_dir, "compose", "Temporary",
                             self.name + ".repo")
 
     @property
