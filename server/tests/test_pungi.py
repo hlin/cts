@@ -374,6 +374,7 @@ class TestPungi(ModelsBaseTest):
         self.compose.target_dir = conf.target_dir
         self.compose.toplevel_dir = os.path.join(conf.target_dir, "odcs-1")
         self.compose.compose_type = "test"
+        self.compose.label = None
 
     def tearDown(self):
         super(TestPungi, self).tearDown()
@@ -559,6 +560,29 @@ class TestPungi(ModelsBaseTest):
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
              AnyStringWith('--compose-dir='), '--test'],
+            cwd=AnyStringWith('/tmp/'), timeout=7200,
+            stderr=AnyStringWith("pungi-stderr.log"),
+            stdout=AnyStringWith("pungi-stdout.log"))
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_raw_config_label(self, execute_cmd):
+        self.compose.label = "Alpha-0.1"
+
+        fake_raw_config_urls = {
+            'pungi.conf': {
+                "url": "http://localhost/test.git",
+                "config_filename": "pungi.conf",
+                "pungi_timeout": 7200,
+            }
+        }
+        with patch.object(conf, 'raw_config_urls', new=fake_raw_config_urls):
+            pungi = Pungi(1, RawPungiConfig('pungi.conf#hash'))
+            pungi.run(self.compose)
+
+        execute_cmd.assert_called_once_with(
+            ['pungi-koji', AnyStringWith('pungi.conf'),
+             AnyStringWith('--compose-dir='), '--test',
+             '--label=Alpha-0.1'],
             cwd=AnyStringWith('/tmp/'), timeout=7200,
             stderr=AnyStringWith("pungi-stderr.log"),
             stdout=AnyStringWith("pungi-stdout.log"))

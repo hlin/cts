@@ -355,6 +355,9 @@ class Pungi(object):
             # For unknown compose_type, fallback to --test to be safe.
             pungi_cmd.append(compose_type_to_arg.get(compose_type, "--test"))
 
+        if compose.label:
+            pungi_cmd.append("--label=%s" % str(compose.label))
+
         if self.koji_event:
             pungi_cmd += ["--koji-event", str(self.koji_event)]
         if self.old_compose:
