@@ -90,7 +90,13 @@ KNOWN_ARGS = {
     "--sigkey": dict(
         default=[],
         action="append",
-        help='Signing key ID using which the packages must be signed - "none" for no signing key.',  # noqa: E501
+        help='ODCS will require that all packages are signed by this ' \
+             'signing key ID. Example: "FD431D51". You may use this option ' \
+             'multiple times to specify multiple key IDs. ODCS will choose ' \
+             'signed packages according to the order of the key IDs that ' \
+             'you specify here. Use "--sigkey none" to allow unsigned ' \
+             'packages. If you do not specify any --sigkey option, ODCS ' \
+             'will use the default signing key list (defined on the server).'
     ),
     "--koji-event": dict(default=None, help="Koji event for populating package set"),
     "--arch": dict(
