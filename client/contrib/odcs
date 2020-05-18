@@ -141,7 +141,7 @@ create_parser.set_defaults(command='create')
 create_parser.add_argument(
     'source_type', default=None,
     choices=['tag', 'module', 'raw_config', 'pulp', 'build'],
-    help="Type for the source. Must be 'tag' or 'module'")
+    help="Type for the source, for example: tag.")
 create_parser.add_argument(
     'source', default="",
     help="Source for the compose. May be a koji tag or a "
