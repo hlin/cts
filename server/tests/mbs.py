@@ -29,8 +29,8 @@ from six.moves.urllib.parse import urlparse, parse_qs
 from odcs.server import conf
 
 import gi
-gi.require_version('Modulemd', '2.0') # noqa
-from gi.repository import Modulemd
+gi.require_version('Modulemd', '2.0')
+from gi.repository import Modulemd  # noqa: E402
 
 
 def dump_mmd(mmd):

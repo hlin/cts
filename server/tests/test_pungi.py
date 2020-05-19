@@ -643,7 +643,7 @@ For more details see {0}/odcs-717-1-20180323.n.0/work/x86_64/pungi/Temporary.x86
         pungi_log = """
 2018-03-23 03:38:42 [INFO    ] Writing pungi config
 2018-03-23 03:38:42 [INFO    ] [BEGIN] Running pungi
-        """.format(conf.target_dir)
+        """
         patched_open.return_value = mock_open(
             read_data=pungi_log).return_value
 

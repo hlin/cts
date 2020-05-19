@@ -27,8 +27,8 @@ from odcs.server.utils import retry, to_text_type
 from odcs.server import log
 
 import gi
-gi.require_version('Modulemd', '2.0') # noqa
-from gi.repository import Modulemd
+gi.require_version('Modulemd', '2.0')
+from gi.repository import Modulemd  # noqa: E402
 
 
 class ModuleLookupError(Exception):
