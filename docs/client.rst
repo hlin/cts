@@ -48,6 +48,16 @@ RPMs from the virtual ``platform`` module. This is done by design to not
 make composes unnecessary big. You can use "hybrid" compose described
 later in this doc.
 
+Selecting modules
+-----------------
+
+If you specify a ``name:stream`` without specifying a ``version:context``,
+ODCS will query MBS to find the very latest ``version:context`` build. For
+example, if you specify ``go-toolset:rhel8``, ODCS will query MBS for the
+latest ``go-toolset`` module build for the ``rhel8`` stream, whereas if you
+specify ``go-toolset:rhel8:8020020200128163444:0ab52eed``, ODCS will compose
+that exact module instead.
+
 Generating compose with cherry-picked Koji builds
 =================================================
 
