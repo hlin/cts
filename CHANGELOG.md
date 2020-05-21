@@ -2,12 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.47
+  - Release date: 2020-05-21
+  - docs: Improve description of finding latest modules
+  - client: Improve documentation for sigkeys
+  - client: List all source types
+  - Pass compose label to Pungi if set
+  - client: Accept OpenIDC token stored in a file
+  - Add missing 'modules' parser for create-module <modules>
+  - Fix Compose.result_repofile_path
+
 ## 0.2.46
   - Release date: 2020-04-29
   - ODCS client: Add --watch argument to watch the compose log.
-  - Add missing 'odcs.' prefix for fedora-messaging messages. 
+  - Add missing 'odcs.' prefix for fedora-messaging messages.
   - Install odcs-promote-compose script.
-  - Add the --nightly/--ci/--test/--production Pungi options according to compose_type. 
+  - Add the --nightly/--ci/--test/--production Pungi options according to compose_type.
   - Reschedule compose task in case it is stuck in 'wait' state.
 
 ## 0.2.45
