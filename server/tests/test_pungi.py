@@ -25,6 +25,7 @@ import shutil
 import tempfile
 import unittest
 import time
+from productmd import ComposeInfo
 
 from mock import patch, MagicMock, mock_open, call
 from kobo.conf import PyConfigParser
@@ -337,6 +338,12 @@ class TestPungiConfig(unittest.TestCase):
             )
 
 
+class FakePyConfigParser(dict):
+
+    def load_from_file(self, *args, **kwargs):
+        pass
+
+
 class TestPungi(ModelsBaseTest):
 
     def setUp(self):
@@ -376,12 +383,16 @@ class TestPungi(ModelsBaseTest):
         self.compose.compose_type = "test"
         self.compose.label = None
 
+        makedirs(self.compose.toplevel_dir)
+
     def tearDown(self):
         super(TestPungi, self).tearDown()
 
         self.patch_clone_repo.stop()
         self.patch_makedirs.stop()
         self.patch_ci_dump.stop()
+
+        shutil.rmtree(self.compose.toplevel_dir)
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run(self, execute_cmd):
@@ -403,6 +414,54 @@ class TestPungi(ModelsBaseTest):
             cwd=AnyStringWith('/tmp/'), timeout=3600,
             stderr=AnyStringWith("pungi-stderr.log"),
             stdout=AnyStringWith("pungi-stdout.log"))
+
+    @patch("odcs.server.utils.execute_cmd")
+    @patch("odcs.server.pungi.PyConfigParser")
+    def test_pungi_run_cts(self, py_config_parser, execute_cmd):
+        self.patch_ci_dump.stop()
+        py_config_parser.return_value = FakePyConfigParser({
+            "cts_url": "https://cts.localhost.tld/",
+            "cts_keytab": "/tmp/some.keytab",
+        })
+
+        def fake_execute_cmd(*args, **kwargs):
+            # Fake `execute_cmd` method which creates composeinfo-base.json file
+            # and waits for three seconds to test that ODCS picks up the compose
+            # ID from this file.
+            p = os.path.join(self.compose.toplevel_dir, "work", "global", "composeinfo-base.json")
+            makedirs(os.path.dirname(p))
+            ci = ComposeInfo()
+            ci.compose.id = "Fedora-Rawhide-20200517.n.1"
+            ci.compose.type = "nightly"
+            ci.compose.date = "20200517"
+            ci.compose.respin = 1
+            ci.release.name = "Fedora"
+            ci.release.short = "Fedora"
+            ci.release.version = "Rawhide"
+            ci.release.is_layered = False
+            ci.release.type = "ga"
+            ci.release.internal = False
+            ci.dump(p)
+            time.sleep(3)
+
+        execute_cmd.side_effect = fake_execute_cmd
+
+        pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.MODULE,
+                                "testmodule:master:1:1")
+        pungi = Pungi(1, pungi_cfg)
+        pungi.run(self.compose)
+
+        self.makedirs.assert_called_with(
+            AnyStringWith("test_composes/odcs-1"))
+
+        execute_cmd.assert_called_once_with(
+            ['pungi-koji', AnyStringWith('pungi.conf'),
+             AnyStringWith('--compose-dir='), '--test'],
+            cwd=AnyStringWith('/tmp/'), timeout=3600,
+            stderr=AnyStringWith("pungi-stderr.log"),
+            stdout=AnyStringWith("pungi-stdout.log"))
+
+        self.assertEqual(self.compose.pungi_compose_id, "Fedora-Rawhide-20200517.n.1")
 
     @patch("odcs.server.utils.execute_cmd")
     def test_pungi_run_compose_type(self, execute_cmd):

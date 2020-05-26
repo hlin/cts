@@ -27,6 +27,7 @@ import shutil
 import tempfile
 import jinja2
 import time
+import threading
 from productmd.composeinfo import ComposeInfo
 from kobo.conf import PyConfigParser
 
@@ -298,6 +299,37 @@ class PungiConfig(BasePungiConfig):
         self._write(os.path.join(topdir, "comps.xml"), comps_cfg)
 
 
+class ReadComposeIdThread(threading.Thread):
+    def __init__(self, compose):
+        threading.Thread.__init__(self)
+        self._stop_event = threading.Event()
+        self.compose = compose
+
+    def stop(self):
+        self._stop_event.set()
+
+    def run(self):
+        p = os.path.join(self.compose.toplevel_dir, "work", "global", "composeinfo-base.json")
+        while not self._stop_event.is_set():
+            time.sleep(1)
+
+            # File does not exist yet.
+            if not os.path.exists(p):
+                continue
+
+            ci = ComposeInfo()
+            try:
+                ci.load(p)
+            except Exception:
+                # This should happen only if file exists, but the data is not
+                # written yet.
+                continue
+
+            self.compose.pungi_compose_id = ci.compose.id
+            db.session.commit()
+            break
+
+
 class Pungi(object):
     def __init__(self, compose_id, pungi_cfg, koji_event=None, old_compose=None):
         self.compose_id = compose_id
@@ -364,15 +396,18 @@ class Pungi(object):
             pungi_cmd += ["--old-composes", self.old_compose]
         return pungi_cmd
 
-    def _prepare_compose_dir(self, compose, conf_topdir):
+    def _prepare_compose_dir(self, compose, conf):
         """
         Creates the compose directory and returns the full path to it.
         """
         compose_date = time.strftime("%Y%m%d", time.localtime())
         makedirs(compose.toplevel_dir)
 
-        conf = PyConfigParser()
-        conf.load_from_file(os.path.join(conf_topdir, "pungi.conf"))
+        # If Compose Tracking Service is configured in the config file,
+        # we skip the ComposeInfo creation completely and instead let
+        # the Pungi to ask CTS to generate unique ComposeInfo.
+        if "cts_url" in conf and "cts_keytab" in conf:
+            return compose.toplevel_dir
 
         ci = ComposeInfo()
         ci.release.name = conf["release_name"]
@@ -414,10 +449,16 @@ class Pungi(object):
         Runs local Pungi compose.
         """
         td = None
+        compose_id_thread = None
         try:
             td = tempfile.mkdtemp()
             self._write_cfgs(td)
-            compose_dir = self._prepare_compose_dir(compose, td)
+
+            # Load pungi configuration file.
+            conf = PyConfigParser()
+            conf.load_from_file(os.path.join(td, "pungi.conf"))
+
+            compose_dir = self._prepare_compose_dir(compose, conf)
             self.pungi_cfg.validate(td, compose_dir)
             pungi_cmd = self.get_pungi_cmd(td, compose, compose_dir)
 
@@ -425,6 +466,12 @@ class Pungi(object):
             # stored database before executing the compose and are not just
             # cached locally in the SQLAlchemy.
             db.session.commit()
+
+            # If Compose Tracking Service is configured in the config file,
+            # we need to get the Compose ID from Pungi in separate thread.
+            if "cts_url" in conf and "cts_keytab" in conf:
+                compose_id_thread = ReadComposeIdThread(compose)
+                compose_id_thread.start()
 
             log_out_path = os.path.join(compose_dir, "pungi-stdout.log")
             log_err_path = os.path.join(compose_dir, "pungi-stderr.log")
@@ -435,6 +482,8 @@ class Pungi(object):
                         pungi_cmd, cwd=td, timeout=self.pungi_cfg.pungi_timeout,
                         stdout=log_out, stderr=log_err)
         finally:
+            if compose_id_thread:
+                compose_id_thread.stop()
             try:
                 if td is not None:
                     shutil.rmtree(td)
