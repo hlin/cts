@@ -257,7 +257,7 @@ def check_redhat_deployment(with_large_tag_compose=True):
         # test with a compose with much more packages
         compose_id = check_new_compose(
             "tag", "rhos-13.0-rhel-7-container-build", [], [],
-            sigkeys=["37017186", "FD431D51", "DB42A60E"],
+            sigkeys=["37017186", "FD431D51", "DB42A60E", ""],
             arches=["x86_64", "ppc64le"])
         compose = client.get_compose(compose_id)
         check_compose_time(compose, "10m")
@@ -276,11 +276,12 @@ def check_redhat_deployment(with_large_tag_compose=True):
                             ["gofer-package"], ["no_deps"], ["x86_64", "ppc64"])
 
     # Check "tag" with "deps".
-    check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [])
+    check_new_compose("tag", "cf-1.0-rhel-5", ["gofer"], [], sigkeys=[""])
 
     # Check "tag" without "packages" - all packages in tag should be included.
     check_new_compose(
         "tag", "cf-1.0-rhel-5", [], [],
+        sigkeys=[""],
         expected_packages=[
             'PyPAM', 'aeolus-audrey-agent', 'facter', 'gofer',
             'gofer-package', 'gofer-system', 'gofer-virt', 'gofer-watchdog',
@@ -301,6 +302,7 @@ def check_redhat_deployment(with_large_tag_compose=True):
     # Check "tag" with additional builds.
     compose_id = check_new_compose(
         "tag", "cf-1.0-rhel-5", ["gofer-package", "tar"], ["no_deps"],
+        sigkeys=[""],
         arches=["x86_64", "ppc64"], builds=["tar-1.26-29.el7"])
 
     # Check "build".
