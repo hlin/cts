@@ -272,7 +272,8 @@ class TestViews(ViewBaseTest):
         self.assertEqual(
             data,
             {'version': version, 'auth_backend': 'noauth', 'raw_config_urls': {},
-             'allowed_clients': odcs.server.auth.conf.allowed_clients})
+             'allowed_clients': odcs.server.auth.conf.allowed_clients,
+             'sigkeys': []})
 
     def test_submit_invalid_json(self):
         with self.test_request_context(user='dev'):

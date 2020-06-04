@@ -568,10 +568,11 @@ class AboutAPI(MethodView):
             in the ODCS server configuration file.
         :resjson dict raw_config_urls: Raw config URLs in the same format as
             in the ODCS server configuration file.
+        :resjson list sigkeys: Default list of sigkeys.
         :statuscode 200: Compose updated and returned.
         """
         json = {'version': version}
-        config_items = ['auth_backend', 'allowed_clients', 'raw_config_urls']
+        config_items = ['auth_backend', 'allowed_clients', 'raw_config_urls', 'sigkeys']
         for item in config_items:
             config_item = getattr(conf, item)
             # All config items have a default, so if doesn't exist it is
