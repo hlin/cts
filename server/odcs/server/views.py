@@ -23,8 +23,8 @@
 
 import datetime
 
-from flask.views import MethodView
-from flask import request, jsonify, g
+from flask.views import MethodView, View
+from flask import render_template, request, jsonify, g
 from werkzeug.exceptions import BadRequest
 
 from odcs.server import app, db, log, conf, version
@@ -584,6 +584,14 @@ class AboutAPI(MethodView):
         return jsonify(json), 200
 
 
+class Index(View):
+
+    methods = ['GET']
+
+    def dispatch_request(self):
+        return render_template('index.html')
+
+
 def register_api_v1():
     """ Registers version 1 of ODCS API. """
     composes_view = ODCSAPI.as_view('composes')
@@ -603,4 +611,5 @@ def register_api_v1():
             raise ValueError("Unhandled API key: %s." % key)
 
 
+app.add_url_rule("/", view_func=Index.as_view("index"))
 register_api_v1()

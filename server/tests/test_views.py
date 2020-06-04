@@ -266,6 +266,13 @@ class TestViews(ViewBaseTest):
             db.session.add(self.c2)
             db.session.commit()
 
+    def test_index(self):
+        rv = self.client.get('/')
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.content_type, 'text/html; charset=utf-8')
+        data = rv.get_data(as_text=True)
+        self.assertIn('On Demand Compose Service', data)
+
     def test_about(self):
         rv = self.client.get('/api/1/about/')
         data = json.loads(rv.get_data(as_text=True))
