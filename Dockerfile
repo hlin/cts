@@ -1,4 +1,4 @@
-FROM fedora:29
+FROM fedora:31
 LABEL \
     name="ODCS application" \
     vendor="ODCS developers" \
@@ -42,6 +42,7 @@ RUN cd /etc/yum.repos.d/ \
         python3-gobject-base \
         python3-flask-script \
         python3-flask-login \
+        python3-pip \
     && dnf -y clean all \
     && rm -f /tmp/*
 
