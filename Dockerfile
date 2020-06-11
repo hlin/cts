@@ -9,7 +9,7 @@ ARG cacert_url=undefined
 WORKDIR /src
 RUN cd /etc/yum.repos.d/ \
     && dnf -v -y install 'dnf-command(config-manager)' \
-    && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-F-28/compose/Everything/x86_64/os/ \
+    && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-F-31/compose/Everything/x86_64/os/ \
     && dnf config-manager --add-repo http://download-ipv4.eng.brq.redhat.com/rel-eng/repos/eng-rhel-7/x86_64 \
     && dnf -v --nogpg -y install httpd python3-mod_wsgi mod_auth_gssapi python2-rhmsg mod_ssl mod_ldap \
         systemd \
@@ -37,7 +37,6 @@ RUN cd /etc/yum.repos.d/ \
         python3-psycopg2 \
         python3-psutil \
         python3-celery \
-        python3-flower \
         python3-ldap \
         python3-gobject-base \
         python3-flask-script \
