@@ -141,8 +141,13 @@ def _add_arguments(parser, *args):
     return parser
 
 
+create_command_deprecated = """
+Deprecated: Please use create-* commands instead of the deprecated create command.
+The create command will be removed and bugs with it are not going to be fixed.
+"""
 create_parser = subparsers.add_parser(
-    'create', help='Low-level command to create a new compose')
+    'create', help='Low-level command to create a new compose (Deprecated)',
+    description=create_command_deprecated)
 create_parser.set_defaults(command='create')
 create_parser.add_argument(
     'source_type', default=None,
@@ -327,6 +332,7 @@ if getattr(args, "target_dir", False):
 try:
     args.sigkey = [key.replace('none', '') for key in getattr(args, "sigkey", [])]
     if args.command == "create":
+        print(create_command_deprecated, file=sys.stderr)
         result = client.new_compose(
             source=args.source,
             source_type=args.source_type,
