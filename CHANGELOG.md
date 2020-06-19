@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.48
+  - Release date: 2020-06-19
+  - Add simple index page
+  - Remove python3-flower from container image
+  - Expose default GPG keys via about API
+  - Allow unsigned packages in deployment tests
+  - Skip generating composeinfo-base.json if CTS is configured
+
 ## 0.2.47
   - Release date: 2020-05-21
   - docs: Improve description of finding latest modules
