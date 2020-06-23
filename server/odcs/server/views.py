@@ -40,8 +40,7 @@ from odcs.server.auth import requires_role, login_required, has_role
 from odcs.server.auth import require_scopes
 
 try:
-    from odcs.server.celery_tasks import (
-        celery_app, generate_pulp_compose, generate_pungi_compose)
+    from odcs.server.celery_tasks import celery_app, schedule_compose
     CELERY_AVAILABLE = True
 except ImportError:
     log.exception(
@@ -233,14 +232,7 @@ class ODCSAPI(MethodView):
             db.session.commit()
 
             if CELERY_AVAILABLE and conf.celery_broker_url:
-                if compose.source_type == PungiSourceType.PULP:
-                    result = generate_pulp_compose.delay(compose.id)
-                else:
-                    result = generate_pungi_compose.delay(compose.id)
-
-                compose.celery_task_id = result.id
-                db.session.add(compose)
-                db.session.commit()
+                schedule_compose(compose)
 
             return jsonify(compose.json()), 200
         else:
@@ -471,14 +463,7 @@ class ODCSAPI(MethodView):
         db.session.commit()
 
         if CELERY_AVAILABLE and conf.celery_broker_url:
-            if source_type == PungiSourceType.PULP:
-                result = generate_pulp_compose.delay(compose.id)
-            else:
-                result = generate_pungi_compose.delay(compose.id)
-
-            compose.celery_task_id = result.id
-            db.session.add(compose)
-            db.session.commit()
+            schedule_compose(compose)
 
         return jsonify(compose.json()), 200
 

@@ -163,7 +163,10 @@ def setup_periodic_tasks(sender, **kwargs):
     # Add the cleanup task every 10 minutes. This can be hardcoded here.
     # It is just internal task to clean up the expired composes, mark
     # stuck composes as failed and so on.
-    sender.add_periodic_task(10 * 60, run_cleanup.s())
+    # This task also expires in 1 hour. This prevents situation when all backends
+    # are broken for long time (hours/days) and queue of run_cleanup tasks grow
+    # up and once backends come online, they are flooded with run_cleanup tasks.
+    sender.add_periodic_task(10 * 60, run_cleanup.s(), expires=3600)
 
 
 @retry(wait_on=RuntimeError)
