@@ -24,8 +24,9 @@
 import datetime
 
 from flask.views import MethodView, View
-from flask import render_template, request, jsonify, g
+from flask import render_template, request, jsonify, g, Response
 from werkzeug.exceptions import BadRequest
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from odcs.server import app, db, log, conf, version
 from odcs.server.errors import NotFound, Forbidden
@@ -38,6 +39,7 @@ from odcs.server.api_utils import (
     raise_if_input_not_allowed)
 from odcs.server.auth import requires_role, login_required, has_role
 from odcs.server.auth import require_scopes
+from odcs.server.metrics import registry
 
 try:
     from odcs.server.celery_tasks import celery_app, schedule_compose
@@ -82,6 +84,12 @@ api_v1 = {
     },
     'about': {
         'url': '/api/1/about/',
+        'options': {
+            'methods': ['GET']
+        }
+    },
+    'metrics': {
+        'url': '/api/1/metrics/',
         'options': {
             'methods': ['GET']
         }
@@ -577,10 +585,21 @@ class Index(View):
         return render_template('index.html')
 
 
+class MetricsAPI(MethodView):
+    def get(self):
+        """
+        Returns the Prometheus metrics.
+
+        :statuscode 200: Prometheus metrics returned.
+        """
+        return Response(generate_latest(registry), content_type=CONTENT_TYPE_LATEST)
+
+
 def register_api_v1():
     """ Registers version 1 of ODCS API. """
     composes_view = ODCSAPI.as_view('composes')
     about_view = AboutAPI.as_view('about')
+    metrics_view = MetricsAPI.as_view('metrics')
     for key, val in api_v1.items():
         if key.startswith("compose"):
             app.add_url_rule(val['url'],
@@ -591,6 +610,11 @@ def register_api_v1():
             app.add_url_rule(val['url'],
                              endpoint=key,
                              view_func=about_view,
+                             **val['options'])
+        elif key.startswith("metrics"):
+            app.add_url_rule(val['url'],
+                             endpoint=key,
+                             view_func=metrics_view,
                              **val['options'])
         else:
             raise ValueError("Unhandled API key: %s." % key)

@@ -266,6 +266,11 @@ class TestViews(ViewBaseTest):
             db.session.add(self.c2)
             db.session.commit()
 
+    def test_metrics(self):
+        rv = self.client.get('/api/1/metrics/')
+        data = rv.get_data(as_text=True)
+        self.assertTrue("HELP composes_total Total number of composes" in data)
+
     def test_index(self):
         rv = self.client.get('/')
         self.assertEqual(rv.status_code, 200)
