@@ -410,6 +410,7 @@ class TestPungi(ModelsBaseTest):
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
+             "--no-latest-link",
              AnyStringWith('--compose-dir='), '--test'],
             cwd=AnyStringWith('/tmp/'), timeout=3600,
             stderr=AnyStringWith("pungi-stderr.log"),
@@ -456,6 +457,7 @@ class TestPungi(ModelsBaseTest):
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
+             "--no-latest-link",
              AnyStringWith('--compose-dir='), '--test'],
             cwd=AnyStringWith('/tmp/'), timeout=3600,
             stderr=AnyStringWith("pungi-stderr.log"),
@@ -485,6 +487,7 @@ class TestPungi(ModelsBaseTest):
 
             execute_cmd.assert_called_once_with(
                 ['pungi-koji', AnyStringWith('pungi.conf'),
+                 "--no-latest-link",
                  AnyStringWith('--compose-dir='),
                  '--%s' % (compose_type or "test")],
                 cwd=AnyStringWith('/tmp/'), timeout=3600,
@@ -618,6 +621,7 @@ class TestPungi(ModelsBaseTest):
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
+             "--no-latest-link",
              AnyStringWith('--compose-dir='), '--test'],
             cwd=AnyStringWith('/tmp/'), timeout=7200,
             stderr=AnyStringWith("pungi-stderr.log"),
@@ -640,6 +644,7 @@ class TestPungi(ModelsBaseTest):
 
         execute_cmd.assert_called_once_with(
             ['pungi-koji', AnyStringWith('pungi.conf'),
+             "--no-latest-link",
              AnyStringWith('--compose-dir='), '--test',
              '--label=Alpha-0.1'],
             cwd=AnyStringWith('/tmp/'), timeout=7200,

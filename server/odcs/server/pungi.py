@@ -359,6 +359,7 @@ class Pungi(object):
         pungi_cmd = [
             conf.pungi_koji,
             "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
+            "--no-latest-link",
         ]
 
         if compose_dir:
