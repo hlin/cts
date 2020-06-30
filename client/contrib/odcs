@@ -169,7 +169,6 @@ _add_arguments(create_parser, "--result", "--sigkey", "--koji-event",
                "--target-dir", "--flag")
 
 
-
 create_tag_parser = subparsers.add_parser(
     'create-tag', help='Create new compose from Koji tag.')
 create_tag_parser.set_defaults(command='create-tag')
@@ -377,7 +376,7 @@ try:
         result = client.get_compose(args.compose_id)
     else:
         print("Unknown command %s" % args.command)
-except requests.exceptions.HTTPError as e:
+except requests.exceptions.HTTPError:
     # error message gets printed in ODCS class.
     sys.exit(-1)
 

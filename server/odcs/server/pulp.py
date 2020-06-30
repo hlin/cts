@@ -45,12 +45,19 @@ class Pulp(object):
     @retry(wait_on=requests.exceptions.RequestException)
     def _rest_post(self, endpoint, post_data):
         query_data = json.dumps(post_data)
-        r = requests.post(
-            '{0}{1}'.format(self.rest_api_root, endpoint.lstrip('/')),
-            query_data,
-            auth=(self.username, self.password),
-            timeout=conf.net_timeout,
-        )
+        try:
+            r = requests.post(
+                '{0}{1}'.format(self.rest_api_root, endpoint.lstrip('/')),
+                query_data,
+                auth=(self.username, self.password),
+                timeout=conf.net_timeout,
+            )
+        except requests.exceptions.RequestException as e:
+            # also catches ConnectTimeout, ConnectionError
+            # change message of the catched exception and re-raise
+            msg = "Pulp connection has failed: {}".format(e.args)
+            raise requests.exceptions.RequestException(msg)
+
         r.raise_for_status()
         return r.json()
 
