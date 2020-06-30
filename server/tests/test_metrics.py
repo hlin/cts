@@ -20,11 +20,15 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+from mock import patch
+
 from odcs.server import db
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_RESULTS
 from odcs.server.pungi import PungiSourceType
-from odcs.server.metrics import ComposesCollector
+from odcs.server.metrics import (
+    ComposesCollector, QueueLengthThread, WorkerCountThread
+)
 from .utils import ModelsBaseTest
 
 
@@ -69,3 +73,59 @@ class TestComposesCollector(ModelsBaseTest):
                 self.assertEqual(sample.value, 15)
             elif sample.labels["source"] == "foo#other_commits_or_branches":
                 self.assertEqual(sample.value, 10)
+
+
+class TestQueueLengthThread(ModelsBaseTest):
+
+    @patch("odcs.server.metrics.celery_app")
+    def test_update_metrics(self, celery_app):
+        conn = celery_app.connection_or_acquire.return_value
+        queue_declare = conn.default_channel.queue_declare
+        queue_declare.return_value.message_count = 10
+
+        thread = QueueLengthThread()
+        thread.update_metrics()
+        metrics = thread.queue_length.collect()
+        for metric in metrics:
+            queues = set()
+            for sample in metric.samples:
+                queues.add(sample.labels["queue_name"])
+                self.assertEqual(sample.value, 10)
+            self.assertEqual(queues, set(["cleanup", "pungi_composes", "pulp_composes"]))
+
+
+class TestWorkerCountThread(ModelsBaseTest):
+
+    @patch("odcs.server.metrics.celery_app")
+    def test_update_metrics(self, celery_app):
+        celery_app.control.ping.side_effect = [
+            [
+                {"worker-1@localhost": {"ok": "pong"}},
+                {"worker-2@localhost": {"ok": "pong"}}
+            ],
+            [
+                {"worker-1@localhost": {"ok": "pong"}}
+            ],
+        ]
+
+        # Both workers online.
+        thread = WorkerCountThread()
+        thread.update_metrics()
+        metrics = thread.workers_total.collect()
+        self.assertEqual(metrics[0].samples[0].value, 2)
+        metrics = thread.workers.collect()
+        for metric in metrics:
+            for sample in metric.samples:
+                self.assertEqual(sample.value, 1)
+
+        # The worker-2 went offline.
+        thread.update_metrics()
+        metrics = thread.workers_total.collect()
+        self.assertEqual(metrics[0].samples[0].value, 1)
+        metrics = thread.workers.collect()
+        for metric in metrics:
+            for sample in metric.samples:
+                if sample.labels["worker_name"] == "worker-1@localhost":
+                    self.assertEqual(sample.value, 1)
+                else:
+                    self.assertEqual(sample.value, 0)
