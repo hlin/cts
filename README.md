@@ -245,12 +245,6 @@ $ sudo dnf install -y gcc swig redhat-rpm-config python-devel openssl-devel open
 A lot of these dependencies come from the module
 [pygobject](https://pygobject.readthedocs.io/en/latest/devguide/dev_environ.html#fedora-dep).
 
-Koji is required but not available on pypi.python.org, we enabled system sitepackages for tox, so koji can be found while running tests.
-
-```
-$ sudo yum install -y python2-koji python3-koji
-```
-
 Run the tests:
 
 ```
