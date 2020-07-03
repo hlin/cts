@@ -27,7 +27,10 @@ from odcs.server.models import Compose
 from odcs.server import conf
 from odcs.server.errors import Forbidden
 from odcs.common.types import (
-    COMPOSE_RESULTS, COMPOSE_FLAGS, INVERSE_PUNGI_SOURCE_TYPE_NAMES)
+    COMPOSE_RESULTS,
+    COMPOSE_FLAGS,
+    INVERSE_PUNGI_SOURCE_TYPE_NAMES,
+)
 
 
 def _set_default_client_allowed_attrs(ret_attrs, attrs):
@@ -106,7 +109,7 @@ def raise_if_input_not_allowed(**kwargs):
     The decision whether the user is allowed or not is done based on
     conf.allowed_clients value.
     """
-    if conf.auth_backend == 'noauth':
+    if conf.auth_backend == "noauth":
         return
 
     errors = set()
@@ -117,7 +120,8 @@ def raise_if_input_not_allowed(**kwargs):
                 # This should not happen, but be defensive in this part of code...
                 errors.add(
                     "User %s not allowed to operate with compose with %s=%r."
-                    % (flask.g.user.username, name, values))
+                    % (flask.g.user.username, name, values)
+                )
                 continue
 
             # Convert integers from db format to string list.
@@ -131,7 +135,9 @@ def raise_if_input_not_allowed(**kwargs):
                 # The default conf.target_dir is always allowed.
                 if values == conf.target_dir:
                     continue
-                inverse_extra_target_dirs = {v: k for k, v in conf.extra_target_dirs.items()}
+                inverse_extra_target_dirs = {
+                    v: k for k, v in conf.extra_target_dirs.items()
+                }
                 values = inverse_extra_target_dirs[values]
 
             if type(values) == int:
@@ -147,11 +153,13 @@ def raise_if_input_not_allowed(**kwargs):
 
             for value in values:
                 allowed_values = attrs[name]
-                if ((not allowed_values or value not in allowed_values) and
-                        allowed_values != [""]):
+                if (
+                    not allowed_values or value not in allowed_values
+                ) and allowed_values != [""]:
                     errors.add(
                         "User %s not allowed to operate with compose with %s=%s."
-                        % (flask.g.user.username, name, value))
+                        % (flask.g.user.username, name, value)
+                    )
                     found_error = True
                     break
         if not found_error:
@@ -160,7 +168,8 @@ def raise_if_input_not_allowed(**kwargs):
         raise Forbidden(" ".join(list(errors)))
     else:
         raise Forbidden(
-            "User %s not allowed to operate with any compose." % flask.g.user.username)
+            "User %s not allowed to operate with any compose." % flask.g.user.username
+        )
 
 
 def validate_json_data(dict_or_list, level=0, last_dict_key=None):
@@ -181,8 +190,7 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
             # Allow only dict with "source" key name in first level of
             # json object.
             if level != 0 or k not in ["source"]:
-                raise ValueError(
-                    "Only 'source' key is allowed to contain dict.")
+                raise ValueError("Only 'source' key is allowed to contain dict.")
             validate_json_data(v, level + 1, k)
         elif isinstance(v, list):
             validate_json_data(v, level + 1, k)
@@ -191,12 +199,12 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
             # not exploitable.
             if last_dict_key in ["packages"]:
                 continue
-            allowed_chars = [' ', '-', '/', '_', '.', ':', '#', '+', '?', '$',
-                             '~']
+            allowed_chars = [" ", "-", "/", "_", ".", ":", "#", "+", "?", "$", "~"]
             if not all(c.isalnum() or c in allowed_chars for c in v):
                 raise ValueError(
                     "Only alphanumerical characters and %r characters "
-                    "are allowed in ODCS input variables" % (allowed_chars))
+                    "are allowed in ODCS input variables" % (allowed_chars)
+                )
         elif isinstance(v, (int, float)):
             # Allow int, float and also bool, because that's subclass of int.
             continue
@@ -204,7 +212,8 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
             raise ValueError(
                 "Only dict, list, str, unicode, int, float and bool types "
                 "are allowed in ODCS input variables, but '%s' has '%s' "
-                "type" % (k, type(v)))
+                "type" % (k, type(v))
+            )
 
 
 def pagination_metadata(p_query, request_args):
@@ -221,35 +230,52 @@ def pagination_metadata(p_query, request_args):
     # Remove pagination related args because those are handled elsewhere
     # Also, remove any args that url_for accepts in case the user entered
     # those in
-    for key in ['page', 'per_page', 'endpoint']:
+    for key in ["page", "per_page", "endpoint"]:
         if key in request_args_wo_page:
             request_args_wo_page.pop(key)
     for key in request_args:
-        if key.startswith('_'):
+        if key.startswith("_"):
             request_args_wo_page.pop(key)
     pagination_data = {
-        'page': p_query.page,
-        'pages': p_query.pages,
-        'per_page': p_query.per_page,
-        'prev': None,
-        'next': None,
-        'total': p_query.total,
-        'first': url_for(request.endpoint, page=1, per_page=p_query.per_page,
-                         _external=True, **request_args_wo_page),
-        'last': url_for(request.endpoint, page=p_query.pages,
-                        per_page=p_query.per_page, _external=True,
-                        **request_args_wo_page)
+        "page": p_query.page,
+        "pages": p_query.pages,
+        "per_page": p_query.per_page,
+        "prev": None,
+        "next": None,
+        "total": p_query.total,
+        "first": url_for(
+            request.endpoint,
+            page=1,
+            per_page=p_query.per_page,
+            _external=True,
+            **request_args_wo_page
+        ),
+        "last": url_for(
+            request.endpoint,
+            page=p_query.pages,
+            per_page=p_query.per_page,
+            _external=True,
+            **request_args_wo_page
+        ),
     }
 
     if p_query.has_prev:
-        pagination_data['prev'] = url_for(request.endpoint, page=p_query.prev_num,
-                                          per_page=p_query.per_page, _external=True,
-                                          **request_args_wo_page)
+        pagination_data["prev"] = url_for(
+            request.endpoint,
+            page=p_query.prev_num,
+            per_page=p_query.per_page,
+            _external=True,
+            **request_args_wo_page
+        )
 
     if p_query.has_next:
-        pagination_data['next'] = url_for(request.endpoint, page=p_query.next_num,
-                                          per_page=p_query.per_page, _external=True,
-                                          **request_args_wo_page)
+        pagination_data["next"] = url_for(
+            request.endpoint,
+            page=p_query.next_num,
+            per_page=p_query.per_page,
+            _external=True,
+            **request_args_wo_page
+        )
 
     return pagination_data
 
@@ -265,7 +291,7 @@ def _order_by(flask_request, query, base_class, allowed_keys, default_key):
     If "order_by" argument starts with minus sign ('-'), the descending order
     is used.
     """
-    order_by = flask_request.args.get('order_by', default_key, type=str)
+    order_by = flask_request.args.get("order_by", default_key, type=str)
     if order_by and len(order_by) > 1 and order_by[0] == "-":
         order_asc = False
         order_by = order_by[1:]
@@ -274,8 +300,9 @@ def _order_by(flask_request, query, base_class, allowed_keys, default_key):
 
     if order_by not in allowed_keys:
         raise ValueError(
-            'An invalid order_by key was suplied, allowed keys are: '
-            '%r' % allowed_keys)
+            "An invalid order_by key was suplied, allowed keys are: "
+            "%r" % allowed_keys
+        )
 
     order_by_attr = getattr(base_class, order_by)
     if not order_asc:
@@ -291,8 +318,16 @@ def filter_composes(flask_request):
     """
     search_query = dict()
 
-    for key in ['owner', 'source_type', 'source', 'state', 'koji_task_id',
-                'pungi_compose_id', 'compose_type', 'label']:
+    for key in [
+        "owner",
+        "source_type",
+        "source",
+        "state",
+        "koji_task_id",
+        "pungi_compose_id",
+        "compose_type",
+        "label",
+    ]:
         if flask_request.args.get(key, None):
             search_query[key] = flask_request.args[key]
 
@@ -301,11 +336,24 @@ def filter_composes(flask_request):
     if search_query:
         query = query.filter_by(**search_query)
 
-    query = _order_by(flask_request, query, Compose,
-                      ["id", "owner", "source_Type", "koji_event",
-                       "state", "time_to_expire", "time_submitted",
-                       "time_done", "time_removed"], "-id")
+    query = _order_by(
+        flask_request,
+        query,
+        Compose,
+        [
+            "id",
+            "owner",
+            "source_Type",
+            "koji_event",
+            "state",
+            "time_to_expire",
+            "time_submitted",
+            "time_done",
+            "time_removed",
+        ],
+        "-id",
+    )
 
-    page = flask_request.args.get('page', 1, type=int)
-    per_page = flask_request.args.get('per_page', 10, type=int)
+    page = flask_request.args.get("page", 1, type=int)
+    per_page = flask_request.args.get("per_page", 10, type=int)
     return query.paginate(page, per_page, False)

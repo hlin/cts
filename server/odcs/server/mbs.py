@@ -27,7 +27,8 @@ from odcs.server.utils import retry, to_text_type
 from odcs.server import log
 
 import gi
-gi.require_version('Modulemd', '2.0')
+
+gi.require_version("Modulemd", "2.0")
 from gi.repository import Modulemd  # noqa: E402
 
 
@@ -39,7 +40,7 @@ class MBS(object):
     def __init__(self, config):
         self.mbs_url = config.mbs_url.rstrip("/")
 
-    @retry(wait_on=(requests.ConnectionError, ), logger=log)
+    @retry(wait_on=(requests.ConnectionError,), logger=log)
     def get_modules(self, **params):
         url = self.mbs_url + "/1/module-builds/"
         r = requests.get(url, params=params)
@@ -73,14 +74,15 @@ class MBS(object):
             # we need to remove the "-devel" suffix from the NSVC.
             n = nsvc.split(":")[0]
             if n.endswith("-devel"):
-                params["nsvc"] = n[:-len("-devel")] + params["nsvc"][len(n):]
+                params["nsvc"] = n[: -len("-devel")] + params["nsvc"][len(n) :]
                 modules = self.get_modules(**params)
                 devel_module = True
 
         if not modules["meta"]["total"]:
             state_msg = "ready or done" if include_done else "ready"
             raise ModuleLookupError(
-                "Failed to find module %s in %s state in the MBS." % (nsvc, state_msg))
+                "Failed to find module %s in %s state in the MBS." % (nsvc, state_msg)
+            )
 
         ret = []
         # In case the nsvc is just "name:stream", there might be multiple
@@ -99,13 +101,14 @@ class MBS(object):
                 module["name"] += "-devel"
                 # Devel module always depend on the non-devel version
                 mmd = Modulemd.ModuleStream.read_string(
-                    module['modulemd'], strict=True, module_name=None, module_stream=None
+                    module["modulemd"],
+                    strict=True,
+                    module_name=None,
+                    module_stream=None,
                 )
                 mmd = mmd.upgrade(2)
                 for dep in mmd.get_dependencies():
-                    dep.add_runtime_stream(
-                        mmd.get_module_name(), mmd.get_stream_name()
-                    )
+                    dep.add_runtime_stream(mmd.get_module_name(), mmd.get_stream_name())
                 mod_index = Modulemd.ModuleIndex.new()
                 mod_index.add_module_stream(mmd)
                 module["modulemd"] = to_text_type(mod_index.dump_to_string())
@@ -125,7 +128,7 @@ class MBS(object):
         new_modules = []
         for module in modules:
             mmd = Modulemd.ModuleStream.read_string(
-                module['modulemd'], strict=True, module_name=None, module_stream=None
+                module["modulemd"], strict=True, module_name=None, module_stream=None
             )
             mmd = mmd.upgrade(2)
 
@@ -167,7 +170,7 @@ class MBS(object):
         module_map = defaultdict(list)
 
         for module in modules:
-            key = "%s:%s" % (module['name'], module['stream'])
+            key = "%s:%s" % (module["name"], module["stream"])
 
             # In case this is the first module with this name:stream,
             # just add it to new_modules.
@@ -179,17 +182,24 @@ class MBS(object):
 
             # Check if there is already this module in new_modules, but in
             # different version. If so, raise an exception.
-            if module['version'] != old_modules[0]['version']:
+            if module["version"] != old_modules[0]["version"]:
                 raise ModuleLookupError(
-                    "%s:%s:%s:%s conflicts with %s:%s:%s:%s" % (
-                        module['name'], module["stream"], module["version"],
-                        module["context"], old_modules[0]['name'],
-                        old_modules[0]["stream"], old_modules[0]["version"],
-                        old_modules[0]["context"]))
+                    "%s:%s:%s:%s conflicts with %s:%s:%s:%s"
+                    % (
+                        module["name"],
+                        module["stream"],
+                        module["version"],
+                        module["context"],
+                        old_modules[0]["name"],
+                        old_modules[0]["stream"],
+                        old_modules[0]["version"],
+                        old_modules[0]["context"],
+                    )
+                )
 
             # Check if there is already this module in new_modules in the very
             # same context - do not add it there, because it would be duplicate.
-            if module['context'] in [m["context"] for m in old_modules]:
+            if module["context"] in [m["context"] for m in old_modules]:
                 continue
 
             # Add it to new_modules/module_map.
@@ -199,7 +209,9 @@ class MBS(object):
         if expand:
             added_module_list = new_modules
             while True:
-                added_module_list = self._add_new_dependencies(module_map, added_module_list)
+                added_module_list = self._add_new_dependencies(
+                    module_map, added_module_list
+                )
                 if len(added_module_list) == 0:
                     break
                 new_modules.extend(added_module_list)

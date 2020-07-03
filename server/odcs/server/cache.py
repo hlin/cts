@@ -73,7 +73,8 @@ class KojiTagCache(object):
                     # 3rd party process.
                     log.exception(
                         "Old koji tag cache directory %s removed while checking "
-                        "Koji cache." % path)
+                        "Koji cache." % path
+                    )
                     continue
 
                 if mtime > threshold:
@@ -131,8 +132,7 @@ class KojiTagCache(object):
         """
 
         cached_compose_dir = self.cached_compose_dir(compose)
-        log.info("Reusing repodata from old cached compose %s",
-                 cached_compose_dir)
+        log.info("Reusing repodata from old cached compose %s", cached_compose_dir)
 
         # Create the lock. The rmtree and copytree on same fs should not take more
         # than 3 minutes really.
@@ -170,8 +170,10 @@ class KojiTagCache(object):
 
         :param models.Compose compose: Compose to update the cache from.
         """
-        if (compose.source_type != PungiSourceType.KOJI_TAG or
-                compose.state != COMPOSE_STATES["done"]):
+        if (
+            compose.source_type != PungiSourceType.KOJI_TAG
+            or compose.state != COMPOSE_STATES["done"]
+        ):
             log.info("Not caching the compose %s.", compose)
             return
 

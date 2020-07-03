@@ -32,10 +32,8 @@ from .utils import ModelsBaseTest
 
 @patch("odcs.server.pulp.Pulp._rest_post")
 class TestPulp(ModelsBaseTest):
-
     def test_pulp_request(self, pulp_rest_post):
-        c = Compose.create(
-            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        c = Compose.create(db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
         db.session.commit()
 
         pulp_rest_post.return_value = []
@@ -43,18 +41,20 @@ class TestPulp(ModelsBaseTest):
         pulp = Pulp("http://localhost/", "user", "pass", c)
         pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
         pulp_rest_post.assert_called_once_with(
-            'repositories/search/',
-            {'criteria': {
-                'fields': ['notes'],
-                'filters': {
-                    'notes.include_in_download_service': 'True',
-                    'notes.content_set': {'$in': ['foo-1', 'foo-2']}
+            "repositories/search/",
+            {
+                "criteria": {
+                    "fields": ["notes"],
+                    "filters": {
+                        "notes.include_in_download_service": "True",
+                        "notes.content_set": {"$in": ["foo-1", "foo-2"]},
+                    },
                 }
-            }})
+            },
+        )
 
     def test_pulp_request_include_inpublished(self, pulp_rest_post):
-        c = Compose.create(
-            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        c = Compose.create(db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
         db.session.commit()
 
         pulp_rest_post.return_value = []
@@ -62,21 +62,21 @@ class TestPulp(ModelsBaseTest):
         pulp = Pulp("http://localhost/", "user", "pass", c)
         pulp.get_repos_from_content_sets(["foo-1", "foo-2"], True)
         pulp_rest_post.assert_called_once_with(
-            'repositories/search/',
-            {'criteria': {
-                'fields': ['notes'],
-                'filters': {
-                    'notes.content_set': {'$in': ['foo-1', 'foo-2']}
+            "repositories/search/",
+            {
+                "criteria": {
+                    "fields": ["notes"],
+                    "filters": {"notes.content_set": {"$in": ["foo-1", "foo-2"]}},
                 }
-            }})
+            },
+        )
 
     def test_generate_pulp_compose_arch_merge(self, pulp_rest_post):
         """
         Tests that multiple repos in single content_set are merged into
         single one by replacing arch with $basearch variable if possible.
         """
-        c = Compose.create(
-            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        c = Compose.create(db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
         db.session.commit()
 
         pulp_rest_post.return_value = [
@@ -106,7 +106,7 @@ class TestPulp(ModelsBaseTest):
                     "signatures": "SIG1,SIG3",
                     "product_versions": "",
                 }
-            }
+            },
         ]
 
         pulp = Pulp("http://localhost/", "user", "pass", c)
@@ -125,18 +125,18 @@ class TestPulp(ModelsBaseTest):
                     "arches": set(["ppc64"]),
                     "sigkeys": ["SIG1", "SIG3"],
                     "product_versions": "",
-                }
-            })
+                },
+            },
+        )
 
     @patch("odcs.server.mergerepo.execute_cmd")
     @patch("odcs.server.mergerepo.makedirs")
     @patch("odcs.server.mergerepo.Lock")
     @patch("odcs.server.mergerepo.MergeRepo._download_repodata")
     def test_pulp_compose_merge_repos(
-            self, download_repodata, lock, makedirs, execute_cmd,
-            pulp_rest_post):
-        c = Compose.create(
-            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        self, download_repodata, lock, makedirs, execute_cmd, pulp_rest_post
+    ):
+        c = Compose.create(db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
         db.session.commit()
 
         pulp_rest_post.return_value = [
@@ -190,45 +190,66 @@ class TestPulp(ModelsBaseTest):
                     "arches": set(["x86_64", "ppc64le"]),
                     "sigkeys": ["SIG1", "SIG2"],
                 }
-            })
+            },
+        )
 
         makedirs.assert_any_call(c.result_repo_dir + "/foo-1/x86_64")
         makedirs.assert_any_call(c.result_repo_dir + "/foo-1/ppc64le")
 
         repo_prefix = "%s/pulp_repo_cache/content/" % conf.target_dir
         execute_cmd.assert_any_call(
-            ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
-             c.result_repo_dir + '/foo-1/x86_64',
-             '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
-             '--repo-prefix-replace', 'http://localhost/',
-             '-r', repo_prefix + "1.0/x86_64/os",
-             '-r', repo_prefix + "1.1/x86_64/os"], timeout=1800)
+            [
+                "/usr/bin/mergerepo_c",
+                "--method",
+                "nvr",
+                "-o",
+                c.result_repo_dir + "/foo-1/x86_64",
+                "--repo-prefix-search",
+                "%s/pulp_repo_cache" % conf.target_dir,
+                "--repo-prefix-replace",
+                "http://localhost/",
+                "-r",
+                repo_prefix + "1.0/x86_64/os",
+                "-r",
+                repo_prefix + "1.1/x86_64/os",
+            ],
+            timeout=1800,
+        )
         execute_cmd.assert_any_call(
-            ['/usr/bin/mergerepo_c', '--method', 'nvr', '-o',
-             c.result_repo_dir + '/foo-1/ppc64le',
-             '--repo-prefix-search', '%s/pulp_repo_cache' % conf.target_dir,
-             '--repo-prefix-replace', 'http://localhost/',
-             '-r', repo_prefix + "1.0/ppc64le/os"], timeout=1800)
+            [
+                "/usr/bin/mergerepo_c",
+                "--method",
+                "nvr",
+                "-o",
+                c.result_repo_dir + "/foo-1/ppc64le",
+                "--repo-prefix-search",
+                "%s/pulp_repo_cache" % conf.target_dir,
+                "--repo-prefix-replace",
+                "http://localhost/",
+                "-r",
+                repo_prefix + "1.0/ppc64le/os",
+            ],
+            timeout=1800,
+        )
 
         download_repodata.assert_any_call(
-            repo_prefix + "1.0/x86_64/os",
-            "http://localhost/content/1.0/x86_64/os")
+            repo_prefix + "1.0/x86_64/os", "http://localhost/content/1.0/x86_64/os"
+        )
         download_repodata.assert_any_call(
-            repo_prefix + "1.1/x86_64/os",
-            "http://localhost/content/1.1/x86_64/os")
+            repo_prefix + "1.1/x86_64/os", "http://localhost/content/1.1/x86_64/os"
+        )
         download_repodata.assert_any_call(
-            repo_prefix + "1.0/ppc64le/os",
-            "http://localhost/content/1.0/ppc64le/os")
+            repo_prefix + "1.0/ppc64le/os", "http://localhost/content/1.0/ppc64le/os"
+        )
 
     @patch("odcs.server.mergerepo.execute_cmd")
     @patch("odcs.server.mergerepo.makedirs")
     @patch("odcs.server.mergerepo.Lock")
     @patch("odcs.server.mergerepo.MergeRepo._download_repodata")
     def test_pulp_compose_find_latest_version(
-            self, download_repodata, lock, makedirs, execute_cmd,
-            pulp_rest_post):
-        c = Compose.create(
-            db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
+        self, download_repodata, lock, makedirs, execute_cmd, pulp_rest_post
+    ):
+        c = Compose.create(db.session, "me", PungiSourceType.PULP, "foo-1", 0, 3600)
         db.session.commit()
 
         pulp_rest_post.return_value = [
@@ -264,7 +285,8 @@ class TestPulp(ModelsBaseTest):
                     "sigkeys": ["SIG1", "SIG2"],
                     "product_versions": '["1.1"]',
                 }
-            })
+            },
+        )
 
         makedirs.assert_not_called()
 

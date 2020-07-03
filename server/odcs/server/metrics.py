@@ -45,14 +45,15 @@ registry = CollectorRegistry()
 
 
 class ComposesCollector(object):
-
     def composes_total(self):
         """
         Returns `composes_total` GaugeMetricFamily with number of composes
         for each state and source_type.
         """
         counter = GaugeMetricFamily(
-            "composes_total", "Total number of composes", labels=["source_type", "state"]
+            "composes_total",
+            "Total number of composes",
+            labels=["source_type", "state"],
         )
         for state in COMPOSE_STATES:
             for source_type in PUNGI_SOURCE_TYPE_NAMES:
@@ -78,11 +79,15 @@ class ComposesCollector(object):
         """
         counter = CounterMetricFamily(
             "raw_config_composes_count",
-            "Total number of raw_config composes per source", labels=["source"]
+            "Total number of raw_config composes per source",
+            labels=["source"],
         )
-        composes = Compose.query.with_entities(Compose.source, func.count(Compose.source)).filter(
-            Compose.source_type == PUNGI_SOURCE_TYPE_NAMES["raw_config"]
-        ).group_by(Compose.source).all()
+        composes = (
+            Compose.query.with_entities(Compose.source, func.count(Compose.source))
+            .filter(Compose.source_type == PUNGI_SOURCE_TYPE_NAMES["raw_config"])
+            .group_by(Compose.source)
+            .all()
+        )
 
         sources = {}
         for source, count in composes:

@@ -42,8 +42,13 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         super(TestRemoveExpiredComposesThread, self).setUp()
 
         compose = Compose.create(
-            db.session, "unknown", PungiSourceType.MODULE, "testmodule-master",
-            COMPOSE_RESULTS["repository"], 60)
+            db.session,
+            "unknown",
+            PungiSourceType.MODULE,
+            "testmodule-master",
+            COMPOSE_RESULTS["repository"],
+            60,
+        )
         db.session.add(compose)
         db.session.commit()
 
@@ -87,11 +92,16 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         db.session.expunge_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["removed"])
-        self.assertEqual(c.state_reason, 'Compose is expired.')
-        unlink.assert_has_calls([
-            mock.call(AnyStringWith("test_composes/nightly/compose-1-10-2020110.n.0")),
-            mock.call(AnyStringWith("test_composes/nightly/latest-compose-1")),
-            mock.call(AnyStringWith("test_composes/odcs-1"))])
+        self.assertEqual(c.state_reason, "Compose is expired.")
+        unlink.assert_has_calls(
+            [
+                mock.call(
+                    AnyStringWith("test_composes/nightly/compose-1-10-2020110.n.0")
+                ),
+                mock.call(AnyStringWith("test_composes/nightly/latest-compose-1")),
+                mock.call(AnyStringWith("test_composes/odcs-1")),
+            ]
+        )
 
     def test_a_compose_which_state_is_done_is_removed_keep_state_reason(self):
         """
@@ -107,7 +117,7 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         db.session.expunge_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["removed"])
-        self.assertEqual(c.state_reason, 'Generated successfully.\nCompose is expired.')
+        self.assertEqual(c.state_reason, "Generated successfully.\nCompose is expired.")
 
     def test_does_not_remove_a_compose_which_is_not_expired(self):
         """
@@ -142,31 +152,41 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         self.thread.do_work()
         self.assertEqual(
             remove_compose_dir.call_args_list,
-            [mock.call(os.path.join(conf.target_dir, "latest-odcs-96-1")),
-             mock.call(os.path.join(conf.target_dir, "odcs-96-1-20171005.n.0")),
-             mock.call(os.path.join(conf.target_dir, "odcs-96"))])
+            [
+                mock.call(os.path.join(conf.target_dir, "latest-odcs-96-1")),
+                mock.call(os.path.join(conf.target_dir, "odcs-96-1-20171005.n.0")),
+                mock.call(os.path.join(conf.target_dir, "odcs-96")),
+            ],
+        )
 
     @patch("os.path.isdir")
     @patch("glob.glob")
     @patch("odcs.server.backend.RemoveExpiredComposesThread._remove_compose_dir")
-    @patch.object(odcs.server.config.Config, 'extra_target_dirs',
-                  new={"releng-private": "/tmp/private"})
-    def test_remove_left_composes_extra_target_dir(self, remove_compose_dir, glob, isdir):
+    @patch.object(
+        odcs.server.config.Config,
+        "extra_target_dirs",
+        new={"releng-private": "/tmp/private"},
+    )
+    def test_remove_left_composes_extra_target_dir(
+        self, remove_compose_dir, glob, isdir
+    ):
         isdir.return_value = True
         self.thread.do_work()
         print(glob.call_args_list)
         self.assertEqual(
             glob.call_args_list,
-            [mock.call(os.path.join(conf.target_dir, "latest-odcs-*")),
-             mock.call("/tmp/private/latest-odcs-*"),
-             mock.call(os.path.join(conf.target_dir, "odcs-*")),
-             mock.call("/tmp/private/odcs-*")])
+            [
+                mock.call(os.path.join(conf.target_dir, "latest-odcs-*")),
+                mock.call("/tmp/private/latest-odcs-*"),
+                mock.call(os.path.join(conf.target_dir, "odcs-*")),
+                mock.call("/tmp/private/odcs-*"),
+            ],
+        )
 
     @patch("os.path.isdir")
     @patch("glob.glob")
     @patch("odcs.server.backend.RemoveExpiredComposesThread._remove_compose_dir")
-    def test_remove_left_composes_not_dir(
-            self, remove_compose_dir, glob, isdir):
+    def test_remove_left_composes_not_dir(self, remove_compose_dir, glob, isdir):
         isdir.return_value = False
         self._mock_glob(glob, ["latest-odcs-96-1"])
         self.thread.do_work()
@@ -175,8 +195,7 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
     @patch("os.path.isdir")
     @patch("glob.glob")
     @patch("odcs.server.backend.RemoveExpiredComposesThread._remove_compose_dir")
-    def test_remove_left_composes_wrong_dir(
-            self, remove_compose_dir, glob, isdir):
+    def test_remove_left_composes_wrong_dir(self, remove_compose_dir, glob, isdir):
         isdir.return_value = True
         self._mock_glob(glob, ["latest-odcs-", "odcs-", "odcs-abc"])
         self.thread.do_work()
@@ -185,8 +204,7 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
     @patch("os.path.isdir")
     @patch("glob.glob")
     @patch("odcs.server.backend.RemoveExpiredComposesThread._remove_compose_dir")
-    def test_remove_left_composes_valid_compose(
-            self, remove_compose_dir, glob, isdir):
+    def test_remove_left_composes_valid_compose(self, remove_compose_dir, glob, isdir):
         isdir.return_value = True
         self._mock_glob(glob, ["latest-odcs-1-1", "odcs-1-1-2017.n.0"])
         c = db.session.query(Compose).filter(Compose.id == 1).one()
@@ -200,7 +218,8 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
     @patch("glob.glob")
     @patch("odcs.server.backend.RemoveExpiredComposesThread._remove_compose_dir")
     def test_remove_left_composes_expired_compose(
-            self, remove_compose_dir, glob, isdir):
+        self, remove_compose_dir, glob, isdir
+    ):
         isdir.return_value = True
         self._mock_glob(glob, ["latest-odcs-1-1", "odcs-1-1-2017.n.0"])
         c = db.session.query(Compose).filter(Compose.id == 1).one()
@@ -210,15 +229,17 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         self.thread.do_work()
         self.assertEqual(
             remove_compose_dir.call_args_list,
-            [mock.call(os.path.join(conf.target_dir, "latest-odcs-1-1")),
-             mock.call(os.path.join(conf.target_dir, "odcs-1-1-2017.n.0"))])
+            [
+                mock.call(os.path.join(conf.target_dir, "latest-odcs-1-1")),
+                mock.call(os.path.join(conf.target_dir, "odcs-1-1-2017.n.0")),
+            ],
+        )
 
     @patch("shutil.rmtree")
     @patch("os.unlink")
     @patch("os.path.realpath")
     @patch("os.path.exists")
-    def test_remove_compose_dir_symlink(
-            self, exists, realpath, unlink, rmtree):
+    def test_remove_compose_dir_symlink(self, exists, realpath, unlink, rmtree):
         exists.return_value = True
         toplevel_dir = "/odcs"
         realpath.return_value = "/odcs-real"
@@ -231,10 +252,10 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
     @patch("os.unlink")
     @patch("os.path.realpath")
     @patch("os.path.exists")
-    def test_remove_compose_dir_broken_symlink(
-            self, exists, realpath, unlink, rmtree):
+    def test_remove_compose_dir_broken_symlink(self, exists, realpath, unlink, rmtree):
         def mocked_exists(p):
             return p != "/odcs-real"
+
         exists.side_effect = mocked_exists
         toplevel_dir = "/odcs"
         realpath.return_value = "/odcs-real"
@@ -247,8 +268,7 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
     @patch("os.unlink")
     @patch("os.path.realpath")
     @patch("os.path.exists")
-    def test_remove_compose_dir_real_dir(
-            self, exists, realpath, unlink, rmtree):
+    def test_remove_compose_dir_real_dir(self, exists, realpath, unlink, rmtree):
         exists.return_value = True
         toplevel_dir = "/odcs"
         realpath.return_value = "/odcs"
@@ -261,8 +281,7 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
     @patch("os.path.realpath")
     @patch("os.path.exists")
     @patch("odcs.server.backend.log.warning")
-    def test_remove_compose_rmtree_error(
-            self, log_warning, exists, realpath, unlink):
+    def test_remove_compose_rmtree_error(self, log_warning, exists, realpath, unlink):
         exists.return_value = True
         toplevel_dir = "/odcs"
         realpath.return_value = "/odcs-real"
@@ -270,4 +289,5 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
         # This must not raise an exception.
         self.thread._remove_compose_dir(toplevel_dir)
         log_warning.assert_called_once_with(
-            AnyStringWith('Cannot remove some files in /odcs-real:'))
+            AnyStringWith("Cannot remove some files in /odcs-real:")
+        )

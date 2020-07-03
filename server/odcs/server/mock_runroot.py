@@ -249,7 +249,8 @@ def mock_runroot_init(tag_name):
 
     # Generate the Mock configuration using the standard Koji way.
     output = koji_module.genMockConfig(
-        runroot_key, arch, repoid=repo["id"], tag_name=tag_name, **opts)
+        runroot_key, arch, repoid=repo["id"], tag_name=tag_name, **opts
+    )
 
     # Write the Mock configuration to /tmp/`runroot_key`/mock.cfg.
     mock_cfg_path = os.path.join(runroot_tmp_path(runroot_key), "mock.cfg")
@@ -279,7 +280,8 @@ def raise_if_runroot_key_invalid(runroot_key):
         if c != "-" and not c.isalnum():
             raise ValueError(
                 "Unexpected character '%s' in the runroot key \"%s\"."
-                % (c, runroot_key))
+                % (c, runroot_key)
+            )
 
 
 def mock_runroot_install(runroot_key, packages):
@@ -316,7 +318,7 @@ def mock_runroot_run(runroot_key, cmd):
 
         # Wrap the runroot command in /bin/sh, because that's how Koji does
         # that and we need to stay compatible with this way...
-        sh_wrapper = ['/bin/sh', '-c', "{ %s; }" % (" ".join(cmd))]
+        sh_wrapper = ["/bin/sh", "-c", "{ %s; }" % (" ".join(cmd))]
 
         # Run the command in Mock chroot. We need to use the `--old-chroot`
         # here, otherwise Lorax fails.

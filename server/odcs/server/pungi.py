@@ -36,13 +36,16 @@ from odcs.server import conf, log, db
 from odcs.server import comps
 from odcs.server.models import Compose
 from odcs.common.types import (
-    PungiSourceType, COMPOSE_RESULTS, MULTILIB_METHODS,
-    INVERSE_PUNGI_SOURCE_TYPE_NAMES, COMPOSE_FLAGS)
+    PungiSourceType,
+    COMPOSE_RESULTS,
+    MULTILIB_METHODS,
+    INVERSE_PUNGI_SOURCE_TYPE_NAMES,
+    COMPOSE_FLAGS,
+)
 from odcs.server.utils import makedirs, clone_repo, copytree
 
 
 class BasePungiConfig(object):
-
     def __init__(self):
         self.pungi_timeout = conf.pungi_timeout
 
@@ -54,13 +57,12 @@ class BasePungiConfig(object):
         :param str cfg: Configuration to write.
         """
         with open(path, "w") as f:
-            log.info("Writing %s configuration to %s.",
-                     os.path.basename(path), path)
+            log.info("Writing %s configuration to %s.", os.path.basename(path), path)
             f.write(cfg)
 
     def write_config_files(self, topdir):
         """Write configuration into files"""
-        raise NotImplementedError('Concrete config object must implement.')
+        raise NotImplementedError("Concrete config object must implement.")
 
     def validate(self, topdir, compose_dir):
         """Validate configuration. Raises an exception of error found."""
@@ -68,7 +70,6 @@ class BasePungiConfig(object):
 
 
 class RawPungiConfig(BasePungiConfig):
-
     def __init__(self, compose_source):
         super(RawPungiConfig, self).__init__()
         source_name, source_hash = compose_source.split("#")
@@ -82,7 +83,8 @@ class RawPungiConfig(BasePungiConfig):
         self.pungi_timeout = url_data.get("pungi_timeout", conf.pungi_timeout)
         self.pungi_cfg = url_data
         self.pungi_koji_args = conf.raw_config_pungi_koji_args.get(
-            source_name, conf.pungi_koji_args)
+            source_name, conf.pungi_koji_args
+        )
 
     def write_config_files(self, topdir):
         """Write raw config files
@@ -96,15 +98,15 @@ class RawPungiConfig(BasePungiConfig):
         # and override some variables.
         if conf.raw_config_wrapper_conf_path:
             main_cfg_path = os.path.join(topdir, "raw_config.conf")
-            shutil.copy2(conf.raw_config_wrapper_conf_path,
-                         os.path.join(topdir, "pungi.conf"))
+            shutil.copy2(
+                conf.raw_config_wrapper_conf_path, os.path.join(topdir, "pungi.conf")
+            )
         else:
             main_cfg_path = os.path.join(topdir, "pungi.conf")
 
         # Clone the git repo with raw_config pungi config files.
         repo_dir = os.path.join(topdir, "raw_config_repo")
-        clone_repo(self.pungi_cfg["url"], repo_dir,
-                   commit=self.pungi_cfg["commit"])
+        clone_repo(self.pungi_cfg["url"], repo_dir, commit=self.pungi_cfg["commit"])
 
         # If the 'path' is defined, copy only the files form the 'path'
         # to topdir.
@@ -126,12 +128,16 @@ class RawPungiConfig(BasePungiConfig):
         # Apply global schema override.
         if conf.raw_config_schema_override:
             pungi_config_validate_cmd += [
-                "--schema-override", conf.raw_config_schema_override]
+                "--schema-override",
+                conf.raw_config_schema_override,
+            ]
 
         # Apply raw_config specific schema override.
         if "schema_override" in self.pungi_cfg:
             pungi_config_validate_cmd += [
-                "--schema-override", self.pungi_cfg["schema_override"]]
+                "--schema-override",
+                self.pungi_cfg["schema_override"],
+            ]
 
         # Add raw_config configuration file to validate.
         pungi_config_validate_cmd.append(os.path.join(topdir, "pungi.conf"))
@@ -143,15 +149,29 @@ class RawPungiConfig(BasePungiConfig):
         with open(log_out_path, "w") as log_out:
             with open(log_err_path, "w") as log_err:
                 odcs.server.utils.execute_cmd(
-                    pungi_config_validate_cmd, stdout=log_out, stderr=log_err)
+                    pungi_config_validate_cmd, stdout=log_out, stderr=log_err
+                )
 
 
 class PungiConfig(BasePungiConfig):
-    def __init__(self, release_name, release_version, source_type, source,
-                 packages=None, arches=None, sigkeys=None, results=0,
-                 multilib_arches=None, multilib_method=0, builds=None,
-                 flags=0, lookaside_repos=None, modular_koji_tags=None,
-                 module_defaults_url=None):
+    def __init__(
+        self,
+        release_name,
+        release_version,
+        source_type,
+        source,
+        packages=None,
+        arches=None,
+        sigkeys=None,
+        results=0,
+        multilib_arches=None,
+        multilib_method=0,
+        builds=None,
+        flags=0,
+        lookaside_repos=None,
+        modular_koji_tags=None,
+        module_defaults_url=None,
+    ):
         super(PungiConfig, self).__init__()
         self.release_name = release_name
         self.release_version = release_version
@@ -187,8 +207,12 @@ class PungiConfig(BasePungiConfig):
             self.bootable = True
 
         if source_type == PungiSourceType.KOJI_TAG:
-            self.koji_module_tags = modular_koji_tags.split(" ") if modular_koji_tags else []
-            self.module_defaults_url = module_defaults_url.split(" ") if module_defaults_url else []
+            self.koji_module_tags = (
+                modular_koji_tags.split(" ") if modular_koji_tags else []
+            )
+            self.module_defaults_url = (
+                module_defaults_url.split(" ") if module_defaults_url else []
+            )
             self.koji_tag = source
             self.gather_source = "comps"
             if self.koji_module_tags:
@@ -199,14 +223,19 @@ class PungiConfig(BasePungiConfig):
             self.koji_tag = None
             self.gather_source = "module"
             self.gather_method = "nodeps"
-            self.module_defaults_url = module_defaults_url.split(" ") if module_defaults_url else []
+            self.module_defaults_url = (
+                module_defaults_url.split(" ") if module_defaults_url else []
+            )
 
             if self.packages:
-                raise ValueError("Exact packages cannot be set for MODULE "
-                                 "source type.")
-        elif source_type in [PungiSourceType.BUILD,
-                             PungiSourceType.PUNGI_COMPOSE,
-                             PungiSourceType.REPO]:
+                raise ValueError(
+                    "Exact packages cannot be set for MODULE " "source type."
+                )
+        elif source_type in [
+            PungiSourceType.BUILD,
+            PungiSourceType.PUNGI_COMPOSE,
+            PungiSourceType.REPO,
+        ]:
             self.gather_source = "comps"
             self.gather_method = "deps"
             self.koji_tag = None
@@ -233,14 +262,16 @@ class PungiConfig(BasePungiConfig):
     @property
     def pkgset_source(self):
         if self.source_type == PungiSourceType.REPO:
-            return 'repos'
-        return 'koji'
+            return "repos"
+        return "koji"
 
     def get_comps_config(self):
         if self.source_type == PungiSourceType.MODULE:
             return ""
         odcs_comps = comps.Comps()
-        odcs_group = comps.Group('odcs-group', 'odcs-group', 'ODCS compose default group')
+        odcs_group = comps.Group(
+            "odcs-group", "odcs-group", "ODCS compose default group"
+        )
         for package in self.packages:
             odcs_group.add_package(comps.Package(package))
         odcs_comps.add_group(odcs_group)
@@ -250,7 +281,9 @@ class PungiConfig(BasePungiConfig):
 
     def get_variants_config(self):
         odcs_product = comps.Product()
-        tmp_variant = comps.Variant('Temporary', 'Temporary', 'variant', self.source_type)
+        tmp_variant = comps.Variant(
+            "Temporary", "Temporary", "variant", self.source_type
+        )
         for arch in self.arches:
             tmp_variant.add_arch(comps.Arch(arch))
         if self.source_type == PungiSourceType.MODULE:
@@ -258,7 +291,11 @@ class PungiConfig(BasePungiConfig):
                 tmp_variant.add_module(comps.Module(module))
         elif self.source_type == PungiSourceType.KOJI_TAG:
             if self.packages:
-                tmp_variant.add_group(comps.Group('odcs-group', 'odcs-group', 'ODCS compose default group'))
+                tmp_variant.add_group(
+                    comps.Group(
+                        "odcs-group", "odcs-group", "ODCS compose default group"
+                    )
+                )
             if self.koji_module_tags:
                 tmp_variant.add_module(comps.Module("*"))
 
@@ -274,8 +311,10 @@ class PungiConfig(BasePungiConfig):
             return template.render(config=self)
         except Exception as e:
             log.exception(
-                "Failed to render pungi conf template {!r}: {}".format(conf.pungi_conf_path,
-                                                                       str(e)))
+                "Failed to render pungi conf template {!r}: {}".format(
+                    conf.pungi_conf_path, str(e)
+                )
+            )
 
     def write_config_files(self, topdir):
         """
@@ -309,7 +348,9 @@ class ReadComposeIdThread(threading.Thread):
         self._stop_event.set()
 
     def run(self):
-        p = os.path.join(self.compose.toplevel_dir, "work", "global", "composeinfo-base.json")
+        p = os.path.join(
+            self.compose.toplevel_dir, "work", "global", "composeinfo-base.json"
+        )
         while not self._stop_event.is_set():
             time.sleep(1)
 
@@ -372,7 +413,7 @@ class Pungi(object):
         elif isinstance(self.pungi_cfg, PungiConfig):
             pungi_cmd += conf.pungi_koji_args
         else:
-            raise RuntimeError('Unknown pungi config type to handle.')
+            raise RuntimeError("Unknown pungi config type to handle.")
 
         compose_type_to_arg = {
             "test": "--test",
@@ -431,7 +472,8 @@ class Pungi(object):
         while True:
             ci.compose.id = ci.create_compose_id()
             existing_compose = Compose.query.filter(
-                Compose.pungi_compose_id == ci.compose.id).first()
+                Compose.pungi_compose_id == ci.compose.id
+            ).first()
             if not existing_compose:
                 break
             ci.compose.respin += 1
@@ -480,8 +522,12 @@ class Pungi(object):
             with open(log_out_path, "w") as log_out:
                 with open(log_err_path, "w") as log_err:
                     odcs.server.utils.execute_cmd(
-                        pungi_cmd, cwd=td, timeout=self.pungi_cfg.pungi_timeout,
-                        stdout=log_out, stderr=log_err)
+                        pungi_cmd,
+                        cwd=td,
+                        timeout=self.pungi_cfg.pungi_timeout,
+                        stdout=log_out,
+                        stderr=log_err,
+                    )
         finally:
             if compose_id_thread:
                 compose_id_thread.stop()
@@ -490,8 +536,8 @@ class Pungi(object):
                     shutil.rmtree(td)
             except Exception as e:
                 log.warning(
-                    "Failed to remove temporary directory {!r}: {}".format(
-                        td, str(e)))
+                    "Failed to remove temporary directory {!r}: {}".format(td, str(e))
+                )
 
     def run(self, compose):
         """
@@ -516,8 +562,7 @@ class PungiLogs(object):
         toplevel_dir = self.compose.toplevel_dir
         if not toplevel_dir:
             return None
-        return os.path.join(
-            toplevel_dir, "logs", "global", "pungi.global.log")
+        return os.path.join(toplevel_dir, "logs", "global", "pungi.global.log")
 
     @property
     def config_dump_path(self):
@@ -527,8 +572,7 @@ class PungiLogs(object):
         toplevel_dir = self.compose.toplevel_dir
         if not toplevel_dir:
             return None
-        return os.path.join(
-            toplevel_dir, "logs", "global", "config-dump.global.log")
+        return os.path.join(toplevel_dir, "logs", "global", "config-dump.global.log")
 
     def _get_global_log_errors(self):
         """
@@ -555,7 +599,7 @@ class PungiLogs(object):
                         continue
                     if error:
                         errors.append(error)
-                    error = line[idx + len("[ERROR   ] "):]
+                    error = line[idx + len("[ERROR   ] ") :]
         except IOError:
             pass
         return errors
@@ -580,8 +624,7 @@ class PungiLogs(object):
                 break
 
         if self.compose.on_default_target_dir:
-            errors = errors.replace(
-                conf.target_dir, conf.target_dir_url)
+            errors = errors.replace(conf.target_dir, conf.target_dir_url)
         return errors
 
     def get_config_dump(self):

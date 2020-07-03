@@ -29,12 +29,10 @@ import odcs.server
 from odcs.server import db, conf
 from odcs.server.cache import KojiTagCache
 from odcs.server.models import Compose
-from odcs.common.types import (
-    COMPOSE_RESULTS, COMPOSE_STATES, PungiSourceType)
+from odcs.common.types import COMPOSE_RESULTS, COMPOSE_STATES, PungiSourceType
 
 
 class TestKojiTagCache(ModelsBaseTest):
-
     def setUp(self):
         super(TestKojiTagCache, self).setUp()
         compose = MagicMock()
@@ -43,64 +41,102 @@ class TestKojiTagCache(ModelsBaseTest):
 
     def test_cached_compose_dir(self):
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         ret = self.cache.cached_compose_dir(c)
         expected = os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64")
         self.assertEqual(ret, expected)
 
     def test_compose_dir_flags(self):
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600, flags=1)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+            flags=1,
+        )
         ret = self.cache.cached_compose_dir(c)
         expected = os.path.join(conf.target_dir, "koji_tag_cache/f26-1--x86_64")
         self.assertEqual(ret, expected)
 
     def test_compose_dir_sigkeys(self):
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600, flags=1,
-            sigkeys="a b c")
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+            flags=1,
+            sigkeys="a b c",
+        )
         ret = self.cache.cached_compose_dir(c)
         expected = os.path.join(conf.target_dir, "koji_tag_cache/f26-1-a-b-c-x86_64")
         self.assertEqual(ret, expected)
 
     def test_compose_dir_sigkeys_arches_unsorted(self):
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600, flags=1,
-            sigkeys="c b a", arches="i686 x86_64")
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+            flags=1,
+            sigkeys="c b a",
+            arches="i686 x86_64",
+        )
         ret = self.cache.cached_compose_dir(c)
-        expected = os.path.join(conf.target_dir, "koji_tag_cache/f26-1-a-b-c-i686-x86_64")
+        expected = os.path.join(
+            conf.target_dir, "koji_tag_cache/f26-1-a-b-c-i686-x86_64"
+        )
         self.assertEqual(ret, expected)
 
     @patch("os.path.exists")
     def test_is_cached(self, exists):
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
 
         for cached in [True, False]:
             exists.return_value = cached
             ret = self.cache.is_cached(c)
             self.assertEqual(ret, cached)
             exists.assert_called_once_with(
-                os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64"))
+                os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64")
+            )
             exists.reset_mock()
 
     @patch("shutil.copytree")
     def test_reuse_cached(self, copytree):
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         db.session.add(c)
         db.session.commit()
         self.cache.reuse_cached(c)
         copytree.assert_called_once_with(
             os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64"),
             os.path.join(conf.target_dir, "koji_tag_cache/odcs-1-1-19700101.n.0"),
-            symlinks=True)
+            symlinks=True,
+        )
 
     @patch("shutil.copytree")
     @patch("os.path.realpath")
@@ -108,8 +144,13 @@ class TestKojiTagCache(ModelsBaseTest):
     def test_update_cache(self, rmtree, realpath, copytree):
         realpath.return_value = "/tmp/real/path"
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         db.session.add(c)
         db.session.commit()
         for done in [True, False]:
@@ -119,7 +160,8 @@ class TestKojiTagCache(ModelsBaseTest):
                 copytree.assert_called_once_with(
                     "/tmp/real/path",
                     os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64"),
-                    symlinks=True)
+                    symlinks=True,
+                )
             else:
                 copytree.assert_not_called()
             copytree.reset_mock()
@@ -132,22 +174,31 @@ class TestKojiTagCache(ModelsBaseTest):
     def test_update_cache_rmtree_if_exists(self, exists, rmtree, realpath, copytree):
         realpath.return_value = "/tmp/real/path"
         c = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         c.state = COMPOSE_STATES["done"]
         db.session.add(c)
         db.session.commit()
 
         self.cache.update_cache(c)
         rmtree.assert_called_once_with(
-            os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64"))
+            os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64")
+        )
 
     @patch("os.listdir")
     @patch("os.path.getmtime")
     @patch("shutil.rmtree")
     @patch("os.path.exists")
-    @patch.object(odcs.server.config.Config, 'extra_target_dirs',
-                  new={"releng-private": "/tmp/private"})
+    @patch.object(
+        odcs.server.config.Config,
+        "extra_target_dirs",
+        new={"releng-private": "/tmp/private"},
+    )
     def test_remove_old_koji_tag_cache_data(self, exists, rmtree, getmtime, listdir):
         exists.return_value = True
         now = time.time()
@@ -159,15 +210,19 @@ class TestKojiTagCache(ModelsBaseTest):
         self.cache.remove_old_koji_tag_cache_data()
         self.assertEqual(
             rmtree.call_args_list,
-            [call(os.path.join(self.cache.cache_dir, "foo")),
-             call("/tmp/private/koji_tag_cache/foo")])
+            [
+                call(os.path.join(self.cache.cache_dir, "foo")),
+                call("/tmp/private/koji_tag_cache/foo"),
+            ],
+        )
 
     @patch("os.listdir")
     @patch("os.path.getmtime")
     @patch("shutil.rmtree")
     @patch("os.path.exists")
     def test_remove_old_koji_tag_cache_data_getmtime_raises(
-            self, exists, rmtree, getmtime, listdir):
+        self, exists, rmtree, getmtime, listdir
+    ):
         exists.return_value = True
         listdir.return_value = ["foo", "bar"]
         getmtime.side_effect = OSError("path does not exist")

@@ -37,17 +37,18 @@ from odcs.server import db
 from odcs.server.events import cache_composes_if_state_changed
 from odcs.server.events import start_to_publish_messages
 from odcs.common.types import (
-    COMPOSE_STATES, INVERSE_COMPOSE_STATES, COMPOSE_FLAGS,
-    COMPOSE_RESULTS)
+    COMPOSE_STATES,
+    INVERSE_COMPOSE_STATES,
+    COMPOSE_FLAGS,
+    COMPOSE_RESULTS,
+)
 
 from sqlalchemy import event, or_
 from flask_sqlalchemy import SignallingSession
 
-event.listen(SignallingSession, 'after_flush',
-             cache_composes_if_state_changed)
+event.listen(SignallingSession, "after_flush", cache_composes_if_state_changed)
 
-event.listen(SignallingSession, 'after_commit',
-             start_to_publish_messages)
+event.listen(SignallingSession, "after_commit", start_to_publish_messages)
 
 
 def commit_on_success(func):
@@ -59,6 +60,7 @@ def commit_on_success(func):
             raise
         finally:
             db.session.commit()
+
     return _decorator
 
 
@@ -69,7 +71,7 @@ class ODCSBase(db.Model):
 class User(ODCSBase, UserMixin):
     """User information table"""
 
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(200), nullable=False, unique=True)
@@ -184,12 +186,29 @@ class Compose(ODCSBase):
         self._target_dir = value
 
     @classmethod
-    def create(cls, session, owner, source_type, source, results,
-               seconds_to_live, packages=None, flags=0, sigkeys=None,
-               koji_event=None, arches=None, multilib_arches=None,
-               multilib_method=None, builds=None, lookaside_repos=None,
-               modular_koji_tags=None, module_defaults_url=None,
-               label=None, compose_type=None, target_dir=None):
+    def create(
+        cls,
+        session,
+        owner,
+        source_type,
+        source,
+        results,
+        seconds_to_live,
+        packages=None,
+        flags=0,
+        sigkeys=None,
+        koji_event=None,
+        arches=None,
+        multilib_arches=None,
+        multilib_method=None,
+        builds=None,
+        lookaside_repos=None,
+        modular_koji_tags=None,
+        module_defaults_url=None,
+        label=None,
+        compose_type=None,
+        target_dir=None,
+    ):
         now = datetime.utcnow()
         compose = cls(
             owner=owner,
@@ -218,7 +237,9 @@ class Compose(ODCSBase):
         return compose
 
     @classmethod
-    def create_copy(cls, session, compose, owner=None, seconds_to_live=None, sigkeys=None):
+    def create_copy(
+        cls, session, compose, owner=None, seconds_to_live=None, sigkeys=None
+    ):
         """
         Creates new compose with all the options influencing the resulting
         compose copied from the `compose`. The `owner` and `seconds_to_live`
@@ -294,16 +315,18 @@ class Compose(ODCSBase):
         if not self.on_default_target_dir:
             return ""
 
-        return conf.target_dir_url + "/" \
-            + os.path.join(self.name, "compose", "Temporary")
+        return (
+            conf.target_dir_url + "/" + os.path.join(self.name, "compose", "Temporary")
+        )
 
     @property
     def result_repofile_path(self):
         """
         Returns path to .repo file.
         """
-        return os.path.join(self.toplevel_dir, "compose", "Temporary",
-                            self.name + ".repo")
+        return os.path.join(
+            self.toplevel_dir, "compose", "Temporary", self.name + ".repo"
+        )
 
     @property
     def result_repofile_url(self):
@@ -313,11 +336,13 @@ class Compose(ODCSBase):
         if not self.on_default_target_dir:
             return ""
 
-        return conf.target_dir_url + "/" \
-            + os.path.join(self.name, "compose", "Temporary",
-                           self.name + ".repo")
+        return (
+            conf.target_dir_url
+            + "/"
+            + os.path.join(self.name, "compose", "Temporary", self.name + ".repo")
+        )
 
-    @validates('state')
+    @validates("state")
     def validate_state(self, key, field):
         if field in COMPOSE_STATES.values():
             return field
@@ -343,43 +368,45 @@ class Compose(ODCSBase):
         if self.on_default_target_dir:
             target_dir = "default"
         else:
-            inverse_extra_target_dirs = {v: k for k, v in conf.extra_target_dirs.items()}
+            inverse_extra_target_dirs = {
+                v: k for k, v in conf.extra_target_dirs.items()
+            }
             target_dir = inverse_extra_target_dirs.get(self.target_dir, "unknown")
 
         ret = {
-            'id': self.id,
-            'owner': self.owner,
-            'source_type': self.source_type,
-            'source': self.source,
-            'state': self.state,
-            'state_name': INVERSE_COMPOSE_STATES[self.state],
-            'state_reason': self.state_reason,
-            'time_to_expire': self._utc_datetime_to_iso(self.time_to_expire),
-            'time_submitted': self._utc_datetime_to_iso(self.time_submitted),
-            'time_started': self._utc_datetime_to_iso(self.time_started),
-            'time_done': self._utc_datetime_to_iso(self.time_done),
-            'time_removed': self._utc_datetime_to_iso(self.time_removed),
-            'removed_by': self.removed_by,
-            'result_repo': self.result_repo_url,
-            'result_repofile': self.result_repofile_url,
-            'toplevel_url': self.toplevel_url,
-            'flags': flags,
-            'results': results,
-            'sigkeys': self.sigkeys if self.sigkeys else "",
-            'koji_event': self.koji_event,
-            'koji_task_id': self.koji_task_id,
-            'packages': self.packages,
-            'builds': self.builds,
-            'arches': self.arches,
-            'multilib_arches': self.multilib_arches,
-            'multilib_method': self.multilib_method,
-            'lookaside_repos': self.lookaside_repos,
-            'modular_koji_tags': self.modular_koji_tags,
-            'module_defaults_url': self.module_defaults_url,
-            'label': self.label,
-            'compose_type': self.compose_type,
-            'pungi_compose_id': self.pungi_compose_id,
-            'target_dir': target_dir,
+            "id": self.id,
+            "owner": self.owner,
+            "source_type": self.source_type,
+            "source": self.source,
+            "state": self.state,
+            "state_name": INVERSE_COMPOSE_STATES[self.state],
+            "state_reason": self.state_reason,
+            "time_to_expire": self._utc_datetime_to_iso(self.time_to_expire),
+            "time_submitted": self._utc_datetime_to_iso(self.time_submitted),
+            "time_started": self._utc_datetime_to_iso(self.time_started),
+            "time_done": self._utc_datetime_to_iso(self.time_done),
+            "time_removed": self._utc_datetime_to_iso(self.time_removed),
+            "removed_by": self.removed_by,
+            "result_repo": self.result_repo_url,
+            "result_repofile": self.result_repofile_url,
+            "toplevel_url": self.toplevel_url,
+            "flags": flags,
+            "results": results,
+            "sigkeys": self.sigkeys if self.sigkeys else "",
+            "koji_event": self.koji_event,
+            "koji_task_id": self.koji_task_id,
+            "packages": self.packages,
+            "builds": self.builds,
+            "arches": self.arches,
+            "multilib_arches": self.multilib_arches,
+            "multilib_method": self.multilib_method,
+            "lookaside_repos": self.lookaside_repos,
+            "modular_koji_tags": self.modular_koji_tags,
+            "module_defaults_url": self.module_defaults_url,
+            "label": self.label,
+            "compose_type": self.compose_type,
+            "pungi_compose_id": self.pungi_compose_id,
+            "target_dir": target_dir,
         }
 
         if full:
@@ -404,29 +431,33 @@ class Compose(ODCSBase):
     def composes_to_expire(cls):
         now = datetime.utcnow()
         return Compose.query.filter(
-            or_(Compose.state == COMPOSE_STATES["done"],
-                Compose.state == COMPOSE_STATES["failed"]),
-            Compose.time_to_expire < now).all()
+            or_(
+                Compose.state == COMPOSE_STATES["done"],
+                Compose.state == COMPOSE_STATES["failed"],
+            ),
+            Compose.time_to_expire < now,
+        ).all()
 
     def __repr__(self):
         return "<Compose %r, type %r, state %s>" % (
-            self.id, self.source_type,
-            INVERSE_COMPOSE_STATES[self.state])
+            self.id,
+            self.source_type,
+            INVERSE_COMPOSE_STATES[self.state],
+        )
 
     def get_reused_compose(self):
         """Get compose this compose reuses"""
-        return db.session.query(Compose).filter(
-            Compose.id == self.reused_id).first()
+        return db.session.query(Compose).filter(Compose.id == self.reused_id).first()
 
     def get_reusing_composes(self):
         """Get composes that are reusing this compose"""
-        return db.session.query(Compose).filter(
-            Compose.reused_id == self.id).all()
+        return db.session.query(Compose).filter(Compose.reused_id == self.id).all()
 
     def extend_expiration(self, _from, seconds_to_live):
         """Extend time to expire"""
-        new_expiration = max(self.time_to_expire,
-                             _from + timedelta(seconds=seconds_to_live))
+        new_expiration = max(
+            self.time_to_expire, _from + timedelta(seconds=seconds_to_live)
+        )
         if new_expiration != self.time_to_expire:
             self.time_to_expire = new_expiration
 
@@ -440,11 +471,11 @@ class Compose(ODCSBase):
         """
         self.state = to_state
         self.state_reason = reason
-        if to_state == COMPOSE_STATES['removed']:
+        if to_state == COMPOSE_STATES["removed"]:
             self.time_removed = happen_on or datetime.utcnow()
-        elif to_state == COMPOSE_STATES['done']:
+        elif to_state == COMPOSE_STATES["done"]:
             self.time_done = happen_on or datetime.utcnow()
-        elif to_state == COMPOSE_STATES['generating']:
+        elif to_state == COMPOSE_STATES["generating"]:
             self.time_started = happen_on or datetime.utcnow()
         if to_state in (COMPOSE_STATES["done"], COMPOSE_STATES["failed"]):
             ttl = self.time_to_expire - self.time_submitted
@@ -452,4 +483,4 @@ class Compose(ODCSBase):
         db.session.commit()
 
 
-Index('idx_source_type__state', Compose.source_type, Compose.state)
+Index("idx_source_type__state", Compose.source_type, Compose.state)

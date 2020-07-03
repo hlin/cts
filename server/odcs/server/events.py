@@ -38,11 +38,14 @@ def cache_composes_if_state_changed(session, flush_context):
 
     from odcs.server.models import Compose
 
-    composes = (item for item in (session.new | session.dirty)
-                if isinstance(item, Compose))
+    composes = (
+        item for item in (session.new | session.dirty) if isinstance(item, Compose)
+    )
     composes_state_changed = (
-        compose for compose in composes
-        if not attributes.get_history(compose, 'state').unchanged)
+        compose
+        for compose in composes
+        if not attributes.get_history(compose, "state").unchanged
+    )
 
     with _cache_lock:
         for comp in composes_state_changed:
@@ -50,8 +53,9 @@ def cache_composes_if_state_changed(session, flush_context):
                 _cached_composes[comp.id] = []
             _cached_composes[comp.id].append(comp.json())
 
-    log.debug('Cached composes to be sent due to state changed: %s',
-              _cached_composes.keys())
+    log.debug(
+        "Cached composes to be sent due to state changed: %s", _cached_composes.keys()
+    )
 
 
 def start_to_publish_messages(session):
@@ -62,11 +66,8 @@ def start_to_publish_messages(session):
         msgs = []
         for compose_jsons in _cached_composes.values():
             for compose_json in compose_jsons:
-                msgs.append({
-                    'event': 'state-changed',
-                    'compose': compose_json,
-                })
-        log.debug('Sending messages: %s', msgs)
+                msgs.append({"event": "state-changed", "compose": compose_json})
+        log.debug("Sending messages: %s", msgs)
         if msgs:
             try:
                 messaging.publish(msgs)

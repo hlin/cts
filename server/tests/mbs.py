@@ -29,7 +29,8 @@ from six.moves.urllib.parse import urlparse, parse_qs
 from odcs.server import conf
 
 import gi
-gi.require_version('Modulemd', '2.0')
+
+gi.require_version("Modulemd", "2.0")
 from gi.repository import Modulemd  # noqa: E402
 
 
@@ -39,14 +40,13 @@ def dump_mmd(mmd):
     return mod_index.dump_to_string()
 
 
-def make_module(name, stream, version, requires={}, mdversion=1,
-                context=None, state=5):
+def make_module(name, stream, version, requires={}, mdversion=1, context=None, state=5):
     if mdversion == 1:
         mmd = Modulemd.ModuleStreamV1.new(name, stream)
     else:
         mmd = Modulemd.ModuleStreamV2.new(name, stream)
     mmd.set_version(version)
-    mmd.set_context(context or '00000000')
+    mmd.set_context(context or "00000000")
     mmd.set_summary("foo")
     mmd.set_description("foo")
     mmd.add_module_license("GPL")
@@ -61,69 +61,49 @@ def make_module(name, stream, version, requires={}, mdversion=1,
         mmd.add_dependencies(deps)
 
     return {
-        'name': name,
-        'stream': stream,
-        'version': str(version),
-        'context': context or '00000000',
-        'modulemd': dump_mmd(mmd),
-        'state': state,
+        "name": name,
+        "stream": stream,
+        "version": str(version),
+        "context": context or "00000000",
+        "modulemd": dump_mmd(mmd),
+        "state": state,
     }
 
 
 TEST_MBS_MODULES_MMDv1 = [
     # test_backend.py
-    make_module('moduleA', 'f26', 20170809000000,
-                {'moduleB': 'f26'}),
-    make_module('moduleA', 'f26', 20170805000000,
-                {'moduleB': 'f26'}),
-
-    make_module('moduleB', 'f26', 20170808000000,
-                {'moduleC': 'f26', 'moduleD': 'f26'}),
-    make_module('moduleB', 'f27', 2017081000000,
-                {'moduleC': 'f27'}),
-
-    make_module('moduleC', 'f26', 20170807000000,
-                {'moduleD': 'f26'}),
-
-    make_module('moduleD', 'f26', 20170806000000),
-
+    make_module("moduleA", "f26", 20170809000000, {"moduleB": "f26"}),
+    make_module("moduleA", "f26", 20170805000000, {"moduleB": "f26"}),
+    make_module("moduleB", "f26", 20170808000000, {"moduleC": "f26", "moduleD": "f26"}),
+    make_module("moduleB", "f27", 2017081000000, {"moduleC": "f27"}),
+    make_module("moduleC", "f26", 20170807000000, {"moduleD": "f26"}),
+    make_module("moduleD", "f26", 20170806000000),
     # test_composerthread.py
-    make_module('testmodule', 'master', 20170515074418),
-    make_module('testmodule', 'master', 20170515074419)
+    make_module("testmodule", "master", 20170515074418),
+    make_module("testmodule", "master", 20170515074419),
 ]
 
 
 TEST_MBS_MODULES_MMDv2 = [
     # test_backend.py
-    make_module('moduleA', 'f26', 20170809000000,
-                {'moduleB': 'f26'}, 2),
-    make_module('moduleA', 'f26', 20170805000000,
-                {'moduleB': 'f26'}, 2),
-
-    make_module('moduleB', 'f26', 20170808000000,
-                {'moduleC': 'f26', 'moduleD': 'f26'}, 2),
-    make_module('moduleB', 'f27', 2017081000000,
-                {'moduleC': 'f27'}, 2),
-
-    make_module('moduleC', 'f26', 20170807000000,
-                {'moduleD': 'f26'}, 2),
-
-    make_module('moduleD', 'f26', 20170806000000, {}, 2),
-
+    make_module("moduleA", "f26", 20170809000000, {"moduleB": "f26"}, 2),
+    make_module("moduleA", "f26", 20170805000000, {"moduleB": "f26"}, 2),
+    make_module(
+        "moduleB", "f26", 20170808000000, {"moduleC": "f26", "moduleD": "f26"}, 2
+    ),
+    make_module("moduleB", "f27", 2017081000000, {"moduleC": "f27"}, 2),
+    make_module("moduleC", "f26", 20170807000000, {"moduleD": "f26"}, 2),
+    make_module("moduleD", "f26", 20170806000000, {}, 2),
     # module builds in "done" state.
-    make_module('testmodule', 'master', 20180515074419, {}, 2, state=3),
-
+    make_module("testmodule", "master", 20180515074419, {}, 2, state=3),
     # test_composerthread.py
-    make_module('testmodule', 'master', 20170515074418, {}, 2),
-    make_module('testmodule', 'master', 20170515074419, {}, 2),
-
+    make_module("testmodule", "master", 20170515074418, {}, 2),
+    make_module("testmodule", "master", 20170515074419, {}, 2),
     # multiple contexts
-    make_module('parent', 'master', 1, {}, 2, context="a"),
-    make_module('parent', 'master', 1, {}, 2, context="b"),
-    make_module('testcontexts', 'master', 1, {"parent": "master"},
-                2, context="a"),
-    make_module('testcontexts', 'master', 1, {"parent": "master"},
-                2, context="b"),
+    make_module("parent", "master", 1, {}, 2, context="a"),
+    make_module("parent", "master", 1, {}, 2, context="b"),
+    make_module("testcontexts", "master", 1, {"parent": "master"}, 2, context="a"),
+    make_module("testcontexts", "master", 1, {"parent": "master"}, 2, context="b"),
 ]
 
 
@@ -133,13 +113,14 @@ def mock_mbs(mdversion=2):
     up modules are redirected to return results from the TEST_MODULES array
     above.
     """
+
     def wrapper(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
             def handle_module_builds(request):
                 query = parse_qs(urlparse(request.url).query)
-                states = [int(s) for s in query['state']]
-                nsvc = query['nsvc'][0]
+                states = [int(s) for s in query["state"]]
+                nsvc = query["nsvc"][0]
                 nsvc_parts = nsvc.split(":")
                 nsvc_keys = ["name", "stream", "version", "context"]
                 nsvc_dict = {}
@@ -168,11 +149,14 @@ def mock_mbs(mdversion=2):
                 return (200, {}, json.dumps(body))
 
             responses.add_callback(
-                responses.GET, conf.mbs_url + '/1/module-builds/',
-                content_type='application/json',
-                callback=handle_module_builds)
+                responses.GET,
+                conf.mbs_url + "/1/module-builds/",
+                content_type="application/json",
+                callback=handle_module_builds,
+            )
 
             return f(*args, **kwargs)
 
         return responses.activate(wrapped)
+
     return wrapper

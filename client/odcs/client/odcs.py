@@ -82,49 +82,61 @@ def validate_int(value, min=1, type_error=None, value_error=None):
         if type_error:
             raise TypeError(type_error)
         else:
-            raise TypeError('Value {0} is not an integer.'.format(value))
+            raise TypeError("Value {0} is not an integer.".format(value))
     if value < min:
         if value_error:
             raise ValueError(value_error)
         else:
             raise ValueError(
-                'Value {0} is less than minimal value {1}.'.format(
-                    value, min))
+                "Value {0} is less than minimal value {1}.".format(value, min)
+            )
 
 
 def validate_page(value):
     validate_int(
         value,
-        type_error='page number must be an integer.',
-        value_error='page number must start from 1.')
+        type_error="page number must be an integer.",
+        value_error="page number must start from 1.",
+    )
 
 
 def validate_per_page(value):
     validate_int(
         value,
-        type_error='per_page must be an integer.',
-        value_error='per_page must be greater than or equal to 1.')
+        type_error="per_page must be an integer.",
+        value_error="per_page must be greater than or equal to 1.",
+    )
 
 
 class ComposeSourceGeneric(object):
-    def __init__(self, source, source_type, packages=None, builds=None, sigkeys=None,
-                 koji_event=None, modular_koji_tags=None, module_defaults_url=None,
-                 module_defaults_commit=None, **kwargs):
-        self.source = {'source': source, 'type': source_type}
+    def __init__(
+        self,
+        source,
+        source_type,
+        packages=None,
+        builds=None,
+        sigkeys=None,
+        koji_event=None,
+        modular_koji_tags=None,
+        module_defaults_url=None,
+        module_defaults_commit=None,
+        **kwargs
+    ):
+        self.source = {"source": source, "type": source_type}
         if packages:
-            self.source['packages'] = packages
+            self.source["packages"] = packages
         if builds:
-            self.source['builds'] = builds
+            self.source["builds"] = builds
         if sigkeys:
-            self.source['sigkeys'] = sigkeys
+            self.source["sigkeys"] = sigkeys
         if koji_event:
-            self.source['koji_event'] = koji_event
+            self.source["koji_event"] = koji_event
         if modular_koji_tags:
-            self.source['modular_koji_tags'] = modular_koji_tags
+            self.source["modular_koji_tags"] = modular_koji_tags
         if module_defaults_url:
-            self.source['module_defaults_url'] = module_defaults_url
+            self.source["module_defaults_url"] = module_defaults_url
         if module_defaults_commit:
-            self.source['module_defaults_commit'] = module_defaults_commit
+            self.source["module_defaults_commit"] = module_defaults_commit
         self.source.update(kwargs)
 
 
@@ -132,9 +144,19 @@ class ComposeSourceTag(ComposeSourceGeneric):
     """
     Compose source taking Koji tag as input.
     """
-    def __init__(self, tag, packages=None, builds=None, sigkeys=None,
-                 koji_event=None, modular_koji_tags=None, module_defaults_url=None,
-                 module_defaults_commit=None, **kwargs):
+
+    def __init__(
+        self,
+        tag,
+        packages=None,
+        builds=None,
+        sigkeys=None,
+        koji_event=None,
+        modular_koji_tags=None,
+        module_defaults_url=None,
+        module_defaults_commit=None,
+        **kwargs
+    ):
         """
         Creates new ComposeSourceTag instance.
 
@@ -156,16 +178,32 @@ class ComposeSourceTag(ComposeSourceGeneric):
             module defaults repository.
         """
         super(ComposeSourceTag, self).__init__(
-            tag, "tag", packages, builds, sigkeys, koji_event, modular_koji_tags,
-            module_defaults_url, module_defaults_commit, **kwargs)
+            tag,
+            "tag",
+            packages,
+            builds,
+            sigkeys,
+            koji_event,
+            modular_koji_tags,
+            module_defaults_url,
+            module_defaults_commit,
+            **kwargs
+        )
 
 
 class ComposeSourceModule(ComposeSourceGeneric):
     """
     Compose source taking list of modules as input.
     """
-    def __init__(self, modules, sigkeys=None, module_defaults_url=None,
-                 module_defaults_commit=None, **kwargs):
+
+    def __init__(
+        self,
+        modules,
+        sigkeys=None,
+        module_defaults_url=None,
+        module_defaults_commit=None,
+        **kwargs
+    ):
         """
         Creates new ComposeSourceModule instance.
 
@@ -177,15 +215,20 @@ class ComposeSourceModule(ComposeSourceGeneric):
             module defaults repository.
         """
         super(ComposeSourceModule, self).__init__(
-            " ".join(modules), "module", sigkeys=sigkeys,
+            " ".join(modules),
+            "module",
+            sigkeys=sigkeys,
             module_defaults_url=module_defaults_url,
-            module_defaults_commit=module_defaults_commit, **kwargs)
+            module_defaults_commit=module_defaults_commit,
+            **kwargs
+        )
 
 
 class ComposeSourcePulp(ComposeSourceGeneric):
     """
     Compose source taking list of Pulp content_sets as input.
     """
+
     def __init__(self, content_sets, **kwargs):
         """
         Creates new ComposeSourcePulp instance.
@@ -194,13 +237,15 @@ class ComposeSourcePulp(ComposeSourceGeneric):
             content-sets will be included in the compose.
         """
         super(ComposeSourcePulp, self).__init__(
-            " ".join(content_sets), "pulp", **kwargs)
+            " ".join(content_sets), "pulp", **kwargs
+        )
 
 
 class ComposeSourceRawConfig(ComposeSourceGeneric):
     """
     Compose source taking raw Pungi configuration file as input.
     """
+
     def __init__(self, config_name, commit, koji_event=None, **kwargs):
         """
         Creates new ComposeSourceRawConfig instance.
@@ -211,14 +256,18 @@ class ComposeSourceRawConfig(ComposeSourceGeneric):
             latest Koji event will be used.
         """
         super(ComposeSourceRawConfig, self).__init__(
-            "%s#%s" % (config_name, commit), "raw_config", koji_event=koji_event,
-            **kwargs)
+            "%s#%s" % (config_name, commit),
+            "raw_config",
+            koji_event=koji_event,
+            **kwargs
+        )
 
 
 class ComposeSourceBuild(ComposeSourceGeneric):
     """
     Compose source taking list of Koji builds as input.
     """
+
     def __init__(self, builds, sigkeys=None, **kwargs):
         """
         Creates new ComposeSourceModule instance.
@@ -228,15 +277,23 @@ class ComposeSourceBuild(ComposeSourceGeneric):
             signed. Empty string in the list allows unsigned packages.
         """
         super(ComposeSourceBuild, self).__init__(
-            "", "build", builds=builds, sigkeys=sigkeys, **kwargs)
+            "", "build", builds=builds, sigkeys=sigkeys, **kwargs
+        )
 
 
 class ODCS(object):
     """Client API to interact with ODCS APIs"""
 
-    def __init__(self, server_url, api_version='1', verify_ssl=True,
-                 auth_mech=None, openidc_token=None, ssl_cert=None,
-                 ssl_key=None):
+    def __init__(
+        self,
+        server_url,
+        api_version="1",
+        verify_ssl=True,
+        auth_mech=None,
+        openidc_token=None,
+        ssl_cert=None,
+        ssl_key=None,
+    ):
         """Initialize ODCS client
 
         :param str server_url: server URL of ODCS.
@@ -263,13 +320,17 @@ class ODCS(object):
         self._api_version = api_version
         self._verify_ssl = verify_ssl
         if auth_mech == AuthMech.OpenIDC and not openidc_token:
-            raise ValueError('OpenIDC token must be specified when OpenIDC'
-                             ' authentication is enabled.')
+            raise ValueError(
+                "OpenIDC token must be specified when OpenIDC"
+                " authentication is enabled."
+            )
         self._openidc_token = openidc_token
 
         if auth_mech == AuthMech.SSL and (not ssl_cert or not ssl_key):
-            raise ValueError('SSL cert and keymust be specified when SSL'
-                             ' authentication is enabled.')
+            raise ValueError(
+                "SSL cert and keymust be specified when SSL"
+                " authentication is enabled."
+            )
         self._ssl_cert = ssl_cert
         self._ssl_key = ssl_key
 
@@ -278,7 +339,8 @@ class ODCS(object):
         else:
             if not AuthMech.has(auth_mech):
                 raise ValueError(
-                    'Unknown authentication mechanism {0}'.format(auth_mech))
+                    "Unknown authentication mechanism {0}".format(auth_mech)
+                )
             self._auth_mech = auth_mech
 
     @property
@@ -306,7 +368,8 @@ class ODCS(object):
         """
         return urllib_parse.urljoin(
             self._server_url,
-            'api/{0}/{1}'.format(self.api_version, resource_path.lstrip('/')))
+            "api/{0}/{1}".format(self.api_version, resource_path.lstrip("/")),
+        )
 
     def _make_request(self, method, resource_path, data=None):
         """Make a HTTP request to server
@@ -325,24 +388,24 @@ class ODCS(object):
         request_data = {}
         headers = {}
         if data:
-            if method in ('post', 'patch'):
-                request_data['data'] = json.dumps(data)
-                headers['Content-Type'] = 'application/json'
-            if method == 'get':
-                request_data['params'] = data
+            if method in ("post", "patch"):
+                request_data["data"] = json.dumps(data)
+                headers["Content-Type"] = "application/json"
+            if method == "get":
+                request_data["params"] = data
         if not self._verify_ssl:
-            request_data['verify'] = False
+            request_data["verify"] = False
         if self.auth_mech == AuthMech.OpenIDC:
-            headers['Authorization'] = 'Bearer {0}'.format(self._openidc_token)
+            headers["Authorization"] = "Bearer {0}".format(self._openidc_token)
         elif self.auth_mech == AuthMech.Kerberos:
-            request_data['auth'] = HTTPKerberosAuth()
+            request_data["auth"] = HTTPKerberosAuth()
         elif self.auth_mech == AuthMech.SSL:
-            request_data['cert'] = (self._ssl_cert, self._ssl_key)
+            request_data["cert"] = (self._ssl_cert, self._ssl_key)
 
         # Anonymous is the last possible value and no auth should be set
 
         if headers:
-            request_data['headers'] = headers
+            request_data["headers"] = headers
 
         request_method = getattr(requests, method)
         resource_url = self._make_endpoint(resource_path)
@@ -357,26 +420,39 @@ class ODCS(object):
 
     def _get(self, resource_path, data=None):
         """Make a GET HTTP request to server"""
-        return self._make_request('get', resource_path, data)
+        return self._make_request("get", resource_path, data)
 
     def _post(self, resource_path, data=None):
         """Make a POST HTTP request to server"""
-        return self._make_request('post', resource_path, data)
+        return self._make_request("post", resource_path, data)
 
     def _delete(self, resource_path, data=None):
         """Make a DELETE HTTP request to server"""
-        return self._make_request('delete', resource_path, data)
+        return self._make_request("delete", resource_path, data)
 
     def _patch(self, resource_path, data=None):
         """Make a PATCH HTTP request to server"""
-        return self._make_request('patch', resource_path, data)
+        return self._make_request("patch", resource_path, data)
 
-    def new_compose(self, source, source_type,
-                    seconds_to_live=None, packages=[], flags=[],
-                    sigkeys=None, koji_event=None, results=None,
-                    arches=None, builds=None, modular_koji_tags=None,
-                    module_defaults_url=None, module_defaults_commit=None,
-                    lookaside_repos=None, label=None, compose_type=None):
+    def new_compose(
+        self,
+        source,
+        source_type,
+        seconds_to_live=None,
+        packages=[],
+        flags=[],
+        sigkeys=None,
+        koji_event=None,
+        results=None,
+        arches=None,
+        builds=None,
+        modular_koji_tags=None,
+        module_defaults_url=None,
+        module_defaults_commit=None,
+        lookaside_repos=None,
+        label=None,
+        compose_type=None,
+    ):
         """Request a new compose
 
         .. warning::
@@ -409,39 +485,37 @@ class ODCS(object):
         :return: the newly created Compose
         :rtype: dict
         """
-        request_data = {
-            'source': {'source': source, 'type': source_type}
-        }
+        request_data = {"source": {"source": source, "type": source_type}}
         if packages:
-            request_data['source']['packages'] = packages
+            request_data["source"]["packages"] = packages
         if builds:
-            request_data['source']['builds'] = builds
+            request_data["source"]["builds"] = builds
         if sigkeys:
-            request_data['source']['sigkeys'] = sigkeys
+            request_data["source"]["sigkeys"] = sigkeys
         if koji_event:
-            request_data['source']['koji_event'] = koji_event
+            request_data["source"]["koji_event"] = koji_event
         if modular_koji_tags:
-            request_data['source']['modular_koji_tags'] = modular_koji_tags
+            request_data["source"]["modular_koji_tags"] = modular_koji_tags
         if module_defaults_url:
-            request_data['source']['module_defaults_url'] = module_defaults_url
+            request_data["source"]["module_defaults_url"] = module_defaults_url
         if module_defaults_commit:
-            request_data['source']['module_defaults_commit'] = module_defaults_commit
+            request_data["source"]["module_defaults_commit"] = module_defaults_commit
         if lookaside_repos:
-            request_data['lookaside_repos'] = lookaside_repos
+            request_data["lookaside_repos"] = lookaside_repos
         if label:
-            request_data['label'] = label
+            request_data["label"] = label
         if compose_type:
-            request_data['compose_type'] = compose_type
+            request_data["compose_type"] = compose_type
         if seconds_to_live is not None:
-            request_data['seconds-to-live'] = seconds_to_live
+            request_data["seconds-to-live"] = seconds_to_live
         if flags:
-            request_data['flags'] = flags
+            request_data["flags"] = flags
         if results:
-            request_data['results'] = results
+            request_data["results"] = results
         if arches:
-            request_data['arches'] = arches
+            request_data["arches"] = arches
 
-        r = self._post('composes/', request_data)
+        r = self._post("composes/", request_data)
         return r.json()
 
     def request_compose(self, source, **kwargs):
@@ -477,11 +551,11 @@ class ODCS(object):
         :rtype: dict
         """
         if seconds_to_live is not None:
-            request_data = {'seconds-to-live': seconds_to_live}
+            request_data = {"seconds-to-live": seconds_to_live}
         else:
             request_data = None
 
-        r = self._patch('composes/{0}'.format(compose_id), request_data)
+        r = self._patch("composes/{0}".format(compose_id), request_data)
         return r.json()
 
     def find_composes(self, **search_criteria):
@@ -493,12 +567,12 @@ class ODCS(object):
         :return: list of found composes, each of them is a dict.
         :rtype: list
         """
-        if 'page' in search_criteria:
-            validate_page(search_criteria['page'])
-        if 'per_page' in search_criteria:
-            validate_per_page(search_criteria['per_page'])
+        if "page" in search_criteria:
+            validate_page(search_criteria["page"])
+        if "per_page" in search_criteria:
+            validate_per_page(search_criteria["per_page"])
 
-        r = self._get('composes/', search_criteria)
+        r = self._get("composes/", search_criteria)
         return r.json()
 
     def delete_compose(self, compose_id):
@@ -508,7 +582,7 @@ class ODCS(object):
         :return: a mapping representing the acknowledge of a compose is delete.
         :rtype: dict
         """
-        r = self._delete('composes/{0}'.format(compose_id))
+        r = self._delete("composes/{0}".format(compose_id))
         return r.json()
 
     def get_compose(self, compose_id):
@@ -518,7 +592,7 @@ class ODCS(object):
         :return: a mapping representing a compose.
         :rtype: dict
         """
-        r = self._get('composes/{0}'.format(compose_id))
+        r = self._get("composes/{0}".format(compose_id))
         return r.json()
 
     def wait_for_compose(self, compose_id, timeout=300, watch_logs=False):
@@ -555,14 +629,15 @@ class ODCS(object):
                 data = log.read()
                 if data:
                     print(data)
-            if compose['state_name'] not in ['wait', 'generating']:
+            if compose["state_name"] not in ["wait", "generating"]:
                 return compose
 
             elapsed = time.time() - start_time
             if elapsed >= timeout:
                 raise RuntimeError(
-                    "Retrieving ODCS compose %s timed out after %s seconds" %
-                    (compose_id, timeout))
+                    "Retrieving ODCS compose %s timed out after %s seconds"
+                    % (compose_id, timeout)
+                )
 
             time.sleep(sleep_time)
 

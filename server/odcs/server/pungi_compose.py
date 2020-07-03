@@ -42,8 +42,7 @@ class PungiCompose(object):
         # The `variant_name` is for example `Server`
         self.variant_name = os.path.basename(self.variant_url)
         # The `metadata_url` is for example "http://localhost/foo/compose/metadata".
-        self.metadata_url = os.path.join(
-            os.path.dirname(self.variant_url), "metadata")
+        self.metadata_url = os.path.join(os.path.dirname(self.variant_url), "metadata")
 
     def _fetch_json(self, url):
         """
@@ -77,11 +76,12 @@ class PungiCompose(object):
         # for the right variant.
         url = os.path.join(self.metadata_url, "rpms.json")
         data = self._fetch_json(url)
-        srpms_per_arch = data.get("payload", {}).get("rpms", {}).get(
-            self.variant_name)
+        srpms_per_arch = data.get("payload", {}).get("rpms", {}).get(self.variant_name)
         if not srpms_per_arch:
-            raise ValueError("The %s does not contain payload -> rpms -> %s "
-                             "section" % (url, self.variant_name))
+            raise ValueError(
+                "The %s does not contain payload -> rpms -> %s "
+                "section" % (url, self.variant_name)
+            )
 
         # Go through the data and fill in the dict to return.
         for arch, srpms in srpms_per_arch.items():
@@ -93,7 +93,8 @@ class PungiCompose(object):
                     ret["sigkeys"].add(rpm_data["sigkey"])
 
                 srpm_nvr = "{name}-{version}-{release}".format(
-                    **productmd.common.parse_nvra(srpm_nevra))
+                    **productmd.common.parse_nvra(srpm_nevra)
+                )
                 ret["builds"][srpm_nvr] = packages
 
         return ret

@@ -84,7 +84,9 @@ class Arch(object):
 
 
 class Package(object):
-    def __init__(self, name, arch=None, type=None, requires=None, is_basearchonly=False):
+    def __init__(
+        self, name, arch=None, type=None, requires=None, is_basearchonly=False
+    ):
         self.name = name
         self.arch = arch
         self.type = type

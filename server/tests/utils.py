@@ -38,7 +38,6 @@ class AnyStringWith(str):
 
 
 class ConfigPatcher(object):
-
     def __init__(self, config_obj):
         self.objects = []
         self.config_obj = config_obj
@@ -70,42 +69,42 @@ class ModelsBaseTest(unittest.TestCase):
 
     def setUp(self):
         # Not all tests need handlers of event after_flush and after_commit.
-        if event.contains(SignallingSession, 'after_flush',
-                          cache_composes_if_state_changed):
-            event.remove(SignallingSession, 'after_flush',
-                         cache_composes_if_state_changed)
-        if event.contains(SignallingSession, 'after_commit',
-                          start_to_publish_messages):
-            event.remove(SignallingSession, 'after_commit',
-                         start_to_publish_messages)
+        if event.contains(
+            SignallingSession, "after_flush", cache_composes_if_state_changed
+        ):
+            event.remove(
+                SignallingSession, "after_flush", cache_composes_if_state_changed
+            )
+        if event.contains(SignallingSession, "after_commit", start_to_publish_messages):
+            event.remove(SignallingSession, "after_commit", start_to_publish_messages)
 
         db.session.remove()
         db.drop_all()
         db.create_all()
         db.session.commit()
 
-        setup_composes = getattr(self, 'setup_composes', None)
+        setup_composes = getattr(self, "setup_composes", None)
         if setup_composes is not None:
             assert callable(setup_composes)
             setup_composes()
 
-        if hasattr(self, 'setup_composes'):
-            getattr(self, 'setup_composes')()
+        if hasattr(self, "setup_composes"):
+            getattr(self, "setup_composes")()
 
         # And, if tests which need such event handlers or just tests those
         # handlers, add them back.
         if not self.disable_event_handlers:
-            event.listen(SignallingSession, 'after_flush',
-                         cache_composes_if_state_changed)
-            event.listen(SignallingSession, 'after_commit',
-                         start_to_publish_messages)
+            event.listen(
+                SignallingSession, "after_flush", cache_composes_if_state_changed
+            )
+            event.listen(SignallingSession, "after_commit", start_to_publish_messages)
 
     def tearDown(self):
         if not self.disable_event_handlers:
-            event.remove(SignallingSession, 'after_flush',
-                         cache_composes_if_state_changed)
-            event.remove(SignallingSession, 'after_commit',
-                         start_to_publish_messages)
+            event.remove(
+                SignallingSession, "after_flush", cache_composes_if_state_changed
+            )
+            event.remove(SignallingSession, "after_commit", start_to_publish_messages)
 
         db.session.remove()
         db.drop_all()
@@ -113,7 +112,5 @@ class ModelsBaseTest(unittest.TestCase):
 
         # Nothing special here. Just do what should be done in tearDown to
         # to restore enviornment for each test method.
-        event.listen(SignallingSession, 'after_flush',
-                     cache_composes_if_state_changed)
-        event.listen(SignallingSession, 'after_commit',
-                     start_to_publish_messages)
+        event.listen(SignallingSession, "after_flush", cache_composes_if_state_changed)
+        event.listen(SignallingSession, "after_commit", start_to_publish_messages)

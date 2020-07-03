@@ -47,10 +47,10 @@ class TestComposerThread(ModelsBaseTest):
         super(TestComposerThread, self).setUp()
         self.composer = ComposerThread()
 
-        patched_pungi_conf_path = os.path.join(thisdir, '../conf/pungi.conf')
-        self.patch_pungi_conf_path = patch.object(odcs.server.conf,
-                                                  'pungi_conf_path',
-                                                  new=patched_pungi_conf_path)
+        patched_pungi_conf_path = os.path.join(thisdir, "../conf/pungi.conf")
+        self.patch_pungi_conf_path = patch.object(
+            odcs.server.conf, "pungi_conf_path", new=patched_pungi_conf_path
+        )
         self.patch_pungi_conf_path.start()
 
         self.patch_update_cache = patch("odcs.server.backend.KojiTagCache.update_cache")
@@ -71,30 +71,53 @@ class TestComposerThread(ModelsBaseTest):
             time.sleep(0.1)
         return c
 
-    def _add_module_compose(self, source="testmodule-master-20170515074419",
-                            flags=0):
+    def _add_module_compose(self, source="testmodule-master-20170515074419", flags=0):
         compose = Compose.create(
-            db.session, "unknown", PungiSourceType.MODULE, source,
-            COMPOSE_RESULTS["repository"], 60)
+            db.session,
+            "unknown",
+            PungiSourceType.MODULE,
+            source,
+            COMPOSE_RESULTS["repository"],
+            60,
+        )
         db.session.add(compose)
         db.session.commit()
 
     def _add_tag_compose(self, packages=None, flags=0):
         compose = Compose.create(
-            db.session, "unknown", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60, packages, flags)
+            db.session,
+            "unknown",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+            packages,
+            flags,
+        )
         db.session.add(compose)
         db.session.commit()
 
     def _add_repo_composes(self):
         old_c = Compose.create(
-            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
-            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+            db.session,
+            "me",
+            PungiSourceType.REPO,
+            os.path.join(thisdir, "repo"),
+            COMPOSE_RESULTS["repository"],
+            3600,
+            packages="ed",
+        )
         old_c.state = COMPOSE_STATES["done"]
         resolve_compose(old_c)
         c = Compose.create(
-            db.session, "me", PungiSourceType.REPO, os.path.join(thisdir, "repo"),
-            COMPOSE_RESULTS["repository"], 3600, packages="ed")
+            db.session,
+            "me",
+            PungiSourceType.REPO,
+            os.path.join(thisdir, "repo"),
+            COMPOSE_RESULTS["repository"],
+            3600,
+            packages="ed",
+        )
         db.session.add(old_c)
         db.session.add(c)
         db.session.commit()
@@ -112,16 +135,21 @@ class TestComposerThread(ModelsBaseTest):
         self.composer.do_work()
         c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(
+                odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"
+            ),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary"
+        )
         self.assertEqual(self.composer.currently_generating, [1])
 
     @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
-    def test_submit_build_module_without_release(
-            self, wrf, execute_cmd):
+    def test_submit_build_module_without_release(self, wrf, execute_cmd):
         self._add_module_compose("testmodule-master")
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
@@ -129,9 +157,15 @@ class TestComposerThread(ModelsBaseTest):
         self.composer.do_work()
         c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(
+                odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"
+            ),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary"
+        )
         self.assertEqual(c.source, "testmodule:master:20170515074419")
 
     @mock_mbs
@@ -147,16 +181,23 @@ class TestComposerThread(ModelsBaseTest):
         self.composer.do_work()
         c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(
+                odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"
+            ),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary"
+        )
         self.assertEqual(self.composer.currently_generating, [1])
 
     @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_module_without_release_colon_separator(
-            self, wrf, execute_cmd):
+        self, wrf, execute_cmd
+    ):
         self._add_module_compose("testmodule:master")
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
@@ -164,16 +205,21 @@ class TestComposerThread(ModelsBaseTest):
         self.composer.do_work()
         c = self._wait_for_compose_state(1, COMPOSE_STATES["done"])
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(
+                odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"
+            ),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary"
+        )
         self.assertEqual(c.source, "testmodule:master:20170515074419")
 
     @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend._write_repo_file")
-    def test_submit_build_module_without_release_not_in_mbs(
-            self, wrf, execute_cmd):
+    def test_submit_build_module_without_release_not_in_mbs(self, wrf, execute_cmd):
 
         self._add_module_compose("testmodule2-master")
         c = db.session.query(Compose).filter(Compose.id == 1).one()
@@ -193,9 +239,15 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, 1)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(
+                odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"
+            ),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary"
+        )
         mock_validate_pungi_compose.assert_called_once()
 
     @mock_mbs
@@ -211,9 +263,15 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, 1)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(
+                odcs.server.conf.target_dir, "latest-odcs-1-1/compose/Temporary"
+            ),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/latest-odcs-1-1/compose/Temporary"
+        )
 
     @mock_mbs
     @patch("odcs.server.utils.execute_cmd")
@@ -230,9 +288,15 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, None)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "latest-odcs-2-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(
+                odcs.server.conf.target_dir, "latest-odcs-2-1/compose/Temporary"
+            ),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/latest-odcs-2-1/compose/Temporary"
+        )
 
     @patch("odcs.server.backend.create_koji_session")
     @patch("odcs.server.backend._write_repo_file")
@@ -275,15 +339,20 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, 1)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "odcs-1/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/odcs-1/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(odcs.server.conf.target_dir, "odcs-1/compose/Temporary"),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/odcs-1/compose/Temporary"
+        )
 
     @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.backend.create_koji_session")
     @patch("odcs.server.backend._write_repo_file")
     def test_submit_build_reuse_koji_tag_tags_changed(
-            self, wrf, create_koji_session, execute_cmd):
+        self, wrf, create_koji_session, execute_cmd
+    ):
         koji_session = MagicMock()
         create_koji_session.return_value = koji_session
         koji_session.getLastEvent.return_value = {"id": 123}
@@ -300,9 +369,13 @@ class TestComposerThread(ModelsBaseTest):
         c = self._wait_for_compose_state(2, COMPOSE_STATES["done"])
         self.assertEqual(c.reused_id, None)
         self.assertEqual(c.state, COMPOSE_STATES["done"])
-        self.assertEqual(c.result_repo_dir,
-                         os.path.join(odcs.server.conf.target_dir, "odcs-2/compose/Temporary"))
-        self.assertEqual(c.result_repo_url, "http://localhost/odcs/odcs-2/compose/Temporary")
+        self.assertEqual(
+            c.result_repo_dir,
+            os.path.join(odcs.server.conf.target_dir, "odcs-2/compose/Temporary"),
+        )
+        self.assertEqual(
+            c.result_repo_url, "http://localhost/odcs/odcs-2/compose/Temporary"
+        )
 
 
 class TestComposerThreadLostComposes(ModelsBaseTest):
@@ -314,7 +387,8 @@ class TestComposerThreadLostComposes(ModelsBaseTest):
         self.composer = ComposerThread()
 
         self.patch_generate_new_compose = patch(
-            "odcs.server.backend.ComposerThread.generate_new_compose")
+            "odcs.server.backend.ComposerThread.generate_new_compose"
+        )
         self.generate_new_compose = self.patch_generate_new_compose.start()
 
     def tearDown(self):
@@ -323,8 +397,15 @@ class TestComposerThreadLostComposes(ModelsBaseTest):
 
     def _add_test_compose(self, state):
         compose = Compose.create(
-            db.session, "unknown", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60, "", 0)
+            db.session,
+            "unknown",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+            "",
+            0,
+        )
         compose.state = state
         db.session.add(compose)
         db.session.commit()
@@ -366,19 +447,31 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
         self.composer = ComposerThread()
 
         self.patch_generate_new_compose = patch(
-            "odcs.server.backend.ComposerThread.generate_new_compose")
+            "odcs.server.backend.ComposerThread.generate_new_compose"
+        )
         self.generate_new_compose = self.patch_generate_new_compose.start()
 
     def tearDown(self):
         super(TestComposerThreadStuckWaitComposes, self).tearDown()
         self.patch_generate_new_compose.stop()
 
-    def _add_test_compose(self, state, time_submitted=None,
-                          time_started=None,
-                          source_type=PungiSourceType.KOJI_TAG):
+    def _add_test_compose(
+        self,
+        state,
+        time_submitted=None,
+        time_started=None,
+        source_type=PungiSourceType.KOJI_TAG,
+    ):
         compose = Compose.create(
-            db.session, "unknown", source_type, "f26",
-            COMPOSE_RESULTS["repository"], 60, "", 0)
+            db.session,
+            "unknown",
+            source_type,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+            "",
+            0,
+        )
         compose.state = state
         if time_submitted:
             compose.time_submitted = time_submitted

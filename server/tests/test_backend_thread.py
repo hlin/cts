@@ -32,7 +32,8 @@ class TestBackendThread(ModelsBaseTest):
         super(TestBackendThread, self).setUp()
 
         self.patch_do_work = patch(
-            "odcs.server.backend.BackendThread.do_work", autospec=True)
+            "odcs.server.backend.BackendThread.do_work", autospec=True
+        )
         self.do_work = self.patch_do_work.start()
 
         self.thread = BackendThread()

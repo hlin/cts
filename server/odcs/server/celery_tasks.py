@@ -32,7 +32,8 @@ from odcs.server import conf, db, log
 from odcs.server.backend import (
     generate_compose as backend_generate_compose,
     ComposerThread,
-    RemoveExpiredComposesThread)
+    RemoveExpiredComposesThread,
+)
 from odcs.server.utils import retry
 from odcs.server.models import Compose, COMPOSE_STATES
 from odcs.server.pungi import PungiSourceType
@@ -96,9 +97,7 @@ if broker_url.startswith("amqps://"):
 
 celery_app = Celery("backend", broker=broker_url)
 celery_app.conf.update(conf.celery_config)
-celery_app.conf.update({
-    'task_routes': ('odcs.server.celery_tasks.TaskRouter')
-})
+celery_app.conf.update({"task_routes": ("odcs.server.celery_tasks.TaskRouter")})
 
 
 class TaskRouter:
@@ -135,8 +134,12 @@ class TaskRouter:
                 for key, value in rule.items():
                     if not compose_md.get(key):
                         raise ValueError(
-                            ("Task Router: Routing rule for queue %s for task %s contains an "
-                             "invalid property: %s") % (queue, task_name, key))
+                            (
+                                "Task Router: Routing rule for queue %s for task %s contains an "
+                                "invalid property: %s"
+                            )
+                            % (queue, task_name, key)
+                        )
 
                     # if the value of the property from the rule and compose does not match, the
                     # whole rule is ignored and we go to the next rule
@@ -186,7 +189,10 @@ def generate_compose(compose_id):
     """
     compose = get_odcs_compose(compose_id)
     if compose.state != COMPOSE_STATES["wait"]:
-        raise RuntimeError("The 'generate_compose' called for compose not in 'wait' state: %r" % compose)
+        raise RuntimeError(
+            "The 'generate_compose' called for compose not in 'wait' state: %r"
+            % compose
+        )
     compose.transition(COMPOSE_STATES["generating"], "Compose thread started")
     db.session.commit()
     backend_generate_compose(compose.id)
@@ -220,7 +226,7 @@ def get_current_celery_task_ids():
     if act_obj is not None:
         for i in act_obj.values():
             active += i
-    active = [i['id'] for i in active]
+    active = [i["id"] for i in active]
 
     # Reserved tasks are assigned to particular worker, but
     # are not running yet.
@@ -229,7 +235,7 @@ def get_current_celery_task_ids():
     if res_obj is not None:
         for i in res_obj.values():
             reserved += i
-    reserved = [i['id'] for i in reserved]
+    reserved = [i["id"] for i in reserved]
 
     return set(reserved + active)
 
@@ -269,10 +275,13 @@ def reschedule_waiting_composes():
     to_time = now - timedelta(minutes=3)
 
     # Get composes which are in 'wait' state for too long.
-    composes = Compose.query.filter(
-        Compose.state == COMPOSE_STATES["wait"],
-        Compose.time_submitted < to_time).order_by(
-            Compose.id).all()
+    composes = (
+        Compose.query.filter(
+            Compose.state == COMPOSE_STATES["wait"], Compose.time_submitted < to_time
+        )
+        .order_by(Compose.id)
+        .all()
+    )
 
     # Get the current task ids registered by the workers.
     task_ids = get_current_celery_task_ids()
@@ -285,7 +294,8 @@ def reschedule_waiting_composes():
         if compose.time_submitted < from_time:
             compose.transition(
                 COMPOSE_STATES["failed"],
-                "Compose stuck in 'wait' state for longer than 3 days.")
+                "Compose stuck in 'wait' state for longer than 3 days.",
+            )
             continue
 
         log.info("%r: Rescheduling compose stuck in 'wait' state.", compose)

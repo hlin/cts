@@ -33,25 +33,34 @@ from .utils import ModelsBaseTest
 
 
 class TestComposesCollector(ModelsBaseTest):
-
     def setUp(self):
         super(TestComposesCollector, self).setUp()
         self.collector = ComposesCollector()
 
     def test_composes_total(self):
         Compose.create(
-            db.session, "unknown", PungiSourceType.MODULE, "testmodule:master",
-            COMPOSE_RESULTS["repository"], 60)
+            db.session,
+            "unknown",
+            PungiSourceType.MODULE,
+            "testmodule:master",
+            COMPOSE_RESULTS["repository"],
+            60,
+        )
         Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+        )
         db.session.commit()
 
         r = self.collector.composes_total()
         for sample in r.samples:
             if (
-                sample.labels["source_type"] in ["module", "tag"] and
-                sample.labels["state"] == "wait"
+                sample.labels["source_type"] in ["module", "tag"]
+                and sample.labels["state"] == "wait"
             ):
                 self.assertEqual(sample.value, 1)
             else:
@@ -60,12 +69,22 @@ class TestComposesCollector(ModelsBaseTest):
     def test_raw_config_composes_count(self):
         for i in range(15):
             Compose.create(
-                db.session, "unknown", PungiSourceType.RAW_CONFIG, "foo#bar",
-                COMPOSE_RESULTS["repository"], 60)
+                db.session,
+                "unknown",
+                PungiSourceType.RAW_CONFIG,
+                "foo#bar",
+                COMPOSE_RESULTS["repository"],
+                60,
+            )
         for i in range(10):
             Compose.create(
-                db.session, "me", PungiSourceType.RAW_CONFIG, "foo#hash%d" % i,
-                COMPOSE_RESULTS["repository"], 60)
+                db.session,
+                "me",
+                PungiSourceType.RAW_CONFIG,
+                "foo#hash%d" % i,
+                COMPOSE_RESULTS["repository"],
+                60,
+            )
         db.session.commit()
         r = self.collector.raw_config_composes_count()
         for sample in r.samples:

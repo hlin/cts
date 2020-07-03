@@ -32,7 +32,13 @@ import productmd.common
 from datetime import datetime, timedelta
 from odcs.server import log, conf, app, db
 from odcs.server.models import Compose, COMPOSE_STATES, COMPOSE_FLAGS
-from odcs.server.pungi import Pungi, PungiConfig, PungiSourceType, PungiLogs, RawPungiConfig
+from odcs.server.pungi import (
+    Pungi,
+    PungiConfig,
+    PungiSourceType,
+    PungiLogs,
+    RawPungiConfig,
+)
 from odcs.server.pulp import Pulp
 from odcs.server.cache import KojiTagCache
 from odcs.server.pungi_compose import PungiCompose
@@ -59,6 +65,7 @@ class BackendThread(object):
     The `BackendThread.do_work(...)` is called repeatedly after `timeout`
     seconds.
     """
+
     def __init__(self, timeout=1):
         """
         Creates new BackendThread instance.
@@ -129,6 +136,7 @@ class RemoveExpiredComposesThread(BackendThread):
     """
     Thread used to remove old expired composes.
     """
+
     def __init__(self):
         """
         Creates new RemoveExpiredComposesThread instance.
@@ -164,8 +172,7 @@ class RemoveExpiredComposesThread(BackendThread):
 
         # Be nice and don't fail when directory does not exist.
         if not os.path.exists(toplevel_dir):
-            log.warning("Cannot remove directory %s, it does not exist",
-                        toplevel_dir)
+            log.warning("Cannot remove directory %s, it does not exist", toplevel_dir)
             return
 
         # Temporary dictionary to store errors from `self._on_rmtree_error`.
@@ -183,8 +190,7 @@ class RemoveExpiredComposesThread(BackendThread):
             shutil.rmtree(toplevel_dir, onerror=self._on_rmtree_error)
 
         for path, error in self._rmtree_errors.items():
-            log.warning("Cannot remove some files in %s: %r" % (
-                path, error))
+            log.warning("Cannot remove some files in %s: %r" % (path, error))
 
     def _get_compose_id_from_path(self, path):
         """
@@ -218,8 +224,7 @@ class RemoveExpiredComposesThread(BackendThread):
             else:
                 state_reason = "Compose is expired."
             if compose.state_reason:
-                state_reason = '{}\n{}'.format(compose.state_reason,
-                                               state_reason)
+                state_reason = "{}\n{}".format(compose.state_reason, state_reason)
             compose.transition(COMPOSE_STATES["removed"], state_reason)
             if not compose.reused_id:
                 self._remove_compose_dir(compose.toplevel_dir)
@@ -254,15 +259,22 @@ class RemoveExpiredComposesThread(BackendThread):
 
             composes = Compose.query.filter(Compose.id == compose_id).all()
             if not composes:
-                log.info("Removing data of compose %d - it is not in "
-                         "database: %s", compose_id, path)
+                log.info(
+                    "Removing data of compose %d - it is not in " "database: %s",
+                    compose_id,
+                    path,
+                )
                 self._remove_compose_dir(path)
                 continue
 
             compose = composes[0]
             if compose.state == COMPOSE_STATES["removed"]:
-                log.info("%r: Removing data of compose - it has already "
-                         "expired some time ago: %s", compose_id, path)
+                log.info(
+                    "%r: Removing data of compose - it has already "
+                    "expired some time ago: %s",
+                    compose_id,
+                    path,
+                )
                 self._remove_compose_dir(path)
                 continue
 
@@ -277,16 +289,24 @@ def create_koji_session():
 
     koji_module = koji.get_profile_module(conf.koji_profile)
     session_opts = {}
-    for key in ('krbservice', 'timeout', 'keepalive',
-                'max_retries', 'retry_interval', 'anon_retry',
-                'offline_retry', 'offline_retry_interval',
-                'debug', 'debug_xmlrpc', 'krb_rdns',
-                'use_fast_upload'):
+    for key in (
+        "krbservice",
+        "timeout",
+        "keepalive",
+        "max_retries",
+        "retry_interval",
+        "anon_retry",
+        "offline_retry",
+        "offline_retry_interval",
+        "debug",
+        "debug_xmlrpc",
+        "krb_rdns",
+        "use_fast_upload",
+    ):
         value = getattr(koji_module.config, key, None)
         if value is not None:
             session_opts[key] = value
-    koji_session = koji.ClientSession(koji_module.config.server,
-                                      session_opts)
+    koji_session = koji.ClientSession(koji_module.config.server, session_opts)
     return koji_session
 
 
@@ -301,13 +321,14 @@ def koji_get_inherited_tags(koji_session, tag, tags=None):
     ids = [info["id"]]
     seen_tags = tags or set()
     inheritance_data = koji_session.getInheritanceData(tag)
-    inheritance_data = [data for data in inheritance_data
-                        if data['parent_id'] not in seen_tags]
+    inheritance_data = [
+        data for data in inheritance_data if data["parent_id"] not in seen_tags
+    ]
 
     # Iterate over all the tags this tag inherits from.
     for inherited in inheritance_data:
         # Make a note to ourselves that we have seen this parent_tag.
-        parent_tag_id = inherited['parent_id']
+        parent_tag_id = inherited["parent_id"]
         seen_tags.add(parent_tag_id)
 
         # Get tag info for the parent_tag.
@@ -316,7 +337,7 @@ def koji_get_inherited_tags(koji_session, tag, tags=None):
             log.error("Cannot get info about Koji tag %s", parent_tag_id)
             return []
 
-        ids += koji_get_inherited_tags(koji_session, info['name'], seen_tags)
+        ids += koji_get_inherited_tags(koji_session, info["name"], seen_tags)
 
     return ids
 
@@ -359,15 +380,19 @@ def resolve_compose(compose):
         # get the same results.
         if not compose.koji_event:
             if compose.source not in LAST_EVENTS_CACHE:
-                event_id = int(koji_session.getLastEvent()['id'])
-            elif tag_changed(koji_session,
-                             compose.source,
-                             LAST_EVENTS_CACHE[compose.source]):
-                event_id = int(koji_session.getLastEvent()['id'])
+                event_id = int(koji_session.getLastEvent()["id"])
+            elif tag_changed(
+                koji_session, compose.source, LAST_EVENTS_CACHE[compose.source]
+            ):
+                event_id = int(koji_session.getLastEvent()["id"])
             else:
                 event_id = LAST_EVENTS_CACHE[compose.source]
-                log.info('Reuse koji event %s to generate compose %s from source %s',
-                         event_id, compose.id, compose.source)
+                log.info(
+                    "Reuse koji event %s to generate compose %s from source %s",
+                    event_id,
+                    compose.id,
+                    compose.source,
+                )
             compose.koji_event = event_id
             # event_id could be a new koji event ID. Cache it for next potential
             # reuse for same tag.
@@ -387,7 +412,8 @@ def resolve_compose(compose):
             # NSVC.
             is_complete_nsvc = module.count(":") == 3
             specified_mbs_modules += mbs.get_latest_modules(
-                module, include_done or is_complete_nsvc)
+                module, include_done or is_complete_nsvc
+            )
 
         expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
         new_mbs_modules = mbs.validate_module_list(specified_mbs_modules, expand=expand)
@@ -395,8 +421,9 @@ def resolve_compose(compose):
         uids = sorted(
             "{name}:{stream}:{version}:{context}".format(**m)
             for m in new_mbs_modules
-            if m['name'] not in conf.base_module_names)
-        compose.source = ' '.join(uids)
+            if m["name"] not in conf.base_module_names
+        )
+        compose.source = " ".join(uids)
     elif compose.source_type == PungiSourceType.PUNGI_COMPOSE:
         external_compose = PungiCompose(compose.source)
         rpms_data = external_compose.get_rpms_data()
@@ -424,7 +451,7 @@ def resolve_compose(compose):
         packages = set()
         for rpms in rpms_data["builds"].values():
             for rpm_nevra in rpms:
-                packages.add(productmd.common.parse_nvra(rpm_nevra)['name'])
+                packages.add(productmd.common.parse_nvra(rpm_nevra)["name"])
         compose.packages = " ".join(packages)
 
 
@@ -441,9 +468,14 @@ def get_reusable_compose(compose):
         return None
 
     # Get all the active composes of the same source_type
-    composes = db.session.query(Compose).filter(
-        Compose.state == COMPOSE_STATES["done"],
-        Compose.source_type == compose.source_type).all()
+    composes = (
+        db.session.query(Compose)
+        .filter(
+            Compose.state == COMPOSE_STATES["done"],
+            Compose.source_type == compose.source_type,
+        )
+        .all()
+    )
 
     for old_compose in composes:
         # Skip the old_compose in case it reuses another compose. In that case
@@ -453,107 +485,130 @@ def get_reusable_compose(compose):
         if old_compose.reused_id:
             continue
 
-        packages = set(compose.packages.split(" ")) \
-            if compose.packages else set()
-        old_packages = set(old_compose.packages.split(" ")) \
-            if old_compose.packages else set()
+        packages = set(compose.packages.split(" ")) if compose.packages else set()
+        old_packages = (
+            set(old_compose.packages.split(" ")) if old_compose.packages else set()
+        )
         if packages != old_packages:
-            log.debug("%r: Cannot reuse %r - packages not same", compose,
-                      old_compose)
+            log.debug("%r: Cannot reuse %r - packages not same", compose, old_compose)
             continue
 
-        builds = set(compose.builds.split(" ")) \
-            if compose.builds else set()
-        old_builds = set(old_compose.builds.split(" ")) \
-            if old_compose.builds else set()
+        builds = set(compose.builds.split(" ")) if compose.builds else set()
+        old_builds = set(old_compose.builds.split(" ")) if old_compose.builds else set()
         if builds != old_builds:
-            log.debug("%r: Cannot reuse %r - builds not same", compose,
-                      old_compose)
+            log.debug("%r: Cannot reuse %r - builds not same", compose, old_compose)
             continue
 
         source = set(compose.source.split(" "))
         old_source = set(old_compose.source.split(" "))
         if source != old_source:
-            log.debug("%r: Cannot reuse %r - sources not same", compose,
-                      old_compose)
+            log.debug("%r: Cannot reuse %r - sources not same", compose, old_compose)
             continue
 
         if compose.flags != old_compose.flags:
-            log.debug("%r: Cannot reuse %r - flags not same, %d != %d",
-                      compose, old_compose, compose.flags,
-                      old_compose.flags)
+            log.debug(
+                "%r: Cannot reuse %r - flags not same, %d != %d",
+                compose,
+                old_compose,
+                compose.flags,
+                old_compose.flags,
+            )
             continue
 
         if compose.results != old_compose.results:
-            log.debug("%r: Cannot reuse %r - results not same, %d != %d",
-                      compose, old_compose, compose.results,
-                      old_compose.results)
+            log.debug(
+                "%r: Cannot reuse %r - results not same, %d != %d",
+                compose,
+                old_compose,
+                compose.results,
+                old_compose.results,
+            )
             continue
 
-        sigkeys = set(compose.sigkeys.split(" ")) \
-            if compose.sigkeys else set()
-        old_sigkeys = set(old_compose.sigkeys.split(" ")) \
-            if old_compose.sigkeys else set()
+        sigkeys = set(compose.sigkeys.split(" ")) if compose.sigkeys else set()
+        old_sigkeys = (
+            set(old_compose.sigkeys.split(" ")) if old_compose.sigkeys else set()
+        )
         if sigkeys != old_sigkeys:
-            log.debug("%r: Cannot reuse %r - sigkeys not same", compose,
-                      old_compose)
+            log.debug("%r: Cannot reuse %r - sigkeys not same", compose, old_compose)
             continue
 
-        arches = set(compose.arches.split(" ")) \
-            if compose.arches else set()
-        old_arches = set(old_compose.arches.split(" ")) \
-            if old_compose.arches else set()
+        arches = set(compose.arches.split(" ")) if compose.arches else set()
+        old_arches = set(old_compose.arches.split(" ")) if old_compose.arches else set()
         if arches != old_arches:
-            log.debug("%r: Cannot reuse %r - arches not same", compose,
-                      old_compose)
+            log.debug("%r: Cannot reuse %r - arches not same", compose, old_compose)
             continue
 
-        lookaside_repos = set(compose.lookaside_repos.split(" ")) \
-            if compose.lookaside_repos else set()
-        old_lookaside_repos = set(old_compose.lookaside_repos.split(" ")) \
-            if old_compose.lookaside_repos else set()
+        lookaside_repos = (
+            set(compose.lookaside_repos.split(" "))
+            if compose.lookaside_repos
+            else set()
+        )
+        old_lookaside_repos = (
+            set(old_compose.lookaside_repos.split(" "))
+            if old_compose.lookaside_repos
+            else set()
+        )
         if lookaside_repos != old_lookaside_repos:
-            log.debug("%r: Cannot reuse %r - lookaside_repos not same", compose,
-                      old_compose)
+            log.debug(
+                "%r: Cannot reuse %r - lookaside_repos not same", compose, old_compose
+            )
             continue
 
-        multilib_arches = set(compose.multilib_arches.split(" ")) \
-            if compose.multilib_arches else set()
-        old_multilib_arches = set(old_compose.multilib_arches.split(" ")) \
-            if old_compose.multilib_arches else set()
+        multilib_arches = (
+            set(compose.multilib_arches.split(" "))
+            if compose.multilib_arches
+            else set()
+        )
+        old_multilib_arches = (
+            set(old_compose.multilib_arches.split(" "))
+            if old_compose.multilib_arches
+            else set()
+        )
         if multilib_arches != old_multilib_arches:
-            log.debug("%r: Cannot reuse %r - multilib_arches not same", compose,
-                      old_compose)
+            log.debug(
+                "%r: Cannot reuse %r - multilib_arches not same", compose, old_compose
+            )
             continue
 
         multilib_method = compose.multilib_method
         old_multilib_method = old_compose.multilib_method
         if multilib_method != old_multilib_method:
-            log.debug("%r: Cannot reuse %r - multilib_method not same", compose,
-                      old_compose)
+            log.debug(
+                "%r: Cannot reuse %r - multilib_method not same", compose, old_compose
+            )
             continue
 
-        modular_koji_tags = set(compose.modular_koji_tags.split(" ")) \
-            if compose.modular_koji_tags else set()
-        old_modular_koji_tags = set(old_compose.modular_koji_tags.split(" ")) \
-            if old_compose.modular_koji_tags else set()
+        modular_koji_tags = (
+            set(compose.modular_koji_tags.split(" "))
+            if compose.modular_koji_tags
+            else set()
+        )
+        old_modular_koji_tags = (
+            set(old_compose.modular_koji_tags.split(" "))
+            if old_compose.modular_koji_tags
+            else set()
+        )
         if modular_koji_tags != old_modular_koji_tags:
-            log.debug("%r: Cannot reuse %r - modular_koji_tags not same", compose,
-                      old_compose)
+            log.debug(
+                "%r: Cannot reuse %r - modular_koji_tags not same", compose, old_compose
+            )
             continue
 
         module_defaults_url = compose.module_defaults_url
         old_module_defaults_url = old_compose.module_defaults_url
         if module_defaults_url != old_module_defaults_url:
-            log.debug("%r: Cannot reuse %r - module_defaults_url not same", compose,
-                      old_compose)
+            log.debug(
+                "%r: Cannot reuse %r - module_defaults_url not same",
+                compose,
+                old_compose,
+            )
             continue
 
         target_dir = compose.target_dir
         old_target_dir = old_compose.target_dir
         if target_dir != old_target_dir:
-            log.debug("%r: Cannot reuse %r - target_dir not same", compose,
-                      old_compose)
+            log.debug("%r: Cannot reuse %r - target_dir not same", compose, old_compose)
             continue
 
         # In case of compose renewal, the compose.koji_event will be actually
@@ -561,11 +616,17 @@ def get_reusable_compose(compose):
         # example submitted 1 year ago, so koji_event will be one year old.
         # But the `old_compose` was submitted few days ago at max.
         # In this case, we must never reuse the newer compose for old one.
-        if (compose.koji_event and old_compose.koji_event and
-                compose.koji_event < old_compose.koji_event):
-            log.debug("%r: Cannot reuse %r - koji_event of current compose "
-                      "is lower than koji_event of old compose.", compose,
-                      old_compose)
+        if (
+            compose.koji_event
+            and old_compose.koji_event
+            and compose.koji_event < old_compose.koji_event
+        ):
+            log.debug(
+                "%r: Cannot reuse %r - koji_event of current compose "
+                "is lower than koji_event of old compose.",
+                compose,
+                old_compose,
+            )
             continue
 
         if compose.source_type == PungiSourceType.KOJI_TAG:
@@ -573,13 +634,21 @@ def get_reusable_compose(compose):
             # Koji tag have not changed since previous old_compose.
             koji_session = create_koji_session()
             if tag_changed(koji_session, compose.source, old_compose.koji_event):
-                log.debug("%r: Cannot reuse %r - one of the tags changed "
-                          "since previous compose.", compose, old_compose)
+                log.debug(
+                    "%r: Cannot reuse %r - one of the tags changed "
+                    "since previous compose.",
+                    compose,
+                    old_compose,
+                )
                 continue
         elif compose.koji_event != old_compose.koji_event:
-            log.debug("%r: Cannot reuse %r - koji_events not same, %d != %d",
-                      compose, old_compose, compose.koji_event,
-                      old_compose.koji_event)
+            log.debug(
+                "%r: Cannot reuse %r - koji_events not same, %d != %d",
+                compose,
+                old_compose,
+                compose.koji_event,
+                old_compose.koji_event,
+            )
             continue
 
         return old_compose
@@ -596,8 +665,9 @@ def reuse_compose(compose, compose_to_reuse):
     # Set the reuse_id
     compose.reused_id = compose_to_reuse.id
     # Set the time_to_expire to bigger value from both composes.
-    compose.time_to_expire = max(compose.time_to_expire,
-                                 compose_to_reuse.time_to_expire)
+    compose.time_to_expire = max(
+        compose.time_to_expire, compose_to_reuse.time_to_expire
+    )
     # NOTE: reuse_compose is only called by generate_pungi_compose at this
     # moment. This change will be committed when compose state is transitted,
     # which will call session's commit. If this method is called from somewhere
@@ -612,8 +682,7 @@ def _write_repo_file(compose, data=None):
     will be generated.
     """
     if not data:
-        baseurl = os.path.join(
-            compose.result_repo_url, "$basearch", "os")
+        baseurl = os.path.join(compose.result_repo_url, "$basearch", "os")
         data = """[%s]
 name=ODCS repository for compose %s
 baseurl=%s
@@ -623,7 +692,11 @@ gpgcheck=0
 repo_gpgcheck=0
 enabled=1
 enabled_metadata=1
-""" % (compose.name, compose.name, baseurl)
+""" % (
+            compose.name,
+            compose.name,
+            baseurl,
+        )
 
     # Ensure the directory exists
     dirname = os.path.dirname(compose.result_repofile_path)
@@ -640,20 +713,24 @@ def generate_pulp_compose(compose):
     """
     content_sets = compose.source.split(" ")
 
-    pulp = Pulp(server_url=conf.pulp_server_url,
-                username=conf.pulp_username,
-                password=conf.pulp_password,
-                compose=compose)
+    pulp = Pulp(
+        server_url=conf.pulp_server_url,
+        username=conf.pulp_username,
+        password=conf.pulp_password,
+        compose=compose,
+    )
 
     repofile = ""
     repos = pulp.get_repos_from_content_sets(
-        content_sets,
-        compose.flags & COMPOSE_FLAGS["include_unpublished_pulp_repos"])
+        content_sets, compose.flags & COMPOSE_FLAGS["include_unpublished_pulp_repos"]
+    )
     ignore_absent_pulp_repos = compose.flags & COMPOSE_FLAGS["ignore_absent_pulp_repos"]
     if len(repos) != len(content_sets):
         found_content_sets = repos.keys()
-        err = "Failed to find all the content_sets %r in the Pulp, " \
-            "found only %r" % (content_sets, found_content_sets)
+        err = "Failed to find all the content_sets %r in the Pulp, " "found only %r" % (
+            content_sets,
+            found_content_sets,
+        )
         if ignore_absent_pulp_repos:
             log.info(err)
             # Update the source in the compose. This ensures the source matches
@@ -675,7 +752,11 @@ name=%s
 baseurl=%s
 enabled=1
 gpgcheck=0
-""" % (name, name, url)
+""" % (
+            name,
+            name,
+            url,
+        )
         repofile += r
         arches = arches.union(repo_data["arches"])
         sigkeys = sigkeys.union(repo_data["sigkeys"])
@@ -684,8 +765,7 @@ gpgcheck=0
 
     compose.arches = " ".join(arches)
     compose.sigkeys = " ".join(sigkeys)
-    compose.transition(COMPOSE_STATES["done"],
-                       "Compose is generated successfully")
+    compose.transition(COMPOSE_STATES["done"], "Compose is generated successfully")
     log.info("%r: Compose done", compose)
 
 
@@ -737,7 +817,9 @@ def remove_compose_symlink(compose):
     # symlink. In this case, we will remove the latest-symlink later too.
     latest_name = "latest-%s" % "-".join(compose.pungi_compose_id.split("-")[:2])
     latest_symlink = os.path.join(symlink_dir, latest_name)
-    remove_latest_symlink = os.path.realpath(symlink) == os.path.realpath(latest_symlink)
+    remove_latest_symlink = os.path.realpath(symlink) == os.path.realpath(
+        latest_symlink
+    )
 
     # Remove non-latest symlink.
     log.info("%r: Removing %s symlink.", compose, symlink)
@@ -789,17 +871,23 @@ def generate_pungi_compose(compose):
                 multilib_arches = compose.multilib_arches.split(" ")
             else:
                 multilib_arches = None
-            pungi_cfg = PungiConfig(compose.name, "1", compose.source_type,
-                                    compose.source, packages=packages,
-                                    sigkeys=compose.sigkeys,
-                                    results=compose.results,
-                                    arches=compose.arches.split(" "),
-                                    multilib_arches=multilib_arches,
-                                    multilib_method=compose.multilib_method,
-                                    builds=builds, flags=compose.flags,
-                                    lookaside_repos=compose.lookaside_repos,
-                                    modular_koji_tags=compose.modular_koji_tags,
-                                    module_defaults_url=compose.module_defaults_url)
+            pungi_cfg = PungiConfig(
+                compose.name,
+                "1",
+                compose.source_type,
+                compose.source,
+                packages=packages,
+                sigkeys=compose.sigkeys,
+                results=compose.results,
+                arches=compose.arches.split(" "),
+                multilib_arches=multilib_arches,
+                multilib_method=compose.multilib_method,
+                builds=builds,
+                flags=compose.flags,
+                lookaside_repos=compose.lookaside_repos,
+                modular_koji_tags=compose.modular_koji_tags,
+                module_defaults_url=compose.module_defaults_url,
+            )
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:
@@ -843,8 +931,7 @@ def generate_pungi_compose(compose):
     # If there is no exception generated by the pungi.run() and if
     # validation didn't fail, then we know the compose has been
     # successfully generated.
-    compose.transition(COMPOSE_STATES["done"],
-                       "Compose is generated successfully")
+    compose.transition(COMPOSE_STATES["done"], "Compose is generated successfully")
     log.info("%r: Compose done", compose)
 
     koji_tag_cache.update_cache(compose)
@@ -864,17 +951,19 @@ def validate_pungi_compose(compose):
             for arch in rm[variant]:
                 for srpm_nevra, data in six.iteritems(rm[variant][arch]):
                     for rpm_nevra, data in six.iteritems(rm[variant][arch][srpm_nevra]):
-                        if data['category'] == 'source':
+                        if data["category"] == "source":
                             continue
                         rpm_nevras.append(rpm_nevra)
-        rpms = set([productmd.common.parse_nvra(n)['name'] for n in rpm_nevras])
+        rpms = set([productmd.common.parse_nvra(n)["name"] for n in rpm_nevras])
         not_found = []
         for pkg in packages:
             if pkg not in rpms:
                 not_found.append(pkg)
         if not_found:
-            msg = "The following requested packages are not present in the generated compose: %s." % \
-                  " ".join(not_found)
+            msg = (
+                "The following requested packages are not present in the generated compose: %s."
+                % " ".join(not_found)
+            )
             log.error(msg)
             raise RuntimeError(msg)
 
@@ -917,7 +1006,9 @@ def generate_compose(compose_id, lost_compose=False):
             # Be nice to end user and replace paths to logs or other files with URL
             # accessible to the user.
             if compose.on_default_target_dir:
-                state_reason = state_reason.replace(conf.target_dir, conf.target_dir_url)
+                state_reason = state_reason.replace(
+                    conf.target_dir, conf.target_dir_url
+                )
             compose.transition(COMPOSE_STATES["failed"], state_reason)
 
         compose = Compose.query.filter(Compose.id == compose_id).one()
@@ -935,6 +1026,7 @@ class ComposerThread(BackendThread):
     Thread used to query the database for composes in "wait" state and
     generating the composes using Pungi.
     """
+
     def __init__(self):
         """
         Creates new ComposerThread instance.
@@ -956,8 +1048,7 @@ class ComposerThread(BackendThread):
         Adds the compose to queue of composes to generate, so
         the ThreadPoolExecutor can start working on it.
         """
-        compose.transition(COMPOSE_STATES["generating"],
-                           "Compose thread started")
+        compose.transition(COMPOSE_STATES["generating"], "Compose thread started")
 
         self.currently_generating.append(compose.id)
         if compose.source_type == PungiSourceType.PULP:
@@ -970,8 +1061,7 @@ class ComposerThread(BackendThread):
         Gets all the composes in "wait" state. Generates them using Pungi
         by calling `generate_compose(...)` in ThreadPoolExecutor.
         """
-        composes = Compose.query.filter(
-            Compose.state == COMPOSE_STATES["wait"]).all()
+        composes = Compose.query.filter(Compose.state == COMPOSE_STATES["wait"]).all()
 
         for compose in composes:
             log.info("%r: Going to start compose generation.", compose)
@@ -989,16 +1079,21 @@ class ComposerThread(BackendThread):
         too_old_datetime = now - timedelta(seconds=max_generating_time)
 
         # Get composes which are in 'generating' state for too long.
-        composes = Compose.query.filter(
-            Compose.state == COMPOSE_STATES["generating"],
-            Compose.time_started < too_old_datetime).order_by(
-                Compose.id).all()
+        composes = (
+            Compose.query.filter(
+                Compose.state == COMPOSE_STATES["generating"],
+                Compose.time_started < too_old_datetime,
+            )
+            .order_by(Compose.id)
+            .all()
+        )
 
         for compose in composes:
             compose.transition(
                 COMPOSE_STATES["failed"],
                 "Compose stuck in 'generating' state for longer than %d "
-                "seconds." % max_generating_time)
+                "seconds." % max_generating_time,
+            )
 
     def generate_lost_composes(self):
         """
@@ -1009,7 +1104,8 @@ class ComposerThread(BackendThread):
         in the middle of compose generation.
         """
         composes = Compose.query.filter(
-            Compose.state == COMPOSE_STATES["generating"]).all()
+            Compose.state == COMPOSE_STATES["generating"]
+        ).all()
 
         for compose in composes:
             if compose.id in self.currently_generating:

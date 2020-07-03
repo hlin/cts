@@ -32,68 +32,49 @@ from odcs.server import app, db, log, conf, version
 from odcs.server.errors import NotFound, Forbidden
 from odcs.server.models import Compose
 from odcs.common.types import (
-    COMPOSE_RESULTS, COMPOSE_FLAGS, COMPOSE_STATES, PUNGI_SOURCE_TYPE_NAMES,
-    PungiSourceType, MULTILIB_METHODS)
+    COMPOSE_RESULTS,
+    COMPOSE_FLAGS,
+    COMPOSE_STATES,
+    PUNGI_SOURCE_TYPE_NAMES,
+    PungiSourceType,
+    MULTILIB_METHODS,
+)
 from odcs.server.api_utils import (
-    pagination_metadata, filter_composes, validate_json_data,
-    raise_if_input_not_allowed)
+    pagination_metadata,
+    filter_composes,
+    validate_json_data,
+    raise_if_input_not_allowed,
+)
 from odcs.server.auth import requires_role, login_required, has_role
 from odcs.server.auth import require_scopes
 from odcs.server.metrics import registry
 
 try:
     from odcs.server.celery_tasks import celery_app, schedule_compose
+
     CELERY_AVAILABLE = True
 except ImportError:
-    log.exception(
-        "Cannot import celery_tasks. The Celery support is turned off.")
+    log.exception("Cannot import celery_tasks. The Celery support is turned off.")
     CELERY_AVAILABLE = False
 
 
 api_v1 = {
-    'composes': {
-        'url': '/api/1/composes/',
-        'options': {
-            'defaults': {'id': None},
-            'methods': ['GET'],
-        }
+    "composes": {
+        "url": "/api/1/composes/",
+        "options": {"defaults": {"id": None}, "methods": ["GET"]},
     },
-    'compose': {
-        'url': '/api/1/composes/<int:id>',
-        'options': {
-            'methods': ['GET'],
-        }
+    "compose": {"url": "/api/1/composes/<int:id>", "options": {"methods": ["GET"]}},
+    "composes_post": {"url": "/api/1/composes/", "options": {"methods": ["POST"]}},
+    "compose_regenerate": {
+        "url": "/api/1/composes/<int:id>",
+        "options": {"methods": ["PATCH"]},
     },
-    'composes_post': {
-        'url': '/api/1/composes/',
-        'options': {
-            'methods': ['POST'],
-        }
+    "composes_delete": {
+        "url": "/api/1/composes/<int:id>",
+        "options": {"methods": ["DELETE"]},
     },
-    'compose_regenerate': {
-        'url': '/api/1/composes/<int:id>',
-        'options': {
-            'methods': ['PATCH'],
-        }
-    },
-    'composes_delete': {
-        'url': '/api/1/composes/<int:id>',
-        'options': {
-            'methods': ['DELETE'],
-        }
-    },
-    'about': {
-        'url': '/api/1/about/',
-        'options': {
-            'methods': ['GET']
-        }
-    },
-    'metrics': {
-        'url': '/api/1/metrics/',
-        'options': {
-            'methods': ['GET']
-        }
-    },
+    "about": {"url": "/api/1/about/", "options": {"methods": ["GET"]}},
+    "metrics": {"url": "/api/1/metrics/", "options": {"methods": ["GET"]}},
 }
 
 
@@ -102,7 +83,8 @@ class ODCSAPI(MethodView):
         if conf.auth_backend == "noauth":
             log.warning(
                 "Cannot determine the owner of compose, because "
-                "'noauth' auth_backend is used.")
+                "'noauth' auth_backend is used."
+            )
             return "unknown"
         else:
             return g.user.username
@@ -116,8 +98,7 @@ class ODCSAPI(MethodView):
             try:
                 return min(int(seconds_to_live), conf.max_seconds_to_live)
             except ValueError:
-                err = 'Invalid seconds_to_live specified in request: %s' % \
-                    request_data
+                err = "Invalid seconds_to_live specified in request: %s" % request_data
                 log.error(err)
                 raise ValueError(err)
         else:
@@ -152,8 +133,8 @@ class ODCSAPI(MethodView):
             p_query = filter_composes(request)
 
             json_data = {
-                'meta': pagination_metadata(p_query, request.args),
-                'items': [item.json() for item in p_query.items]
+                "meta": pagination_metadata(p_query, request.args),
+                "items": [item.json() for item in p_query.items],
             }
 
             return jsonify(json_data), 200
@@ -163,11 +144,11 @@ class ODCSAPI(MethodView):
             if compose:
                 return jsonify(compose.json(True)), 200
             else:
-                raise NotFound('No such compose found.')
+                raise NotFound("No such compose found.")
 
     @login_required
-    @require_scopes('renew-compose')
-    @requires_role('allowed_clients')
+    @require_scopes("renew-compose")
+    @requires_role("allowed_clients")
     def patch(self, id):
         """ Extends the compose expiration time or regenerates expired compose.
 
@@ -191,9 +172,13 @@ class ODCSAPI(MethodView):
         old_compose = Compose.query.filter(
             Compose.id == id,
             Compose.state.in_(
-                [COMPOSE_STATES["removed"],
+                [
+                    COMPOSE_STATES["removed"],
                     COMPOSE_STATES["done"],
-                    COMPOSE_STATES["failed"]])).first()
+                    COMPOSE_STATES["failed"],
+                ]
+            ),
+        ).first()
 
         if not old_compose:
             err = "No compose with id %s found" % id
@@ -207,7 +192,7 @@ class ODCSAPI(MethodView):
 
         sigkeys = ""
         if "sigkeys" in data:
-            sigkeys = ' '.join(data["sigkeys"])
+            sigkeys = " ".join(data["sigkeys"])
         else:
             sigkeys = old_compose.sigkeys
 
@@ -217,21 +202,28 @@ class ODCSAPI(MethodView):
             raw_config_key = old_compose.source.split("#")[0]
 
         raise_if_input_not_allowed(
-            source_types=old_compose.source_type, sources=old_compose.source,
-            results=old_compose.results, flags=old_compose.flags,
-            arches=old_compose.arches, compose_types=compose_type,
-            raw_config_keys=raw_config_key)
+            source_types=old_compose.source_type,
+            sources=old_compose.source,
+            results=old_compose.results,
+            flags=old_compose.flags,
+            arches=old_compose.arches,
+            compose_types=compose_type,
+            raw_config_keys=raw_config_key,
+        )
 
         has_to_create_a_copy = (
-            old_compose.state in (COMPOSE_STATES['removed'], COMPOSE_STATES['failed']) or
-            sigkeys != old_compose.sigkeys)
+            old_compose.state in (COMPOSE_STATES["removed"], COMPOSE_STATES["failed"])
+            or sigkeys != old_compose.sigkeys
+        )
         if has_to_create_a_copy:
             log.info("%r: Going to regenerate the compose", old_compose)
-            compose = Compose.create_copy(db.session,
-                                          old_compose,
-                                          self._get_compose_owner(),
-                                          seconds_to_live,
-                                          sigkeys=sigkeys)
+            compose = Compose.create_copy(
+                db.session,
+                old_compose,
+                self._get_compose_owner(),
+                seconds_to_live,
+                sigkeys=sigkeys,
+            )
             db.session.add(compose)
             # Flush is needed, because we use `before_commit` SQLAlchemy
             # event to send message and before_commit can be called before
@@ -248,8 +240,11 @@ class ODCSAPI(MethodView):
             # time.
             extend_from = datetime.datetime.utcnow()
             old_compose.extend_expiration(extend_from, seconds_to_live)
-            log.info('Extended time_to_expire for compose %r to %s',
-                     old_compose, old_compose.time_to_expire)
+            log.info(
+                "Extended time_to_expire for compose %r to %s",
+                old_compose,
+                old_compose.time_to_expire,
+            )
             # As well as extending those composes that reuse this this compose,
             # and the one this compose reuses.
             reused_compose = old_compose.get_reused_compose()
@@ -261,8 +256,8 @@ class ODCSAPI(MethodView):
             return jsonify(old_compose.json()), 200
 
     @login_required
-    @require_scopes('new-compose')
-    @requires_role('allowed_clients')
+    @require_scopes("new-compose")
+    @requires_role("allowed_clients")
     def post(self):
         """ Creates new ODCS compose request.
 
@@ -290,13 +285,13 @@ class ODCSAPI(MethodView):
         """
         data = request.get_json(force=True)
         if not data:
-            raise ValueError('No JSON POST data submitted')
+            raise ValueError("No JSON POST data submitted")
 
         validate_json_data(data)
 
         seconds_to_live = self._get_seconds_to_live(data)
 
-        source_data = data.get('source', None)
+        source_data = data.get("source", None)
         if not isinstance(source_data, dict):
             err = "Invalid source configuration provided: %s" % str(data)
             log.error(err)
@@ -305,7 +300,10 @@ class ODCSAPI(MethodView):
         needed_keys = ["type"]
         for key in needed_keys:
             if key not in source_data:
-                err = "Missing %s in source configuration, received: %s" % (key, str(source_data))
+                err = "Missing %s in source configuration, received: %s" % (
+                    key,
+                    str(source_data),
+                )
                 log.error(err)
                 raise ValueError(err)
 
@@ -332,21 +330,25 @@ class ODCSAPI(MethodView):
         if source_type == PungiSourceType.RAW_CONFIG:
             if len(source) > 1:
                 raise ValueError(
-                    'Only single source is allowed for "raw_config" '
-                    'source_type')
+                    'Only single source is allowed for "raw_config" ' "source_type"
+                )
 
             source_name_hash = source[0].split("#")
-            if (len(source_name_hash) != 2 or not source_name_hash[0] or
-                    not source_name_hash[1]):
+            if (
+                len(source_name_hash) != 2
+                or not source_name_hash[0]
+                or not source_name_hash[1]
+            ):
                 raise ValueError(
                     'Source must be in "source_name#commit_hash" format for '
-                    '"raw_config" source_type.')
+                    '"raw_config" source_type.'
+                )
 
             source_name, source_hash = source_name_hash
             if source_name not in conf.raw_config_urls:
                 raise ValueError(
-                    'Source "%s" does not exist in server configuration.' %
-                    source_name)
+                    'Source "%s" does not exist in server configuration.' % source_name
+                )
             raw_config_key = source_name
         elif source_type == PungiSourceType.MODULE:
             for module_str in source:
@@ -354,29 +356,31 @@ class ODCSAPI(MethodView):
                 if len(nsvc) < 2:
                     raise ValueError(
                         'Module definition must be in "n:s", "n:s:v" or '
-                        '"n:s:v:c" format, but got %s' % module_str)
+                        '"n:s:v:c" format, but got %s' % module_str
+                    )
                 if nsvc[0] in conf.base_module_names:
                     raise ValueError(
                         "ODCS currently cannot create compose with base "
-                        "modules, but %s was requested." % nsvc[0])
+                        "modules, but %s was requested." % nsvc[0]
+                    )
 
-        source = ' '.join(source)
+        source = " ".join(source)
 
         packages = None
         if "packages" in source_data:
-            packages = ' '.join(source_data["packages"])
+            packages = " ".join(source_data["packages"])
 
         builds = None
         if "builds" in source_data:
-            builds = ' '.join(source_data["builds"])
+            builds = " ".join(source_data["builds"])
 
         sigkeys = ""
         if "sigkeys" in source_data:
-            sigkeys = ' '.join(source_data["sigkeys"])
+            sigkeys = " ".join(source_data["sigkeys"])
         else:
-            sigkeys = ' '.join(conf.sigkeys)
+            sigkeys = " ".join(conf.sigkeys)
 
-        koji_event = source_data.get('koji_event', None)
+        koji_event = source_data.get("koji_event", None)
 
         flags = 0
         if "flags" in data:
@@ -394,7 +398,7 @@ class ODCSAPI(MethodView):
 
         arches = None
         if "arches" in data:
-            arches = ' '.join(data["arches"])
+            arches = " ".join(data["arches"])
         else:
             arches = " ".join(conf.arches)
 
@@ -410,12 +414,12 @@ class ODCSAPI(MethodView):
         if "multilib_method" in data:
             for name in data["multilib_method"]:
                 if name not in MULTILIB_METHODS:
-                    raise ValueError("Unknown multilib method \"%s\"" % name)
+                    raise ValueError('Unknown multilib method "%s"' % name)
                 multilib_method |= MULTILIB_METHODS[name]
 
         modular_koji_tags = None
         if "modular_koji_tags" in source_data:
-            modular_koji_tags = ' '.join(source_data["modular_koji_tags"])
+            modular_koji_tags = " ".join(source_data["modular_koji_tags"])
 
         module_defaults_url = None
         if "module_defaults_url" in source_data:
@@ -430,7 +434,8 @@ class ODCSAPI(MethodView):
         if bool(module_defaults_url) ^ bool(module_defaults_commit):
             raise ValueError(
                 'The "module_defaults_url" and "module_defaults_commit" '
-                'must be used together.')
+                "must be used together."
+            )
         elif module_defaults_url and module_defaults_commit:
             module_defaults = "%s %s" % (module_defaults_url, module_defaults_commit)
 
@@ -446,14 +451,28 @@ class ODCSAPI(MethodView):
             target_dir = conf.target_dir
 
         raise_if_input_not_allowed(
-            source_types=source_type, sources=source, results=results,
-            flags=flags, arches=arches, compose_types=compose_type,
-            target_dirs=target_dir, raw_config_keys=raw_config_key)
+            source_types=source_type,
+            sources=source,
+            results=results,
+            flags=flags,
+            arches=arches,
+            compose_types=compose_type,
+            target_dirs=target_dir,
+            raw_config_keys=raw_config_key,
+        )
 
         compose = Compose.create(
-            db.session, self._get_compose_owner(), source_type, source,
-            results, seconds_to_live,
-            packages, flags, sigkeys, koji_event, arches,
+            db.session,
+            self._get_compose_owner(),
+            source_type,
+            source,
+            results,
+            seconds_to_live,
+            packages,
+            flags,
+            sigkeys,
+            koji_event,
+            arches,
             multilib_arches=multilib_arches,
             multilib_method=multilib_method,
             builds=builds,
@@ -462,7 +481,8 @@ class ODCSAPI(MethodView):
             module_defaults_url=module_defaults,
             label=label,
             compose_type=compose_type,
-            target_dir=target_dir)
+            target_dir=target_dir,
+        )
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to
         # send message and before_commit can be called before flush and
@@ -476,7 +496,7 @@ class ODCSAPI(MethodView):
         return jsonify(compose.json()), 200
 
     @login_required
-    @require_scopes('delete-compose')
+    @require_scopes("delete-compose")
     def delete(self, id):
         """Cancels waiting compose or marks finished compose as expired to be
         removed later from ODCS storage. The compose metadata are still stored
@@ -496,7 +516,7 @@ class ODCSAPI(MethodView):
         """
         compose = Compose.query.filter_by(id=id).first()
         if not compose:
-            raise NotFound('No such compose found.')
+            raise NotFound("No such compose found.")
 
         is_admin = has_role("admins")
 
@@ -525,10 +545,12 @@ class ODCSAPI(MethodView):
             raise Forbidden("User %s is not in role admins." % g.user.username)
 
         # can remove compose that is in state of 'done' or 'failed'
-        deletable_states = {n: COMPOSE_STATES[n] for n in ['done', 'failed']}
+        deletable_states = {n: COMPOSE_STATES[n] for n in ["done", "failed"]}
         if compose.state not in deletable_states.values():
-            raise BadRequest('Compose (id=%s) can not be removed, its state need to be in %s.' %
-                             (id, deletable_states.keys()))
+            raise BadRequest(
+                "Compose (id=%s) can not be removed, its state need to be in %s."
+                % (id, deletable_states.keys())
+            )
 
         # change compose.time_to_expire to now, so backend will
         # delete this compose as it's an expired compose now
@@ -536,10 +558,11 @@ class ODCSAPI(MethodView):
         compose.removed_by = g.user.username
         db.session.add(compose)
         db.session.commit()
-        message = ("The delete request for compose (id=%s) has been accepted and will be"
-                   " processed by backend later." % compose.id)
-        response = jsonify({'status': 202,
-                            'message': message})
+        message = (
+            "The delete request for compose (id=%s) has been accepted and will be"
+            " processed by backend later." % compose.id
+        )
+        response = jsonify({"status": 202, "message": message})
         response.status_code = 202
         return response
 
@@ -564,25 +587,24 @@ class AboutAPI(MethodView):
         :resjson list sigkeys: Default list of sigkeys.
         :statuscode 200: Compose updated and returned.
         """
-        json = {'version': version}
-        config_items = ['auth_backend', 'allowed_clients', 'raw_config_urls', 'sigkeys']
+        json = {"version": version}
+        config_items = ["auth_backend", "allowed_clients", "raw_config_urls", "sigkeys"]
         for item in config_items:
             config_item = getattr(conf, item)
             # All config items have a default, so if doesn't exist it is
             # an error
             if config_item is None:
-                raise ValueError(
-                    'An invalid config item of "%s" was specified' % item)
+                raise ValueError('An invalid config item of "%s" was specified' % item)
             json[item] = config_item
         return jsonify(json), 200
 
 
 class Index(View):
 
-    methods = ['GET']
+    methods = ["GET"]
 
     def dispatch_request(self):
-        return render_template('index.html')
+        return render_template("index.html")
 
 
 class MetricsAPI(MethodView):
@@ -597,25 +619,22 @@ class MetricsAPI(MethodView):
 
 def register_api_v1():
     """ Registers version 1 of ODCS API. """
-    composes_view = ODCSAPI.as_view('composes')
-    about_view = AboutAPI.as_view('about')
-    metrics_view = MetricsAPI.as_view('metrics')
+    composes_view = ODCSAPI.as_view("composes")
+    about_view = AboutAPI.as_view("about")
+    metrics_view = MetricsAPI.as_view("metrics")
     for key, val in api_v1.items():
         if key.startswith("compose"):
-            app.add_url_rule(val['url'],
-                             endpoint=key,
-                             view_func=composes_view,
-                             **val['options'])
+            app.add_url_rule(
+                val["url"], endpoint=key, view_func=composes_view, **val["options"]
+            )
         elif key.startswith("about"):
-            app.add_url_rule(val['url'],
-                             endpoint=key,
-                             view_func=about_view,
-                             **val['options'])
+            app.add_url_rule(
+                val["url"], endpoint=key, view_func=about_view, **val["options"]
+            )
         elif key.startswith("metrics"):
-            app.add_url_rule(val['url'],
-                             endpoint=key,
-                             view_func=metrics_view,
-                             **val['options'])
+            app.add_url_rule(
+                val["url"], endpoint=key, view_func=metrics_view, **val["options"]
+            )
         else:
             raise ValueError("Unhandled API key: %s." % key)
 

@@ -51,8 +51,7 @@ PUNGI_SOURCE_TYPE_NAMES = {
     "pungi_compose": PungiSourceType.PUNGI_COMPOSE,
 }
 
-INVERSE_PUNGI_SOURCE_TYPE_NAMES = {
-    v: k for k, v in PUNGI_SOURCE_TYPE_NAMES.items()}
+INVERSE_PUNGI_SOURCE_TYPE_NAMES = {v: k for k, v in PUNGI_SOURCE_TYPE_NAMES.items()}
 
 COMPOSE_STATES = {
     # Compose is waiting to be generated

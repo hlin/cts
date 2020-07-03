@@ -40,14 +40,14 @@ class Pulp(object):
         self.password = password
         self.server_url = server_url
         self.compose = compose
-        self.rest_api_root = '{0}/pulp/api/v2/'.format(self.server_url.rstrip('/'))
+        self.rest_api_root = "{0}/pulp/api/v2/".format(self.server_url.rstrip("/"))
 
     @retry(wait_on=requests.exceptions.RequestException)
     def _rest_post(self, endpoint, post_data):
         query_data = json.dumps(post_data)
         try:
             r = requests.post(
-                '{0}{1}'.format(self.rest_api_root, endpoint.lstrip('/')),
+                "{0}{1}".format(self.rest_api_root, endpoint.lstrip("/")),
                 query_data,
                 auth=(self.username, self.password),
                 timeout=conf.net_timeout,
@@ -89,14 +89,14 @@ class Pulp(object):
                 # single arch in Pulp, but be defensive.
                 raise ValueError(
                     "Content set repository %s does not have exactly 1 arch: "
-                    "%r." % (repo["url"], repo["arches"]))
+                    "%r." % (repo["url"], repo["arches"])
+                )
             url = repo["url"].replace(list(repo["arches"])[0], "$basearch")
             if first_repo is None:
                 first_repo = copy.deepcopy(repo)
                 first_repo["url"] = url
                 continue
-            if (first_repo["url"] != url or
-                    first_repo["sigkeys"] != repo["sigkeys"]):
+            if first_repo["url"] != url or first_repo["sigkeys"] != repo["sigkeys"]:
                 return {}
             first_repo["arches"] = first_repo["arches"].union(repo["arches"])
         return first_repo
@@ -123,7 +123,8 @@ class Pulp(object):
                 # single arch in Pulp, but be defensive.
                 raise ValueError(
                     "Content set repository %s does not have exactly 1 arch: "
-                    "%r." % (repo["url"], repo["arches"]))
+                    "%r." % (repo["url"], repo["arches"])
+                )
             arch = list(repo["arches"])[0]
             if arch not in per_arch_repos:
                 per_arch_repos[arch] = []
@@ -141,8 +142,9 @@ class Pulp(object):
             "sigkeys": content_set_repos[0]["sigkeys"],
         }
 
-    def get_repos_from_content_sets(self, content_sets,
-                                    include_unpublished_repos=False):
+    def get_repos_from_content_sets(
+        self, content_sets, include_unpublished_repos=False
+    ):
         """
         Returns dictionary with URLs of all shipped repositories defined by
         the content_sets.
@@ -162,37 +164,38 @@ class Pulp(object):
             }
         """
         query_data = {
-            'criteria': {
-                'filters': {
-                    'notes.content_set': {'$in': content_sets},
-                },
-                'fields': ['notes'],
+            "criteria": {
+                "filters": {"notes.content_set": {"$in": content_sets}},
+                "fields": ["notes"],
             }
         }
 
         if not include_unpublished_repos:
-            query_data['criteria']['filters']['notes.include_in_download_service'] = 'True'
-        repos = self._rest_post('repositories/search/', query_data)
+            query_data["criteria"]["filters"][
+                "notes.include_in_download_service"
+            ] = "True"
+        repos = self._rest_post("repositories/search/", query_data)
 
         per_content_set_repos = {}
         for repo in repos:
             notes = repo["notes"]
-            url = "%s/%s" % (self.server_url.rstrip('/'),
-                             notes['relative_url'])
+            url = "%s/%s" % (self.server_url.rstrip("/"), notes["relative_url"])
             arch = notes["arch"]
             sigkeys = sorted(notes["signatures"].split(","))
             # OSBS cannot verify https during the container image build, so
             # fallback to http for now.
             if url.startswith("https://"):
-                url = "http://" + url[len("https://"):]
+                url = "http://" + url[len("https://") :]
             if notes["content_set"] not in per_content_set_repos:
                 per_content_set_repos[notes["content_set"]] = []
-            per_content_set_repos[notes["content_set"]].append({
-                "url": url,
-                "arches": set([arch]),
-                "sigkeys": sigkeys,
-                "product_versions": notes["product_versions"],
-            })
+            per_content_set_repos[notes["content_set"]].append(
+                {
+                    "url": url,
+                    "arches": set([arch]),
+                    "sigkeys": sigkeys,
+                    "product_versions": notes["product_versions"],
+                }
+            )
 
         ret = {}
         for cs, repos in per_content_set_repos.items():

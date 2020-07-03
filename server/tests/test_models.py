@@ -36,11 +36,15 @@ from .utils import ModelsBaseTest
 
 
 class TestModels(ModelsBaseTest):
-
     def test_creating_event_and_builds(self):
         compose = Compose.create(
-            db.session, "me", PungiSourceType.MODULE, "testmodule-master",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.MODULE,
+            "testmodule-master",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         db.session.commit()
         db.session.expire_all()
 
@@ -52,58 +56,73 @@ class TestModels(ModelsBaseTest):
         self.assertEqual(c.results, COMPOSE_RESULTS["repository"])
         self.assertTrue(c.time_to_expire)
 
-        expected_json = {'source_type': 2, 'state': 0, 'time_done': None,
-                         'state_name': 'wait',
-                         'state_reason': None,
-                         'source': u'testmodule-master',
-                         'owner': u'me',
-                         'result_repo': 'http://localhost/odcs/odcs-1/compose/Temporary',
-                         'result_repofile': 'http://localhost/odcs/odcs-1/compose/Temporary/odcs-1.repo',
-                         'time_submitted': c.json()["time_submitted"], 'id': 1,
-                         'time_started': None,
-                         'time_removed': None,
-                         'removed_by': None,
-                         'time_to_expire': c.json()["time_to_expire"],
-                         'flags': [],
-                         'results': ['repository'],
-                         'sigkeys': '',
-                         'koji_event': None,
-                         'koji_task_id': None,
-                         'packages': None,
-                         'builds': None,
-                         'arches': 'x86_64',
-                         'multilib_arches': '',
-                         'multilib_method': 0,
-                         'lookaside_repos': None,
-                         'modular_koji_tags': None,
-                         'module_defaults_url': None,
-                         'label': None,
-                         'compose_type': None,
-                         'pungi_compose_id': None,
-                         'pungi_config_dump': 'test',
-                         'target_dir': 'default',
-                         'toplevel_url': 'http://localhost/odcs/odcs-1'}
+        expected_json = {
+            "source_type": 2,
+            "state": 0,
+            "time_done": None,
+            "state_name": "wait",
+            "state_reason": None,
+            "source": u"testmodule-master",
+            "owner": u"me",
+            "result_repo": "http://localhost/odcs/odcs-1/compose/Temporary",
+            "result_repofile": "http://localhost/odcs/odcs-1/compose/Temporary/odcs-1.repo",
+            "time_submitted": c.json()["time_submitted"],
+            "id": 1,
+            "time_started": None,
+            "time_removed": None,
+            "removed_by": None,
+            "time_to_expire": c.json()["time_to_expire"],
+            "flags": [],
+            "results": ["repository"],
+            "sigkeys": "",
+            "koji_event": None,
+            "koji_task_id": None,
+            "packages": None,
+            "builds": None,
+            "arches": "x86_64",
+            "multilib_arches": "",
+            "multilib_method": 0,
+            "lookaside_repos": None,
+            "modular_koji_tags": None,
+            "module_defaults_url": None,
+            "label": None,
+            "compose_type": None,
+            "pungi_compose_id": None,
+            "pungi_config_dump": "test",
+            "target_dir": "default",
+            "toplevel_url": "http://localhost/odcs/odcs-1",
+        }
         self.assertEqual(c.json(True), expected_json)
 
     def test_compose_paths(self):
         compose = Compose.create(
-            db.session, "me", PungiSourceType.MODULE, "testmodule-master",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.MODULE,
+            "testmodule-master",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         compose.id = 1
         self.assertEqual(compose.toplevel_dir, os.path.join(conf.target_dir, "odcs-1"))
         self.assertEqual(
             compose.result_repofile_path,
-            os.path.join(conf.target_dir, "odcs-1/compose/Temporary/odcs-1.repo")
+            os.path.join(conf.target_dir, "odcs-1/compose/Temporary/odcs-1.repo"),
         )
         self.assertEqual(
             compose.result_repo_dir,
-            os.path.join(conf.target_dir, "odcs-1/compose/Temporary")
+            os.path.join(conf.target_dir, "odcs-1/compose/Temporary"),
         )
 
     def test_target_dir_none(self):
         compose = Compose.create(
-            db.session, "me", PungiSourceType.MODULE, "testmodule-master",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.MODULE,
+            "testmodule-master",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         compose.target_dir = None
         db.session.commit()
         self.assertEqual(compose.target_dir, conf.target_dir)
@@ -114,8 +133,13 @@ class TestModels(ModelsBaseTest):
         by Compose.create_copy() method.
         """
         compose = Compose.create(
-            db.session, "me", PungiSourceType.MODULE, "testmodule-master",
-            COMPOSE_RESULTS["repository"], 3600)
+            db.session,
+            "me",
+            PungiSourceType.MODULE,
+            "testmodule-master",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
         db.session.commit()
 
         # Generate non-default data for every attribute in compose, so we can
@@ -129,8 +153,9 @@ class TestModels(ModelsBaseTest):
             elif t == "DATETIME":
                 new_value = datetime.utcnow()
             else:
-                raise ValueError("New column type %r added, please handle it "
-                                 "in this test" % t)
+                raise ValueError(
+                    "New column type %r added, please handle it " "in this test" % t
+                )
             setattr(compose, c.name, new_value)
 
         db.session.commit()
@@ -140,41 +165,51 @@ class TestModels(ModelsBaseTest):
         for c in Compose.__table__.columns:
             # Following are list of fields which should not be copied
             # in create_copy() method.
-            if c.name in ["id", "state", "state_reason", "time_to_expire",
-                          "time_done", "time_submitted", "time_removed",
-                          "removed_by", "reused_id", "koji_task_id",
-                          "time_started", "pungi_compose_id", "celery_task_id"]:
+            if c.name in [
+                "id",
+                "state",
+                "state_reason",
+                "time_to_expire",
+                "time_done",
+                "time_submitted",
+                "time_removed",
+                "removed_by",
+                "reused_id",
+                "koji_task_id",
+                "time_started",
+                "pungi_compose_id",
+                "celery_task_id",
+            ]:
                 assertMethod = self.assertNotEqual
             else:
                 assertMethod = self.assertEqual
             assertMethod(
-                [c.name, getattr(compose, c.name)],
-                [c.name, getattr(copy, c.name)])
+                [c.name, getattr(compose, c.name)], [c.name, getattr(copy, c.name)]
+            )
 
 
 class TestUserModel(ModelsBaseTest):
-
     def test_find_by_email(self):
-        db.session.add(User(username='tester1'))
-        db.session.add(User(username='admin'))
+        db.session.add(User(username="tester1"))
+        db.session.add(User(username="admin"))
         db.session.commit()
 
-        user = User.find_user_by_name('admin')
-        self.assertEqual('admin', user.username)
+        user = User.find_user_by_name("admin")
+        self.assertEqual("admin", user.username)
 
     def test_create_user(self):
-        User.create_user(username='tester2')
+        User.create_user(username="tester2")
         db.session.commit()
 
-        user = User.find_user_by_name('tester2')
-        self.assertEqual('tester2', user.username)
+        user = User.find_user_by_name("tester2")
+        self.assertEqual("tester2", user.username)
 
     def test_no_group_is_added_if_no_groups(self):
-        User.create_user(username='tester1')
+        User.create_user(username="tester1")
         db.session.commit()
 
-        user = User.find_user_by_name('tester1')
-        self.assertEqual('tester1', user.username)
+        user = User.find_user_by_name("tester1")
+        self.assertEqual("tester1", user.username)
 
 
 class ComposeModel(ModelsBaseTest):
@@ -184,17 +219,40 @@ class ComposeModel(ModelsBaseTest):
         super(ComposeModel, self).setUp()
 
         self.c1 = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60)
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+        )
         self.c2 = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60, packages='pkg1')
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+            packages="pkg1",
+        )
         self.c3 = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60, packages='pkg1')
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+            packages="pkg1",
+        )
         self.c4 = Compose.create(
-            db.session, "me", PungiSourceType.KOJI_TAG, "f26",
-            COMPOSE_RESULTS["repository"], 60, packages='pkg1')
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+            packages="pkg1",
+        )
 
         map(db.session.add, (self.c1, self.c2, self.c3, self.c4))
         db.session.commit()

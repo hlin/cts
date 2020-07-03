@@ -16,6 +16,7 @@ class ComposeCheckError(Exception):
     """"
     Raised when compose check fails.
     """
+
     pass
 
 
@@ -25,7 +26,10 @@ class ComposeCheck(object):
 
     This is not real Compose CI, but rather basic sanity check.
     """
-    def __init__(self, path, target, allow_unsigned=False, allow_finished_incomplete=False):
+
+    def __init__(
+        self, path, target, allow_unsigned=False, allow_finished_incomplete=False
+    ):
         """
         Creates new ComposeCheck instance.
 
@@ -56,7 +60,9 @@ class ComposeCheck(object):
         with open(status_path, "r") as f:
             status = f.readline()[:-1]
             if status not in allowed_statuses:
-                err_msg = 'Compose is not in %s status.' % (" or ".join(allowed_statuses))
+                err_msg = "Compose is not in %s status." % (
+                    " or ".join(allowed_statuses)
+                )
                 raise ComposeCheckError(err_msg)
 
     def check_compose_info(self):
@@ -110,7 +116,9 @@ class ComposeCheck(object):
                     continue
 
                 real_path = os.readlink(path)
-                abspath = os.path.normpath(os.path.join(os.path.dirname(path), real_path))
+                abspath = os.path.normpath(
+                    os.path.join(os.path.dirname(path), real_path)
+                )
                 try:
                     abspath_stat = os.stat(abspath)
                 except Exception as e:
@@ -131,6 +139,7 @@ class ComposePromotion(object):
     """
     Contains methods and data to promote compose.
     """
+
     def __init__(self, compose, target):
         """
         Creates new ComposePromotion instance.
@@ -171,7 +180,9 @@ class ComposePromotion(object):
         print("Replacing %d symlinks with hardlinks." % len(self.symlinks))
         for symlink, hardlink_path in self.symlinks:
             real_path = os.readlink(symlink)
-            abspath = os.path.normpath(os.path.join(os.path.dirname(symlink), real_path))
+            abspath = os.path.normpath(
+                os.path.join(os.path.dirname(symlink), real_path)
+            )
             try:
                 os.link(abspath, hardlink_path)
             except OSError as ex:
@@ -192,12 +203,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Promote ODCS compose.")
     parser.add_argument("compose", help="Path to compose to promote.")
     parser.add_argument("target", help="Path to target location")
-    parser.add_argument("--allow-unsigned", action="store_true",
-                        help="Allow unsigned RPMs.")
-    parser.add_argument("--allow-finished-incomplete", action="store_true",
-                        help="Allow compose in FINISHED_INCOMPLETE state.")
-    parser.add_argument("--no-checks", action="store_true",
-                    help="WARN: Promote the compose without any checks.")
+    parser.add_argument(
+        "--allow-unsigned", action="store_true", help="Allow unsigned RPMs."
+    )
+    parser.add_argument(
+        "--allow-finished-incomplete",
+        action="store_true",
+        help="Allow compose in FINISHED_INCOMPLETE state.",
+    )
+    parser.add_argument(
+        "--no-checks",
+        action="store_true",
+        help="WARN: Promote the compose without any checks.",
+    )
     args = parser.parse_args()
 
     args.compose = os.path.abspath(args.compose)
@@ -205,7 +223,11 @@ if __name__ == "__main__":
 
     if not args.no_checks:
         compose_check = ComposeCheck(
-            args.compose, args.target, args.allow_unsigned, args.allow_finished_incomplete)
+            args.compose,
+            args.target,
+            args.allow_unsigned,
+            args.allow_finished_incomplete,
+        )
         try:
             compose_check.run()
         except ComposeCheckError as e:
@@ -215,4 +237,3 @@ if __name__ == "__main__":
     print("Promoting compose")
     compose_promotion = ComposePromotion(args.compose, args.target)
     compose_promotion.promote()
-

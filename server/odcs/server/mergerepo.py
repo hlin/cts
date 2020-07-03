@@ -39,7 +39,7 @@ class MergeRepo(object):
     def __init__(self, compose):
         self.compose = compose
 
-    @retry(wait_on=(requests.ConnectionError, ), logger=log)
+    @retry(wait_on=(requests.ConnectionError,), logger=log)
     def _download_file(self, path, url):
         """
         Downloads repodata file, stores it into `path`/repodata and returns
@@ -91,8 +91,7 @@ class MergeRepo(object):
         # the existing repodata to save lot of time downloading other repodata
         # files.
         if repomd == last_repomd:
-            log.info("%r: Reusing cached repodata for %s",
-                     self.compose, baseurl)
+            log.info("%r: Reusing cached repodata for %s", self.compose, baseurl)
             return
 
         # In case the repomd.xml changed, remove everything from the repodata
@@ -106,7 +105,7 @@ class MergeRepo(object):
         # to merge the repos.
         ns = "{http://linux.duke.edu/metadata/repo}"
         with ThreadPoolExecutor(5) as downloader:
-            for data in tree.findall('%sdata' % ns):
+            for data in tree.findall("%sdata" % ns):
                 if data.get("type").endswith("_db"):
                     continue
                 data_location = data.find("%slocation" % ns).get("href")
@@ -146,7 +145,10 @@ class MergeRepo(object):
         # Generate the pulp_repo_cache structure and locks for each repo.
         for repo in repos:
             repo_path = os.path.join(
-                self.compose.target_dir, "pulp_repo_cache", repo.replace(repo_prefix, ""))
+                self.compose.target_dir,
+                "pulp_repo_cache",
+                repo.replace(repo_prefix, ""),
+            )
             repo_paths.append(repo_path)
             makedirs(repo_path)
 
@@ -161,16 +163,20 @@ class MergeRepo(object):
                 self._download_repodata(repo_path, repo)
 
             log.info("%r: Starting mergerepo_c: %r", self.compose, repo_paths)
-            mergerepo_exe = find_executable('mergerepo_c')
+            mergerepo_exe = find_executable("mergerepo_c")
             if not mergerepo_exe:
                 raise RuntimeError("mergerepo_c is not available on system")
 
-            result_repo_dir = os.path.join(self.compose.result_repo_dir, repo_name, arch)
+            result_repo_dir = os.path.join(
+                self.compose.result_repo_dir, repo_name, arch
+            )
             makedirs(result_repo_dir)
 
-            args = [mergerepo_exe, "--method", "nvr", "-o",
-                    result_repo_dir]
-            args += ["--repo-prefix-search", os.path.join(self.compose.target_dir, "pulp_repo_cache")]
+            args = [mergerepo_exe, "--method", "nvr", "-o", result_repo_dir]
+            args += [
+                "--repo-prefix-search",
+                os.path.join(self.compose.target_dir, "pulp_repo_cache"),
+            ]
             args += ["--repo-prefix-replace", repo_prefix]
             for repo in repo_paths:
                 args.append("-r")

@@ -43,8 +43,14 @@ def to_text_type(s):
         return s
 
 
-def retry(timeout=conf.net_timeout, interval=conf.net_retry_interval, wait_on=Exception, logger=None):
+def retry(
+    timeout=conf.net_timeout,
+    interval=conf.net_retry_interval,
+    wait_on=Exception,
+    logger=None,
+):
     """A decorator that allows to retry a section of code until success or timeout."""
+
     def wrapper(function):
         @functools.wraps(function)
         def inner(*args, **kwargs):
@@ -54,12 +60,18 @@ def retry(timeout=conf.net_timeout, interval=conf.net_retry_interval, wait_on=Ex
                     return function(*args, **kwargs)
                 except wait_on as e:
                     if logger is not None:
-                        logger.warn("Exception %r raised from %r.  Retry in %rs",
-                                    e, function, interval)
+                        logger.warn(
+                            "Exception %r raised from %r.  Retry in %rs",
+                            e,
+                            function,
+                            interval,
+                        )
                     time.sleep(interval)
                     if (time.time() - start) >= timeout:
                         raise  # This re-raises the last exception.
+
         return inner
+
     return wrapper
 
 
@@ -102,8 +114,9 @@ def execute_cmd(args, stdout=None, stderr=None, cwd=None, timeout=None):
     # group so we can kill the main process and also children processes in
     # case of timeout.
     log.info("Executing command: %s%s" % (args, out_log_msg))
-    proc = subprocess.Popen(args, stdout=stdout, stderr=stderr, cwd=cwd,
-                            preexec_fn=os.setsid)
+    proc = subprocess.Popen(
+        args, stdout=stdout, stderr=stderr, cwd=cwd, preexec_fn=os.setsid
+    )
 
     # Setup timer to kill whole process group if needed.
     if timeout:
@@ -123,19 +136,24 @@ def execute_cmd(args, stdout=None, stderr=None, cwd=None, timeout=None):
     if timeout_expired:
         raise RuntimeError(
             "Compose has taken more time than allowed by configuration "
-            "(%d seconds)" % conf.pungi_timeout)
+            "(%d seconds)" % conf.pungi_timeout
+        )
 
     if proc.returncode != 0:
-        err_msg = "Command '%s' returned non-zero value %d%s" % (args, proc.returncode, out_log_msg)
+        err_msg = "Command '%s' returned non-zero value %d%s" % (
+            args,
+            proc.returncode,
+            out_log_msg,
+        )
         raise RuntimeError(err_msg)
 
 
-def clone_repo(url, dest, branch='master', commit=None):
-    cmd = ['git', 'clone', '-b', branch, url, dest]
+def clone_repo(url, dest, branch="master", commit=None):
+    cmd = ["git", "clone", "-b", branch, url, dest]
     execute_cmd(cmd)
 
     if commit:
-        cmd = ['git', 'checkout', commit]
+        cmd = ["git", "checkout", commit]
         execute_cmd(cmd, cwd=dest)
 
     return dest
