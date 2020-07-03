@@ -106,7 +106,6 @@ class ComposeCheck(object):
         target_dirname = os.path.dirname(self.target)
         while not os.path.exists(target_dirname):
             target_dirname = os.path.dirname(target_dirname)
-        target_stat = os.stat(target_dirname)
 
         for root, dirs, files in os.walk(self.path):
             for p in dirs + files:
@@ -120,7 +119,7 @@ class ComposeCheck(object):
                     os.path.join(os.path.dirname(path), real_path)
                 )
                 try:
-                    abspath_stat = os.stat(abspath)
+                    os.stat(abspath)
                 except Exception as e:
                     err_msg = "Symlink cannot be resolved: %s: %s." % (path, e)
                     raise ComposeCheckError(err_msg)
