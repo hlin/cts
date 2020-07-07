@@ -45,7 +45,7 @@ option or per ``raw_config_name`` using the ``schema_override`` option in the
 After the validation is done, ODCS executes Pungi and generates the compose.
 
 Symlinks pointing to the generated compose are stored in the directories
-named according to compose type - for example ``nightly``, ``ci`, ``test``
+named according to compose type - for example ``nightly``, ``ci``, ``test``
 or ``production``.
 
 
