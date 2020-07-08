@@ -43,6 +43,7 @@ RUN cd /etc/yum.repos.d/ \
         python3-flask-login \
         python3-pip \
         python3-prometheus_client \
+        syslinux \
     && dnf -y clean all \
     && rm -f /tmp/*
 
