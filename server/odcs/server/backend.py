@@ -727,7 +727,7 @@ def generate_pulp_compose(compose):
     ignore_absent_pulp_repos = compose.flags & COMPOSE_FLAGS["ignore_absent_pulp_repos"]
     if len(repos) != len(content_sets):
         found_content_sets = repos.keys()
-        err = "Failed to find all the content_sets %r in the Pulp, " "found only %r" % (
+        err = "Failed to find all the content_sets %r in Pulp, " "found only %r" % (
             content_sets,
             found_content_sets,
         )
