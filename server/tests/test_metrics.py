@@ -26,9 +26,7 @@ from odcs.server import db
 from odcs.server.models import Compose
 from odcs.common.types import COMPOSE_RESULTS
 from odcs.server.pungi import PungiSourceType
-from odcs.server.metrics import (
-    ComposesCollector, QueueLengthThread, WorkerCountThread
-)
+from odcs.server.metrics import ComposesCollector, QueueLengthThread, WorkerCountThread
 from .utils import ModelsBaseTest
 
 
@@ -95,7 +93,6 @@ class TestComposesCollector(ModelsBaseTest):
 
 
 class TestQueueLengthThread(ModelsBaseTest):
-
     @patch("odcs.server.metrics.celery_app")
     def test_update_metrics(self, celery_app):
         conn = celery_app.connection_or_acquire.return_value
@@ -110,21 +107,20 @@ class TestQueueLengthThread(ModelsBaseTest):
             for sample in metric.samples:
                 queues.add(sample.labels["queue_name"])
                 self.assertEqual(sample.value, 10)
-            self.assertEqual(queues, set(["cleanup", "pungi_composes", "pulp_composes"]))
+            self.assertEqual(
+                queues, set(["cleanup", "pungi_composes", "pulp_composes"])
+            )
 
 
 class TestWorkerCountThread(ModelsBaseTest):
-
     @patch("odcs.server.metrics.celery_app")
     def test_update_metrics(self, celery_app):
         celery_app.control.ping.side_effect = [
             [
                 {"worker-1@localhost": {"ok": "pong"}},
-                {"worker-2@localhost": {"ok": "pong"}}
+                {"worker-2@localhost": {"ok": "pong"}},
             ],
-            [
-                {"worker-1@localhost": {"ok": "pong"}}
-            ],
+            [{"worker-1@localhost": {"ok": "pong"}}],
         ]
 
         # Both workers online.

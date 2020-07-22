@@ -36,6 +36,7 @@ try:
     from odcs.server.celery_tasks import celery_app
     from celery.utils.objects import FallbackContext
     import amqp.exceptions
+
     CELERY_AVAILABLE = True
 except ImportError:
     CELERY_AVAILABLE = False
@@ -116,6 +117,7 @@ class WorkerCountThread(threading.Thread):
     - celery_workers_totals - Number of alive workers.
     - celery_workers[worker_name] - 1 if worker is online, 0 if offline.
     """
+
     def __init__(self, registry=None):
         super(WorkerCountThread, self).__init__()
         self.daemon = True
@@ -124,8 +126,10 @@ class WorkerCountThread(threading.Thread):
         )
         self.workers_total.set(0)
         self.workers = Gauge(
-            "celery_workers", "Number of alive workers", ["worker_name"],
-            registry=registry
+            "celery_workers",
+            "Number of alive workers",
+            ["worker_name"],
+            registry=registry,
         )
         self.worker_names = set()
 
@@ -163,12 +167,15 @@ class QueueLengthThread(threading.Thread):
 
     - celery_queue_length[queue_name] - Number of tasks waiting in the queue.
     """
+
     def __init__(self, registry=None):
         super(QueueLengthThread, self).__init__()
         self.daemon = True
         self.queue_length = Gauge(
-            "celery_queue_length", "Number of tasks in the queue.",
-            ["queue_name"], registry=registry
+            "celery_queue_length",
+            "Number of tasks in the queue.",
+            ["queue_name"],
+            registry=registry,
         )
 
         # Get all the possible queue names from the config.
