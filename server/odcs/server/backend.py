@@ -460,6 +460,8 @@ def get_reusable_compose(compose):
     Returns the compose in the "done" state which contains the same artifacts
     and results as the compose `compose` and therefore could be reused instead
     of generating new one.
+
+    :param models.Compose compose: Instance of models.Compose.
     """
 
     # RAW_CONFIG composes cannot reuse other composes, we cannot track input
@@ -602,6 +604,22 @@ def get_reusable_compose(compose):
                 "%r: Cannot reuse %r - module_defaults_url not same",
                 compose,
                 old_compose,
+            )
+            continue
+
+        scratch_modules = (
+            set(compose.scratch_modules.split(" "))
+            if compose.scratch_modules
+            else set()
+        )
+        old_scratch_modules = (
+            set(old_compose.scratch_modules.split(" "))
+            if old_compose.scratch_modules
+            else set()
+        )
+        if scratch_modules != old_scratch_modules:
+            log.debug(
+                "%r: Cannot reuse %r - scratch_modules not same", compose, old_compose
             )
             continue
 
@@ -842,6 +860,8 @@ def remove_compose_symlink(compose):
 def generate_pungi_compose(compose):
     """
     Generates the compose of KOJI, TAG, or REPO type using the Pungi tool.
+
+    :param models.Compose compose: Instance of models.Compose.
     """
     koji_tag_cache = KojiTagCache(compose)
 
@@ -887,6 +907,7 @@ def generate_pungi_compose(compose):
                 lookaside_repos=compose.lookaside_repos,
                 modular_koji_tags=compose.modular_koji_tags,
                 module_defaults_url=compose.module_defaults_url,
+                scratch_modules=compose.scratch_modules,
             )
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"

@@ -171,6 +171,7 @@ class PungiConfig(BasePungiConfig):
         lookaside_repos=None,
         modular_koji_tags=None,
         module_defaults_url=None,
+        scratch_modules=None,
     ):
         super(PungiConfig, self).__init__()
         self.release_name = release_name
@@ -188,6 +189,7 @@ class PungiConfig(BasePungiConfig):
             self.arches = conf.arches
         self.packages = packages or []
         self.builds = builds or []
+        self.scratch_modules = scratch_modules.split(" ") if scratch_modules else []
 
         # Store results as list of strings, so it can be used by jinja2
         # templates.
@@ -264,6 +266,10 @@ class PungiConfig(BasePungiConfig):
         if self.source_type == PungiSourceType.REPO:
             return "repos"
         return "koji"
+
+    @property
+    def mbs_api_url(self):
+        return os.path.join(conf.mbs_url, "1")
 
     def get_comps_config(self):
         if self.source_type == PungiSourceType.MODULE:

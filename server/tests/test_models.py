@@ -91,6 +91,7 @@ class TestModels(ModelsBaseTest):
             "pungi_config_dump": "test",
             "target_dir": "default",
             "toplevel_url": "http://localhost/odcs/odcs-1",
+            "scratch_modules": None,
         }
         self.assertEqual(c.json(True), expected_json)
 

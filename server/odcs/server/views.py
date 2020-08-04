@@ -278,6 +278,7 @@ class ODCSAPI(MethodView):
         :jsonparam list source["sigkeys"]: List defining the :ref:`sigkeys<sigkeys>`.
         :jsonparam list source["koji_event"]: Number defining the :ref:`koji_event<koji_event>`.
         :jsonparam list source["modular_koji_tags"]: List defining the :ref:`modular_koji_tags<modular_koji_tags>`.
+        :jsonparam list source["scratch_modules"]: List defining the :ref:`scratch_modules<scratch_modules>`.
 
         :statuscode 200: Compose request created and returned.
         :statuscode 401: Request not in valid format.
@@ -439,6 +440,10 @@ class ODCSAPI(MethodView):
         elif module_defaults_url and module_defaults_commit:
             module_defaults = "%s %s" % (module_defaults_url, module_defaults_commit)
 
+        scratch_modules = None
+        if "scratch_modules" in source_data:
+            scratch_modules = " ".join(source_data["scratch_modules"])
+
         label = data.get("label", None)
         compose_type = data.get("compose_type", "test")
 
@@ -482,6 +487,7 @@ class ODCSAPI(MethodView):
             label=label,
             compose_type=compose_type,
             target_dir=target_dir,
+            scratch_modules=scratch_modules,
         )
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to

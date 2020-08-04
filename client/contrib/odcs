@@ -125,6 +125,12 @@ KNOWN_ARGS = {
         metavar="lookaside_repos",
         help="Specify lookaside repositories.",
     ),
+    "--scratch-module": dict(
+        default=[],
+        action="append",
+        metavar="scratch_modules",
+        help="Scratch modules to be included in the compose with format N:S:V:C",
+    ),
     "--label": dict(default=None, help="Label for raw_config compose."),
     "--compose-type": dict(default=None, help="Compose type for raw_config compose."),
     "--build": dict(
@@ -380,6 +386,7 @@ try:
             modular_koji_tags=args.modular_tag,
             module_defaults_url=args.module_defaults_url,
             module_defaults_commit=args.module_defaults_commit,
+            scratch_modules=args.scratch_modules,
             **request_args
         )
     elif args.command == "create-tag":
@@ -392,6 +399,7 @@ try:
             args.modular_tag,
             args.module_defaults_url,
             args.module_defaults_commit,
+            args.scratch_modules,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-module":
@@ -400,6 +408,7 @@ try:
             args.sigkey,
             args.module_defaults_url,
             args.module_defaults_commit,
+            args.scratch_modules,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-pulp":

@@ -120,6 +120,7 @@ class ComposeSourceGeneric(object):
         modular_koji_tags=None,
         module_defaults_url=None,
         module_defaults_commit=None,
+        scratch_modules=None,
         **kwargs
     ):
         self.source = {"source": source, "type": source_type}
@@ -137,6 +138,8 @@ class ComposeSourceGeneric(object):
             self.source["module_defaults_url"] = module_defaults_url
         if module_defaults_commit:
             self.source["module_defaults_commit"] = module_defaults_commit
+        if scratch_modules:
+            self.source["scratch_modules"] = scratch_modules
         self.source.update(kwargs)
 
 
@@ -155,6 +158,7 @@ class ComposeSourceTag(ComposeSourceGeneric):
         modular_koji_tags=None,
         module_defaults_url=None,
         module_defaults_commit=None,
+        scratch_modules=None,
         **kwargs
     ):
         """
@@ -176,6 +180,8 @@ class ComposeSourceTag(ComposeSourceGeneric):
         :param str module_defaults_url: URL of module defaults repository.
         :param str module_defaults_commit: Commit or branch name defining particular point
             module defaults repository.
+        :param list scratch_modules: List of N:S:V:C of scratch modules to be included in
+            the compose.
         """
         super(ComposeSourceTag, self).__init__(
             tag,
@@ -187,6 +193,7 @@ class ComposeSourceTag(ComposeSourceGeneric):
             modular_koji_tags,
             module_defaults_url,
             module_defaults_commit,
+            scratch_modules,
             **kwargs
         )
 
@@ -202,6 +209,7 @@ class ComposeSourceModule(ComposeSourceGeneric):
         sigkeys=None,
         module_defaults_url=None,
         module_defaults_commit=None,
+        scratch_modules=None,
         **kwargs
     ):
         """
@@ -213,6 +221,8 @@ class ComposeSourceModule(ComposeSourceGeneric):
         :param str module_defaults_url: URL of module defaults repository.
         :param str module_defaults_commit: Commit or branch name defining particular point
             module defaults repository.
+        :param list scratch_modules: List of N:S:V:C of scratch modules to be included in
+            the compose.
         """
         super(ComposeSourceModule, self).__init__(
             " ".join(modules),
@@ -220,6 +230,7 @@ class ComposeSourceModule(ComposeSourceGeneric):
             sigkeys=sigkeys,
             module_defaults_url=module_defaults_url,
             module_defaults_commit=module_defaults_commit,
+            scratch_modules=scratch_modules,
             **kwargs
         )
 
@@ -449,6 +460,7 @@ class ODCS(object):
         modular_koji_tags=None,
         module_defaults_url=None,
         module_defaults_commit=None,
+        scratch_modules=None,
         lookaside_repos=None,
         label=None,
         compose_type=None,
@@ -500,6 +512,8 @@ class ODCS(object):
             request_data["source"]["module_defaults_url"] = module_defaults_url
         if module_defaults_commit:
             request_data["source"]["module_defaults_commit"] = module_defaults_commit
+        if scratch_modules:
+            request_data["source"]["scratch_modules"] = scratch_modules
         if lookaside_repos:
             request_data["lookaside_repos"] = lookaside_repos
         if label:
