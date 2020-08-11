@@ -64,8 +64,8 @@ Any further options are then used to override the real ``raw_config``
 configuration.
 
 This config file is pre-processed using Jinja2 templates. The ``compose``
-Jinja2 variable can be used this config file. This variable points to
-current Compose object (https://pagure.io/odcs/blob/master/f/server/odcs/server/models.py#_99).
+Jinja2 variable can be used in this config file. This variable contains
+:ref:`compose_json` representing the current Compose.
 
 Configuration file example:
 
@@ -78,9 +78,9 @@ Configuration file example:
     koji_profile = 'odcs_stg'
 
     # Allow overriding pkgset_koji_builds from ODCS client.
-    {%- if compose.builds %}
+    {%- if compose["builds"] %}
         pkgset_koji_builds = [
-        {%- for build in compose.builds.split(" ") %}
+        {%- for build in compose["builds"].split(" ") %}
             '{{ build }}',
         {%- endfor %}
         ]
@@ -108,7 +108,7 @@ defines the ``raw_config`` and can have following keys:
   - ``pungi_timeout`` - [optional] - If set, defines the timeout in seconds in
     which the compose must be finished, otherwise the compose is marked as
     ``failed``.
-  - ``raw_config_wrapper`` - [optional] - If set, defines the full path to 
+  - ``raw_config_wrapper`` - [optional] - If set, defines the full path to
     custom ``raw_config_wrapper.conf`` file which is used by this Raw config
     compose.
 

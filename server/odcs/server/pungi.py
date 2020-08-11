@@ -95,13 +95,14 @@ class RawPungiConfig(BasePungiConfig):
             with open(cfg_path) as fd:
                 raw_config_wrapper = jinja2.Template(fd.read())
             with open(cfg_path, "w") as fd:
-                fd.write(raw_config_wrapper.render(compose=self.compose))
+                fd.write(raw_config_wrapper.render(compose=self.compose.json()))
         except Exception as e:
             log.exception(
                 "Failed to render raw_config_wrapper template {!r}: {}".format(
                     cfg_path, str(e)
                 )
             )
+            raise
 
     def write_config_files(self, topdir):
         """Write raw config files

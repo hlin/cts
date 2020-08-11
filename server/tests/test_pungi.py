@@ -755,11 +755,18 @@ class TestPungi(ModelsBaseTest):
         )
 
 
-class TestRawPungiConfig(unittest.TestCase):
+class TestRawPungiConfig(ModelsBaseTest):
     def setUp(self):
         super(TestRawPungiConfig, self).setUp()
-        self.compose = MagicMock()
-        self.compose.source = "test.conf#hash"
+        self.compose = Compose.create(
+            db.session,
+            "me",
+            PungiSourceType.RAW_CONFIG,
+            "test.conf#hash",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
+        db.session.commit()
 
         def mocked_clone_repo(url, dest, branch="master", commit=None):
             makedirs(dest)
