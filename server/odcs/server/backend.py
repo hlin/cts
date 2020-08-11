@@ -884,7 +884,7 @@ def generate_pungi_compose(compose):
         reuse_compose(compose, compose_to_reuse)
     else:
         if compose.source_type == PungiSourceType.RAW_CONFIG:
-            pungi_cfg = RawPungiConfig(compose.source)
+            pungi_cfg = RawPungiConfig(compose)
         else:
             # Generate PungiConfig and run Pungi
             if compose.multilib_arches:

@@ -572,7 +572,8 @@ class TestPungi(ModelsBaseTest):
             }
         }
         with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
-            pungi = Pungi(1, RawPungiConfig("pungi.conf#hash"))
+            self.compose.source = "pungi.conf#hash"
+            pungi = Pungi(1, RawPungiConfig(self.compose))
             pungi.run(self.compose)
 
         self.makedirs.assert_called_with(AnyStringWith("test_composes/odcs-1/"))
@@ -620,7 +621,8 @@ class TestPungi(ModelsBaseTest):
             }
         }
         with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
-            pungi = Pungi(1, RawPungiConfig("pungi.conf#hash"))
+            self.compose.source = "pungi.conf#hash"
+            pungi = Pungi(1, RawPungiConfig(self.compose))
             pungi.run(compose)
             pungi.run(compose)
 
@@ -645,7 +647,8 @@ class TestPungi(ModelsBaseTest):
             }
         }
         with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
-            pungi = Pungi(1, RawPungiConfig("pungi.conf#hash"))
+            self.compose.source = "pungi.conf#hash"
+            pungi = Pungi(1, RawPungiConfig(self.compose))
             pungi.run(self.compose)
 
         execute_cmd.assert_called_once()
@@ -671,7 +674,8 @@ class TestPungi(ModelsBaseTest):
                 with patch.object(
                     conf, "pungi_config_validate", new="pungi-config-validate"
                 ):
-                    pungi = Pungi(1, RawPungiConfig("pungi.conf#hash"))
+                    self.compose.source = "pungi.conf#hash"
+                    pungi = Pungi(1, RawPungiConfig(self.compose))
                     pungi.run(self.compose)
 
         self.assertEqual(
@@ -701,7 +705,8 @@ class TestPungi(ModelsBaseTest):
             }
         }
         with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
-            pungi = Pungi(1, RawPungiConfig("pungi.conf#hash"))
+            self.compose.source = "pungi.conf#hash"
+            pungi = Pungi(1, RawPungiConfig(self.compose))
             pungi.run(self.compose)
 
         execute_cmd.assert_called_once_with(
@@ -730,7 +735,8 @@ class TestPungi(ModelsBaseTest):
             }
         }
         with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
-            pungi = Pungi(1, RawPungiConfig("pungi.conf#hash"))
+            self.compose.source = "pungi.conf#hash"
+            pungi = Pungi(1, RawPungiConfig(self.compose))
             pungi.run(self.compose)
 
         execute_cmd.assert_called_once_with(
@@ -747,6 +753,58 @@ class TestPungi(ModelsBaseTest):
             stderr=AnyStringWith("pungi-stderr.log"),
             stdout=AnyStringWith("pungi-stdout.log"),
         )
+
+
+class TestRawPungiConfig(unittest.TestCase):
+    def setUp(self):
+        super(TestRawPungiConfig, self).setUp()
+        self.compose = MagicMock()
+        self.compose.source = "test.conf#hash"
+
+        def mocked_clone_repo(url, dest, branch="master", commit=None):
+            makedirs(dest)
+            with open(os.path.join(dest, "test.conf"), "w") as fd:
+                lines = [
+                    'release_name = "fake pungi conf 1"',
+                    'release_short = "compose-1"',
+                    'release_version = "10"',
+                ]
+                fd.writelines(lines)
+
+        self.patch_clone_repo = patch("odcs.server.pungi.clone_repo")
+        self.clone_repo = self.patch_clone_repo.start()
+        self.clone_repo.side_effect = mocked_clone_repo
+
+    def tearDown(self):
+        super(TestRawPungiConfig, self).tearDown()
+        self.patch_clone_repo.stop()
+
+    def test_raw_config_custom_wrapper(self):
+        custom_raw_config_wrapper = os.path.join(
+            test_dir, "data", "custom_raw_config_wrapper.conf"
+        )
+        fake_raw_config_urls = {
+            "test.conf": {
+                "url": "http://localhost/test.git",
+                "config_filename": "test.conf",
+                "raw_config_wrapper": custom_raw_config_wrapper,
+            }
+        }
+        self.compose.builds = "foo-1-1 bar-1-1"
+
+        with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
+            td = tempfile.mkdtemp()
+            try:
+                cfg = RawPungiConfig(self.compose)
+                cfg.write_config_files(td)
+                pungi_conf = PyConfigParser()
+                pungi_conf.load_from_file(os.path.join(td, "pungi.conf"))
+                self.assertEqual(pungi_conf["release_short"], "compose-1")
+                self.assertEqual(
+                    pungi_conf["pkgset_koji_builds"], ["foo-1-1", "bar-1-1"]
+                )
+            finally:
+                shutil.rmtree(td)
 
 
 class TestPungiLogs(ModelsBaseTest):

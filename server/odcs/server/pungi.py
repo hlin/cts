@@ -70,9 +70,10 @@ class BasePungiConfig(object):
 
 
 class RawPungiConfig(BasePungiConfig):
-    def __init__(self, compose_source):
+    def __init__(self, compose):
         super(RawPungiConfig, self).__init__()
-        source_name, source_hash = compose_source.split("#")
+        self.compose = compose
+        source_name, source_hash = compose.source.split("#")
 
         url_data = copy.deepcopy(conf.raw_config_urls[source_name])
         # Do not override commit hash by hash from ODCS client if it is
@@ -81,10 +82,26 @@ class RawPungiConfig(BasePungiConfig):
             url_data["commit"] = source_hash
 
         self.pungi_timeout = url_data.get("pungi_timeout", conf.pungi_timeout)
+        self.raw_config_wrapper_conf_path = url_data.get(
+            "raw_config_wrapper", conf.raw_config_wrapper_conf_path
+        )
         self.pungi_cfg = url_data
         self.pungi_koji_args = conf.raw_config_pungi_koji_args.get(
             source_name, conf.pungi_koji_args
         )
+
+    def apply_raw_config_wrapper_overrides(self, cfg_path):
+        try:
+            with open(cfg_path) as fd:
+                raw_config_wrapper = jinja2.Template(fd.read())
+            with open(cfg_path, "w") as fd:
+                fd.write(raw_config_wrapper.render(compose=self.compose))
+        except Exception as e:
+            log.exception(
+                "Failed to render raw_config_wrapper template {!r}: {}".format(
+                    cfg_path, str(e)
+                )
+            )
 
     def write_config_files(self, topdir):
         """Write raw config files
@@ -96,11 +113,12 @@ class RawPungiConfig(BasePungiConfig):
         # the raw_config wrapper as real "pungi.conf".
         # The reason is that wrapper config can import raw_config
         # and override some variables.
-        if conf.raw_config_wrapper_conf_path:
+        if self.raw_config_wrapper_conf_path:
             main_cfg_path = os.path.join(topdir, "raw_config.conf")
             shutil.copy2(
-                conf.raw_config_wrapper_conf_path, os.path.join(topdir, "pungi.conf")
+                self.raw_config_wrapper_conf_path, os.path.join(topdir, "pungi.conf")
             )
+            self.apply_raw_config_wrapper_overrides(os.path.join(topdir, "pungi.conf"))
         else:
             main_cfg_path = os.path.join(topdir, "pungi.conf")
 

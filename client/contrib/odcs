@@ -274,6 +274,7 @@ _add_arguments(
     "--compose-type",
     "--koji-event",
     "--target-dir",
+    "--build",
 )
 
 
