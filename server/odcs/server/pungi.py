@@ -28,6 +28,7 @@ import tempfile
 import jinja2
 import time
 import threading
+import json
 from productmd.composeinfo import ComposeInfo
 from kobo.conf import PyConfigParser
 
@@ -134,10 +135,47 @@ class RawPungiConfig(BasePungiConfig):
 
         copytree(repo_dir, topdir)
 
-        # Create the "pungi.conf" from config_filename.
-        config_path = os.path.join(topdir, self.pungi_cfg["config_filename"])
-        if config_path != main_cfg_path:
-            shutil.copy2(config_path, main_cfg_path)
+        # If pungi_config_dump is defined, it means that we are regenerating
+        # already built production compose and this should use the very same
+        # Pungi config file as the original one.
+        # We still want to use the latest raw_config_wrapper, because this
+        # is used to configure some important variables which can change
+        # in the future ODCS deployment - like "koji_profile" or "runroot_method".
+        # We also want to be able to respin the compose with the very same
+        # configuration but include one new package build to fix last-minute
+        # issues with the compose - this new build will also be set using the
+        # raw_config_wrapper.
+        if self.compose.pungi_config_dump:
+            # Load the config dump.
+            pungi_config_dump = json.loads(self.compose.pungi_config_dump)
+
+            # If raw_config_wrapper is used, update the pungi_config_dump according
+            # to it.
+            if self.raw_config_wrapper_conf_path:
+                # At first create empty "raw_config.conf" file so "raw_config_wrapper.conf"
+                # can import it and can be loaded by PyConfigParser.
+                with open(main_cfg_path, "w") as fd:
+                    fd.write("# empty config file")
+
+                # Load the raw_config_wrapper and update pungi_config_dump.
+                raw_config_wrapper = PyConfigParser()
+                raw_config_wrapper.load_from_file(main_cfg_path)
+                pungi_config_dump.update(raw_config_wrapper)
+
+            # Create the pungi.json
+            with open(os.path.join(topdir, "pungi.json"), "w") as fd:
+                fd.write(json.dumps(pungi_config_dump))
+        else:
+            # Create the "pungi.conf" from config_filename.
+            config_path = os.path.join(topdir, self.pungi_cfg["config_filename"])
+            if config_path != main_cfg_path:
+                shutil.copy2(config_path, main_cfg_path)
+            c = PyConfigParser()
+
+            # Create pungi.json.
+            c.load_from_file(os.path.join(topdir, "pungi.conf"))
+            with open(os.path.join(topdir, "pungi.json"), "w") as fd:
+                fd.write(json.dumps(c))
 
     def validate(self, topdir, compose_dir):
         if not conf.pungi_config_validate:
@@ -159,7 +197,7 @@ class RawPungiConfig(BasePungiConfig):
             ]
 
         # Add raw_config configuration file to validate.
-        pungi_config_validate_cmd.append(os.path.join(topdir, "pungi.conf"))
+        pungi_config_validate_cmd.append(os.path.join(topdir, "pungi.json"))
 
         # Run the pungi-config-validate. The execute_cmd raises an exception
         # if config is invalid.
@@ -333,7 +371,10 @@ class PungiConfig(BasePungiConfig):
         try:
             with open(conf.pungi_conf_path) as fd:
                 template = jinja2.Template(fd.read())
-            return template.render(config=self)
+            c_data = template.render(config=self)
+            c = PyConfigParser()
+            c.load_from_string(c_data)
+            return c
         except Exception as e:
             log.exception(
                 "Failed to render pungi conf template {!r}: {}".format(
@@ -358,7 +399,7 @@ class PungiConfig(BasePungiConfig):
         log.debug("Comps.xml:")
         log.debug("%s", comps_cfg)
 
-        self._write(os.path.join(topdir, "pungi.conf"), main_cfg)
+        self._write(os.path.join(topdir, "pungi.json"), json.dumps(main_cfg))
         self._write(os.path.join(topdir, "variants.xml"), variants_cfg)
         self._write(os.path.join(topdir, "comps.xml"), comps_cfg)
 
@@ -424,7 +465,7 @@ class Pungi(object):
         """
         pungi_cmd = [
             conf.pungi_koji,
-            "--config=%s" % os.path.join(conf_topdir, "pungi.conf"),
+            "--config=%s" % os.path.join(conf_topdir, "pungi.json"),
             "--no-latest-link",
         ]
 
@@ -523,10 +564,10 @@ class Pungi(object):
             self._write_cfgs(td)
 
             # Load pungi configuration file.
-            conf = PyConfigParser()
-            conf.load_from_file(os.path.join(td, "pungi.conf"))
+            with open(os.path.join(td, "pungi.json")) as fd:
+                pungi_conf = json.load(fd)
 
-            compose_dir = self._prepare_compose_dir(compose, conf)
+            compose_dir = self._prepare_compose_dir(compose, pungi_conf)
             self.pungi_cfg.validate(td, compose_dir)
             pungi_cmd = self.get_pungi_cmd(td, compose, compose_dir)
 
@@ -537,7 +578,7 @@ class Pungi(object):
 
             # If Compose Tracking Service is configured in the config file,
             # we need to get the Compose ID from Pungi in separate thread.
-            if "cts_url" in conf and "cts_keytab" in conf:
+            if "cts_url" in pungi_conf and "cts_keytab" in pungi_conf:
                 compose_id_thread = ReadComposeIdThread(compose)
                 compose_id_thread.start()
 

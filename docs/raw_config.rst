@@ -190,3 +190,27 @@ the ODCS option like this:
 
 If ``raw_config_keys`` is not specified, the user/group is able to generate
 any ``raw_config`` compose.
+
+
+Regenerating expired ``raw_config`` compose
+---------------------------------------
+
+When regenerating expired ``raw_config`` compose using the HTTP REST API,
+there is a difference between the composes with ``production`` :ref:`compose_type`
+and other :ref:`compose_types<compose_type>`.
+
+For ``production`` :ref:`compose_type`, ODCS stores the :ref:`pungi_config_dump`
+and regeneration such compose will result in the very same configuration file
+to be used. The regenerated compose should therefore be identical to original compose.
+
+For other :ref:`compose_types<compose_type>`, the generated compose only
+uses the same the same :ref:`source` and :ref:`koji_event` to point to original
+Raw config configuration and Koji tags. Depending on the Raw config compose configuration,
+this can mean that the resulting compose is not 100% identical with the original one. The
+input packages should always be identical thanks to the same koji_event, but the configuration
+can differ for example in case when it points to other external git repositories
+and their commits using branch name. This branch name can be resolved to very different 
+commit hash when such compose is regenerated in the future.
+
+In both cases, the ``raw_config_wrapper.conf`` is processed normally and can influence
+the resulting regenerated compose.

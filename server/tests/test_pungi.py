@@ -25,6 +25,7 @@ import shutil
 import tempfile
 import unittest
 import time
+import json
 from productmd import ComposeInfo
 
 from mock import patch, MagicMock, mock_open, call
@@ -53,11 +54,6 @@ class TestPungiConfig(unittest.TestCase):
     def tearDown(self):
         super(TestPungiConfig, self).tearDown()
 
-    def _load_pungi_cfg(self, cfg):
-        conf = PyConfigParser()
-        conf.load_from_string(cfg)
-        return conf
-
     def test_pungi_config_module(self):
         pungi_cfg = PungiConfig(
             "MBS-512",
@@ -73,7 +69,7 @@ class TestPungiConfig(unittest.TestCase):
         self.assertTrue(variants.find("<module>") != -1)
         self.assertEqual(comps, "")
         self.assertEqual(
-            self._load_pungi_cfg(cfg)["module_defaults_dir"],
+            cfg["module_defaults_dir"],
             {
                 "branch": "master",
                 "dir": ".",
@@ -100,7 +96,7 @@ class TestPungiConfig(unittest.TestCase):
         self.assertTrue(variants.find("ppc64") != -1)
         self.assertTrue(variants.find("s390") != -1)
         self.assertTrue(comps.find("file</packagereq>") != -1)
-        self.assertTrue(cfg.find('sigkeys = ["123", "456"]'))
+        self.assertEqual(cfg["sigkeys"], ["123", "456"])
 
     def test_get_pungi_conf(self):
         _, mock_path = tempfile.mkstemp()
@@ -111,8 +107,7 @@ class TestPungiConfig(unittest.TestCase):
             pungi_cfg = PungiConfig(
                 "MBS-512", "1", PungiSourceType.MODULE, "testmodule:master:1:1"
             )
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(cfg["release_name"], "MBS-512")
             self.assertEqual(cfg["release_short"], "MBS-512")
             self.assertEqual(cfg["release_version"], "1")
@@ -146,8 +141,7 @@ class TestPungiConfig(unittest.TestCase):
                 "testmodule:master:1:1",
                 results=COMPOSE_RESULTS["iso"],
             )
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertTrue("createiso" not in cfg["skip_phases"])
 
     def test_get_pungi_conf_boot_iso(self):
@@ -163,8 +157,7 @@ class TestPungiConfig(unittest.TestCase):
                 "testmodule:master:1:1",
                 results=COMPOSE_RESULTS["boot.iso"],
             )
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertTrue("buildinstall" not in cfg["skip_phases"])
 
     def test_get_pungi_conf_koji_inherit(self):
@@ -176,13 +169,11 @@ class TestPungiConfig(unittest.TestCase):
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG, "f26")
 
             pungi_cfg.pkgset_koji_inherit = False
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertFalse(cfg["pkgset_koji_inherit"])
 
             pungi_cfg.pkgset_koji_inherit = True
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertTrue(cfg["pkgset_koji_inherit"])
 
     def test_get_pungi_conf_check_deps(self):
@@ -193,8 +184,7 @@ class TestPungiConfig(unittest.TestCase):
         with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG, "f26")
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertIs(cfg["check_deps"], False)
 
             pungi_cfg = PungiConfig(
@@ -204,8 +194,7 @@ class TestPungiConfig(unittest.TestCase):
                 "f26",
                 flags=COMPOSE_FLAGS["check_deps"],
             )
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertIs(cfg["check_deps"], True)
 
     def test_get_pungi_conf_multilib(self):
@@ -223,8 +212,7 @@ class TestPungiConfig(unittest.TestCase):
                 multilib_method=3,
             )
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(
                 set(cfg["multilib"][0][1].keys()), set(["s390x", "x86_64"])
             )
@@ -246,8 +234,7 @@ class TestPungiConfig(unittest.TestCase):
                 builds=["foo-1-1", "bar-1-1"],
             )
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(
                 set(cfg["pkgset_koji_builds"]), set(["foo-1-1", "bar-1-1"])
             )
@@ -271,8 +258,7 @@ class TestPungiConfig(unittest.TestCase):
                 packages=["foo"],
             )
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(set(cfg["pkgset_koji_module_tag"]), set(["f26-modules"]))
             self.assertEqual(cfg["gather_method"], "hybrid")
             self.assertEqual(
@@ -305,8 +291,7 @@ class TestPungiConfig(unittest.TestCase):
                 builds=["foo-1-1", "bar-1-1"],
             )
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(cfg["pkgset_koji_tag"], "")
             self.assertEqual(
                 set(cfg["pkgset_koji_builds"]), set(["foo-1-1", "bar-1-1"])
@@ -323,8 +308,7 @@ class TestPungiConfig(unittest.TestCase):
         with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
             pungi_cfg = PungiConfig("MBS-512", "1", PungiSourceType.KOJI_TAG, "f26")
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(cfg["pkgset_koji_tag"], "f26")
             self.assertEqual(
                 cfg["additional_packages"], [("^Temporary$", {"*": ["*"]})]
@@ -340,8 +324,7 @@ class TestPungiConfig(unittest.TestCase):
                 "MBS-512", "1", PungiSourceType.KOJI_TAG, "f26", packages=["file"]
             )
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(cfg["pkgset_koji_tag"], "f26")
             self.assertTrue("additional_packages" not in cfg)
 
@@ -359,8 +342,7 @@ class TestPungiConfig(unittest.TestCase):
                 lookaside_repos="foo bar",
             )
 
-            template = pungi_cfg.get_pungi_config()
-            cfg = self._load_pungi_cfg(template)
+            cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(
                 cfg["gather_lookaside_repos"], [(u"^.*$", {u"*": [u"foo", u"bar"]})]
             )
@@ -385,6 +367,9 @@ class TestPungiConfig(unittest.TestCase):
 
 class FakePyConfigParser(dict):
     def load_from_file(self, *args, **kwargs):
+        pass
+
+    def load_from_string(self, *args, **kwargs):
         pass
 
 
@@ -425,6 +410,7 @@ class TestPungi(ModelsBaseTest):
         self.compose.toplevel_dir = os.path.join(conf.target_dir, "odcs-1")
         self.compose.compose_type = "test"
         self.compose.label = None
+        self.compose.pungi_config_dump = None
 
         makedirs(self.compose.toplevel_dir)
 
@@ -454,7 +440,7 @@ class TestPungi(ModelsBaseTest):
         execute_cmd.assert_called_once_with(
             [
                 "pungi-koji",
-                AnyStringWith("pungi.conf"),
+                AnyStringWith("pungi.json"),
                 "--no-latest-link",
                 AnyStringWith("--compose-dir="),
                 "--test",
@@ -508,7 +494,7 @@ class TestPungi(ModelsBaseTest):
         execute_cmd.assert_called_once_with(
             [
                 "pungi-koji",
-                AnyStringWith("pungi.conf"),
+                AnyStringWith("pungi.json"),
                 "--no-latest-link",
                 AnyStringWith("--compose-dir="),
                 "--test",
@@ -544,7 +530,7 @@ class TestPungi(ModelsBaseTest):
             execute_cmd.assert_called_once_with(
                 [
                     "pungi-koji",
-                    AnyStringWith("pungi.conf"),
+                    AnyStringWith("pungi.json"),
                     "--no-latest-link",
                     AnyStringWith("--compose-dir="),
                     "--%s" % (compose_type or "test"),
@@ -688,7 +674,7 @@ class TestPungi(ModelsBaseTest):
                     "/etc/odcs/default_override.json",
                     "--schema-override",
                     "/etc/odcs/extra_override.json",
-                    AnyStringWith("pungi.conf"),
+                    AnyStringWith("pungi.json"),
                 ],
                 stderr=AnyStringWith("pungi-config-validate-stderr.log"),
                 stdout=AnyStringWith("pungi-config-validate-stdout.log"),
@@ -712,7 +698,7 @@ class TestPungi(ModelsBaseTest):
         execute_cmd.assert_called_once_with(
             [
                 "pungi-koji",
-                AnyStringWith("pungi.conf"),
+                AnyStringWith("pungi.json"),
                 "--no-latest-link",
                 AnyStringWith("--compose-dir="),
                 "--test",
@@ -742,7 +728,7 @@ class TestPungi(ModelsBaseTest):
         execute_cmd.assert_called_once_with(
             [
                 "pungi-koji",
-                AnyStringWith("pungi.conf"),
+                AnyStringWith("pungi.json"),
                 "--no-latest-link",
                 AnyStringWith("--compose-dir="),
                 "--test",
@@ -810,6 +796,39 @@ class TestRawPungiConfig(ModelsBaseTest):
                 self.assertEqual(
                     pungi_conf["pkgset_koji_builds"], ["foo-1-1", "bar-1-1"]
                 )
+            finally:
+                shutil.rmtree(td)
+
+    def test_raw_config_pungi_config_dump(self):
+        custom_raw_config_wrapper = os.path.join(
+            test_dir, "data", "custom_raw_config_wrapper.conf"
+        )
+        fake_raw_config_urls = {
+            "test.conf": {
+                "url": "http://localhost/test.git",
+                "config_filename": "test.conf",
+                "raw_config_wrapper": custom_raw_config_wrapper,
+            }
+        }
+        config = {
+            "release_name": "foo",
+            "release_short": "compose-2",
+            "release_version": 50,
+            "gather_lookaside_repos": [["^Buildroot$", {"aarch64": ["foo", "bar"]}]],
+            "sigkeys": ["foo", None],
+        }
+        self.compose.pungi_config_dump = json.dumps(config)
+        self.compose.builds = "foo-1-1 bar-1-1"
+
+        with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
+            td = tempfile.mkdtemp()
+            try:
+                cfg = RawPungiConfig(self.compose)
+                cfg.write_config_files(td)
+                with open(os.path.join(td, "pungi.json")) as fd:
+                    pungi_conf = json.load(fd)
+                for key in config.keys():
+                    self.assertEqual(pungi_conf[key], config[key])
             finally:
                 shutil.rmtree(td)
 

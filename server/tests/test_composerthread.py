@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import json
 import os
 import time
 from datetime import datetime, timedelta
@@ -309,8 +310,9 @@ class TestComposerThread(ModelsBaseTest):
         koji_session.getLastEvent.return_value = {"id": 123}
 
         def mocked_execute_cmd(args, stdout=None, stderr=None, cwd=None, **kwargs):
-            pungi_cfg = open(os.path.join(cwd, "pungi.conf"), "r").read()
-            self.assertTrue(pungi_cfg.find("gather_method = 'nodeps'") != -1)
+            pungi_cfg = open(os.path.join(cwd, "pungi.json"), "r").read()
+            pungi_cfg = json.loads(pungi_cfg)
+            self.assertEqual(pungi_cfg["gather_method"], "nodeps")
 
         with patch("odcs.server.utils.execute_cmd", new=mocked_execute_cmd):
             self._add_tag_compose(flags=COMPOSE_FLAGS["no_deps"])
