@@ -193,6 +193,7 @@ _add_arguments(
     "--compose-type",
     "--target-dir",
     "--flag",
+    "--scratch-module",
 )
 
 
@@ -219,6 +220,7 @@ _add_arguments(
     "--target-dir",
     "--build",
     "--flag",
+    "--scratch-module",
 )
 
 
@@ -241,6 +243,7 @@ _add_arguments(
     "--lookaside-repo",
     "--target-dir",
     "--flag",
+    "--scratch-module",
 )
 
 
