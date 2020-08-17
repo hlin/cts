@@ -623,6 +623,24 @@ def get_reusable_compose(compose):
             )
             continue
 
+        parent_pungi_compose_ids = (
+            set(compose.parent_pungi_compose_ids.split(" "))
+            if compose.parent_pungi_compose_ids
+            else set()
+        )
+        old_parent_pungi_compose_ids = (
+            set(old_compose.parent_pungi_compose_ids.split(" "))
+            if old_compose.parent_pungi_compose_ids
+            else set()
+        )
+        if parent_pungi_compose_ids != old_parent_pungi_compose_ids:
+            log.debug(
+                "%r: Cannot reuse %r - parent_pungi_compose_ids not same",
+                compose,
+                old_compose,
+            )
+            continue
+
         target_dir = compose.target_dir
         old_target_dir = old_compose.target_dir
         if target_dir != old_target_dir:

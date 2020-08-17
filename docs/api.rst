@@ -123,6 +123,11 @@ The fields used in the ODCS compose JSON have following meaning:
 *packages* - ``(white-space separated list of strings or null)``
     List of names of RPMs (packages) which should appear in the compose. The list of packages to choose from is defined by the content of Koji builds defined in ``builds``. If ``null``, all packages from ``builds`` will be included in a compose.
 
+.. _parent_pungi_compose_ids:
+
+*parent_pungi_compose_ids* - ``(list of strings)``
+    Pungi compose IDs of parent composes.
+
 .. _pungi_config_dump:
 
 *pungi_config_dump* - ``(string)``

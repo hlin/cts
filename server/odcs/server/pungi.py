@@ -497,6 +497,9 @@ class Pungi(object):
 
         if compose.label:
             pungi_cmd.append("--label=%s" % str(compose.label))
+        if compose.parent_pungi_compose_ids:
+            for compose_id in compose.parent_pungi_compose_ids.split(" "):
+                pungi_cmd.append("--parent-compose-id=%s" % str(compose_id))
 
         if self.koji_event:
             pungi_cmd += ["--koji-event", str(self.koji_event)]

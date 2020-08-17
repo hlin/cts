@@ -452,6 +452,37 @@ class TestPungi(ModelsBaseTest):
         )
 
     @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_parent_pungi_compose_ids(self, execute_cmd):
+        self.compose.parent_pungi_compose_ids = "Fedora-1-1 Fedora-2-2"
+        pungi_cfg = PungiConfig(
+            "MBS-512", "1", PungiSourceType.MODULE, "testmodule:master:1:1"
+        )
+        pungi = Pungi(1, pungi_cfg)
+        pungi.run(self.compose)
+
+        self.makedirs.assert_called_with(AnyStringWith("test_composes/odcs-1/"))
+        self.makedirs.assert_called_with(AnyStringWith("work/global"))
+        self.ci_dump.assert_called_once_with(
+            AnyStringWith("work/global/composeinfo-base.json")
+        )
+
+        execute_cmd.assert_called_once_with(
+            [
+                "pungi-koji",
+                AnyStringWith("pungi.json"),
+                "--no-latest-link",
+                AnyStringWith("--compose-dir="),
+                "--test",
+                "--parent-compose-id=Fedora-1-1",
+                "--parent-compose-id=Fedora-2-2",
+            ],
+            cwd=AnyStringWith("/tmp/"),
+            timeout=3600,
+            stderr=AnyStringWith("pungi-stderr.log"),
+            stdout=AnyStringWith("pungi-stdout.log"),
+        )
+
+    @patch("odcs.server.utils.execute_cmd")
     @patch("odcs.server.pungi.PyConfigParser")
     def test_pungi_run_cts(self, py_config_parser, execute_cmd):
         self.patch_ci_dump.stop()

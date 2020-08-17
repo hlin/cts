@@ -165,6 +165,8 @@ class Compose(ODCSBase):
     _target_dir = db.Column("target_dir", db.String, nullable=True)
     # White-space separated list of scratch modules (N:S:V:C) to include in a compose.
     scratch_modules = db.Column(db.String, nullable=True)
+    # White-space separated list of parent Pungi compose IDs (pungi_compose_id).
+    parent_pungi_compose_ids = db.Column(db.String, nullable=True)
 
     @property
     def on_default_target_dir(self):
@@ -211,6 +213,7 @@ class Compose(ODCSBase):
         compose_type=None,
         target_dir=None,
         scratch_modules=None,
+        parent_pungi_compose_ids=None,
     ):
         now = datetime.utcnow()
         compose = cls(
@@ -236,6 +239,7 @@ class Compose(ODCSBase):
             compose_type=compose_type,
             target_dir=target_dir or conf.target_dir,
             scratch_modules=scratch_modules,
+            parent_pungi_compose_ids=parent_pungi_compose_ids,
         )
         session.add(compose)
         return compose
@@ -282,6 +286,7 @@ class Compose(ODCSBase):
             celery_task_id=None,
             target_dir=compose.target_dir,
             scratch_modules=compose.scratch_modules,
+            parent_pungi_compose_ids=compose.parent_pungi_compose_ids,
         )
         session.add(compose)
         return compose
@@ -413,6 +418,7 @@ class Compose(ODCSBase):
             "pungi_compose_id": self.pungi_compose_id,
             "target_dir": target_dir,
             "scratch_modules": self.scratch_modules,
+            "parent_pungi_compose_ids": self.parent_pungi_compose_ids,
         }
 
         if full:

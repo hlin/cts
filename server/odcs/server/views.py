@@ -270,6 +270,9 @@ class ODCSAPI(MethodView):
         :jsonparam string label: String defining the :ref:`label<label>`.
         :jsonparam string compose_type: String defining the :ref:`compose_type<compose_type>`.
         :jsonparam string target_dir: String defining the :ref:`target_dir<target_dir>`.
+        :jsonparam list parent_pungi_compose_ids: Pungi compose IDs of parent composes associated
+            with this compose. They will be stored with this compose in the Compose Tracking
+            Service.
         :jsonparam object source: The JSON object defining the source of compose.
         :jsonparam string source["type"]: String defining the :ref:`source type<source_type>`.
         :jsonparam string source["source"]: String defining the :ref:`source<source>`.
@@ -411,6 +414,10 @@ class ODCSAPI(MethodView):
         if "lookaside_repos" in data:
             lookaside_repos = " ".join(data["lookaside_repos"])
 
+        parent_pungi_compose_ids = None
+        if "parent_pungi_compose_ids" in data:
+            parent_pungi_compose_ids = " ".join(data["parent_pungi_compose_ids"])
+
         multilib_method = MULTILIB_METHODS["none"]
         if "multilib_method" in data:
             for name in data["multilib_method"]:
@@ -488,6 +495,7 @@ class ODCSAPI(MethodView):
             compose_type=compose_type,
             target_dir=target_dir,
             scratch_modules=scratch_modules,
+            parent_pungi_compose_ids=parent_pungi_compose_ids,
         )
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to

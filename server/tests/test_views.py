@@ -363,6 +363,7 @@ class TestViews(ViewBaseTest):
             "target_dir": "default",
             "scratch_modules": None,
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
+            "parent_pungi_compose_ids": None,
         }
         self.assertEqual(data, expected_json)
 
@@ -1273,6 +1274,26 @@ class TestViews(ViewBaseTest):
                 "foo:bar:20200806:abcdefgh fooo:bar:20200810:abcdefgh",
             )
 
+    def test_submit_build_parent_pungi_compose_ids(self):
+        with self.test_request_context(user="dev"):
+            flask.g.oidc_scopes = [
+                "{0}{1}".format(conf.oidc_base_namespace, "new-compose")
+            ]
+
+            rv = self.client.post(
+                "/api/1/composes/",
+                data=json.dumps(
+                    {
+                        "parent_pungi_compose_ids": ["Fedora-1-1", "Fedora-2-2"],
+                        "source": {"type": "module", "source": "testmodule:master"},
+                    }
+                ),
+            )
+            data = json.loads(rv.get_data(as_text=True))
+            self.assertEqual(
+                data["parent_pungi_compose_ids"], "Fedora-1-1 Fedora-2-2",
+            )
+
     def test_query_compose(self):
         resp = self.client.get("/api/1/composes/1")
         data = json.loads(resp.get_data(as_text=True))
@@ -1740,6 +1761,7 @@ class TestViews(ViewBaseTest):
             "target_dir": "default",
             "scratch_modules": None,
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
+            "parent_pungi_compose_ids": None,
         }
         self.assertEqual(data, expected_json)
 
