@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.49
+  - Release date: 2020-08-18
+  - Set expiration for `run_cleanup` task
+  - Stop creating latest symlinks with Pungi
+  - Add metrics for composes and backends
+  - Improve error reporting for pulp composes
+  - Add support for module scratch builds
+  - Allow Jinja2 templating in raw config wrapper config
+  - Support regenerating raw config composes using the stored configuration dump
+  - Add parent relationship to composes
+
 ## 0.2.48
   - Release date: 2020-06-19
   - Add simple index page
