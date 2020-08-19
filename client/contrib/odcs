@@ -390,7 +390,7 @@ try:
             modular_koji_tags=args.modular_tag,
             module_defaults_url=args.module_defaults_url,
             module_defaults_commit=args.module_defaults_commit,
-            scratch_modules=args.scratch_modules,
+            scratch_modules=args.scratch_module,
             **request_args
         )
     elif args.command == "create-tag":
@@ -403,7 +403,7 @@ try:
             args.modular_tag,
             args.module_defaults_url,
             args.module_defaults_commit,
-            args.scratch_modules,
+            args.scratch_module,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-module":
@@ -412,7 +412,7 @@ try:
             args.sigkey,
             args.module_defaults_url,
             args.module_defaults_commit,
-            args.scratch_modules,
+            args.scratch_module,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-pulp":
