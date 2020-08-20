@@ -517,7 +517,7 @@ class Pungi(object):
         # If Compose Tracking Service is configured in the config file,
         # we skip the ComposeInfo creation completely and instead let
         # the Pungi to ask CTS to generate unique ComposeInfo.
-        if "cts_url" in conf and "cts_keytab" in conf:
+        if conf.get("cts_url") and conf.get("cts_keytab"):
             return compose.toplevel_dir
 
         ci = ComposeInfo()
@@ -581,7 +581,7 @@ class Pungi(object):
 
             # If Compose Tracking Service is configured in the config file,
             # we need to get the Compose ID from Pungi in separate thread.
-            if "cts_url" in pungi_conf and "cts_keytab" in pungi_conf:
+            if pungi_conf.get("cts_url") and pungi_conf.get("cts_keytab"):
                 compose_id_thread = ReadComposeIdThread(compose)
                 compose_id_thread.start()
 
