@@ -420,7 +420,11 @@ try:
         result = client.request_compose(source, **request_args)
     elif args.command == "create-raw-config":
         source = odcs.client.odcs.ComposeSourceRawConfig(
-            args.raw_config_name, args.raw_config_commit, args.koji_event
+            args.raw_config_name,
+            args.raw_config_commit,
+            args.koji_event,
+            sigkeys=args.sigkey,
+            builds=args.build,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-build":
