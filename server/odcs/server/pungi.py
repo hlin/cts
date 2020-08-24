@@ -117,7 +117,7 @@ class RawPungiConfig(BasePungiConfig):
         # and override some variables.
         if self.raw_config_wrapper_conf_path:
             main_cfg_path = os.path.join(topdir, "raw_config.conf")
-            shutil.copy2(
+            shutil.copyfile(
                 self.raw_config_wrapper_conf_path, os.path.join(topdir, "pungi.conf")
             )
             self.apply_raw_config_wrapper_overrides(os.path.join(topdir, "pungi.conf"))
