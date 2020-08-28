@@ -1316,8 +1316,9 @@ class TestGeneratePungiCompose(ModelsBaseTest):
     @patch("os.symlink")
     @patch("os.unlink")
     @patch("odcs.server.pungi.PungiLogs.get_config_dump")
+    @patch("odcs.server.backend._write_repo_file")
     def test_generate_pungi_compose_raw_config(
-        self, config_dump, unlink, symlink, makedirs
+        self, write_repo_file, config_dump, unlink, symlink, makedirs
     ):
         config_dump.return_value = "fake\npungi\nconf\n"
         c = Compose.create(
@@ -1368,6 +1369,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         unlink.assert_called_with(
             AnyStringWith("/test_composes/production/latest-compose-1")
         )
+        write_repo_file.assert_not_called()
 
 
 class TestValidatePungiCompose(ModelsBaseTest):

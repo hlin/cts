@@ -41,6 +41,7 @@ from odcs.common.types import (
     INVERSE_COMPOSE_STATES,
     COMPOSE_FLAGS,
     COMPOSE_RESULTS,
+    PungiSourceType,
 )
 
 from sqlalchemy import event, or_
@@ -344,6 +345,10 @@ class Compose(ODCSBase):
         Returns public URL to repofile.
         """
         if not self.on_default_target_dir:
+            return ""
+
+        # There is no repofile for Raw config composes.
+        if self.source_type == PungiSourceType.RAW_CONFIG:
             return ""
 
         return (

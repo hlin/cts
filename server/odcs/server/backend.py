@@ -969,7 +969,11 @@ def generate_pungi_compose(compose):
         pungi = Pungi(compose.id, pungi_cfg, koji_event, old_compose)
         pungi.run(compose)
 
-        _write_repo_file(compose)
+        # Write the Compose.result_repofile_path. This makes sense only for
+        # non raw_config composes, because we have no idea what variants
+        # do exist for raw_config composes.
+        if compose.source_type != PungiSourceType.RAW_CONFIG:
+            _write_repo_file(compose)
 
     # Raises an exception if invalid
     validate_pungi_compose(compose)

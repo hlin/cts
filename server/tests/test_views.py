@@ -2094,6 +2094,7 @@ class TestViewsRawConfig(ViewBaseTest):
         self.assertEqual(c.source, "pungi_cfg#hash")
         self.assertEqual(c.label, "Beta-1.2")
         self.assertEqual(c.compose_type, "nightly")
+        self.assertEqual(c.json()["result_repofile"], "")
 
 
 class TestViewsCancelCompose(ViewBaseTest):
