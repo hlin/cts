@@ -13,7 +13,7 @@ from productmd.rpms import Rpms
 
 
 class ComposeCheckError(Exception):
-    """"
+    """ "
     Raised when compose check fails.
     """
 

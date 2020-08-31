@@ -105,7 +105,7 @@ class ODCSAPI(MethodView):
             return conf.seconds_to_live
 
     def get(self, id):
-        """ Returns ODCS composes.
+        """Returns ODCS composes.
 
         If ``id`` is set, only the ODCS compose defined by that ID is
         returned.
@@ -150,7 +150,7 @@ class ODCSAPI(MethodView):
     @require_scopes("renew-compose")
     @requires_role("allowed_clients")
     def patch(self, id):
-        """ Extends the compose expiration time or regenerates expired compose.
+        """Extends the compose expiration time or regenerates expired compose.
 
         :query number id: :ref:`ID<id>` of the compose to update/regenerate.
         :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
@@ -259,7 +259,7 @@ class ODCSAPI(MethodView):
     @require_scopes("new-compose")
     @requires_role("allowed_clients")
     def post(self):
-        """ Creates new ODCS compose request.
+        """Creates new ODCS compose request.
 
         :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
         :jsonparam list flags: List of :ref:`compose flags<flags>` defined as strings.
@@ -583,7 +583,7 @@ class ODCSAPI(MethodView):
 
 class AboutAPI(MethodView):
     def get(self):
-        """ Returns information about this ODCS instance in JSON format.
+        """Returns information about this ODCS instance in JSON format.
 
         :resjson string version: The ODCS server version.
         :resjson string auth_backend: The name of authorization backend this

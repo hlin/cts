@@ -172,9 +172,12 @@ def check_compose_time(compose, time_threshold):
         "Time spent for generating compose (%s): %ss"
         % (compose["id"], spent_time.total_seconds())
     )
-    assert spent_time <= threshold, (
-        "Spent time (%ss) over threshold (%s) for generating compose %s."
-        % (spent_time.total_seconds(), time_threshold, compose["id"])
+    assert (
+        spent_time <= threshold
+    ), "Spent time (%ss) over threshold (%s) for generating compose %s." % (
+        spent_time.total_seconds(),
+        time_threshold,
+        compose["id"],
     )
 
 
@@ -427,7 +430,9 @@ if __name__ == "__main__":
         sys.exit(2)
 
     client = odcs.client.odcs.ODCS(
-        odcs_api_url, auth_mech=auth_mech, openidc_token=token,
+        odcs_api_url,
+        auth_mech=auth_mech,
+        openidc_token=token,
     )
 
     if profile == "redhat":

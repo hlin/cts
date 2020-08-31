@@ -90,8 +90,7 @@ def _establish_ssl_context():
 @console_script_help
 @manager.command
 def upgradedb():
-    """ Upgrades the database schema to the latest revision
-    """
+    """Upgrades the database schema to the latest revision"""
     app.config["SERVER_NAME"] = "localhost"
     migrations_dir = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), "migrations"
@@ -103,8 +102,7 @@ def upgradedb():
 @console_script_help
 @manager.command
 def cleardb():
-    """ Clears the database
-    """
+    """Clears the database"""
     models.Event.query.delete()
     models.ArtifactBuild.query.delete()
     db.session.commit()
@@ -113,8 +111,7 @@ def cleardb():
 @manager.command
 @console_script_help
 def generatelocalhostcert():
-    """ Creates a public/private key pair for message signing and the frontend
-    """
+    """Creates a public/private key pair for message signing and the frontend"""
     from OpenSSL import crypto
 
     cert_key = crypto.PKey()
@@ -152,8 +149,7 @@ def generatelocalhostcert():
 @console_script_help
 @manager.command
 def runssl(host=conf.host, port=conf.port, debug=conf.debug):
-    """ Runs the Flask app with the HTTPS settings configured in config.py
-    """
+    """Runs the Flask app with the HTTPS settings configured in config.py"""
     logging.info("Starting ODCS frontend")
 
     ssl_ctx = _establish_ssl_context()

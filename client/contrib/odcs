@@ -354,11 +354,14 @@ if args.infra == "fedora":
             raise
 
     client = odcs.client.odcs.ODCS(
-        odcs_url, auth_mech=odcs.client.odcs.AuthMech.OpenIDC, openidc_token=token,
+        odcs_url,
+        auth_mech=odcs.client.odcs.AuthMech.OpenIDC,
+        openidc_token=token,
     )
 else:
     client = odcs.client.odcs.ODCS(
-        odcs_url, auth_mech=odcs.client.odcs.AuthMech.Kerberos,
+        odcs_url,
+        auth_mech=odcs.client.odcs.AuthMech.Kerberos,
     )
 
 request_args = {}
