@@ -76,10 +76,14 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
     @patch("os.unlink")
     @patch("os.path.realpath")
     @patch("os.path.exists")
-    def test_a_compose_which_state_is_done_is_removed(self, exists, realpath, unlink):
+    @patch("odcs.server.backend.get_latest_symlink")
+    def test_a_compose_which_state_is_done_is_removed(
+        self, latest_symlink, exists, realpath, unlink
+    ):
         """
         Test that we do remove a compose in done state.
         """
+        latest_symlink.return_value = None
         realpath.return_value = "/odcs-real"
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         c.time_to_expire = datetime.utcnow() - timedelta(seconds=120)
@@ -98,10 +102,29 @@ class TestRemoveExpiredComposesThread(ModelsBaseTest):
                 mock.call(
                     AnyStringWith("test_composes/nightly/compose-1-10-2020110.n.0")
                 ),
-                mock.call(AnyStringWith("test_composes/nightly/latest-compose-1")),
                 mock.call(AnyStringWith("test_composes/odcs-1")),
             ]
         )
+
+    @patch("os.unlink")
+    @patch("os.path.realpath")
+    @patch("os.path.exists")
+    def test_latest_compose_not_removed(self, exists, realpath, unlink):
+        """
+        Test that we do remove a compose in done state.
+        """
+        realpath.return_value = "/odcs-real"
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        c.time_to_expire = datetime.utcnow() - timedelta(seconds=120)
+        c.state = COMPOSE_STATES["done"]
+        c.compose_type = "nightly"
+        c.pungi_compose_id = "compose-1-10-2020110.n.0"
+        db.session.add(c)
+        db.session.commit()
+        self.thread.do_work()
+        db.session.expunge_all()
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.state, COMPOSE_STATES["done"])
 
     def test_a_compose_which_state_is_done_is_removed_keep_state_reason(self):
         """
