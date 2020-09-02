@@ -166,6 +166,8 @@ class Compose(ODCSBase):
     _target_dir = db.Column("target_dir", db.String, nullable=True)
     # White-space separated list of scratch modules (N:S:V:C) to include in a compose.
     scratch_modules = db.Column(db.String, nullable=True)
+    # White-space separated list of RPM scratch builds to include in a compose.
+    scratch_build_tasks = db.Column(db.String, nullable=True)
     # White-space separated list of parent Pungi compose IDs (pungi_compose_id).
     parent_pungi_compose_ids = db.Column(db.String, nullable=True)
 
@@ -215,6 +217,7 @@ class Compose(ODCSBase):
         target_dir=None,
         scratch_modules=None,
         parent_pungi_compose_ids=None,
+        scratch_build_tasks=None,
     ):
         now = datetime.utcnow()
         compose = cls(
@@ -241,6 +244,7 @@ class Compose(ODCSBase):
             target_dir=target_dir or conf.target_dir,
             scratch_modules=scratch_modules,
             parent_pungi_compose_ids=parent_pungi_compose_ids,
+            scratch_build_tasks=scratch_build_tasks,
         )
         session.add(compose)
         return compose
@@ -288,6 +292,7 @@ class Compose(ODCSBase):
             target_dir=compose.target_dir,
             scratch_modules=compose.scratch_modules,
             parent_pungi_compose_ids=compose.parent_pungi_compose_ids,
+            scratch_build_tasks=compose.scratch_build_tasks,
         )
         session.add(compose)
         return compose
@@ -424,6 +429,7 @@ class Compose(ODCSBase):
             "target_dir": target_dir,
             "scratch_modules": self.scratch_modules,
             "parent_pungi_compose_ids": self.parent_pungi_compose_ids,
+            "scratch_build_tasks": self.scratch_build_tasks,
         }
 
         if full:

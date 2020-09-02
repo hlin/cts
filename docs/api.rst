@@ -154,6 +154,11 @@ The fields used in the ODCS compose JSON have following meaning:
     .. note::
         If ``target_dir`` is set to non-default value, then the ``result_repofile`` might be an empty string, because ODCS might not have enough data to generate the URL.
 
+.. _scratch_build_tasks:
+
+*scratch_build_tasks* - ``(white-space separated list of strings)``
+    List of Koji task IDs of RPM build scratch builds which will be included in the compose.
+
 .. _scratch_modules:
 
 *scratch_modules* - ``(white-space separated list of strings)``

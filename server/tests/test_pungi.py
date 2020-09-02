@@ -242,6 +242,25 @@ class TestPungiConfig(unittest.TestCase):
                 cfg["additional_packages"], [(u"^Temporary$", {u"*": [u"*"]})]
             )
 
+    def test_get_pungi_conf_scratch_build_tasks(self):
+        _, mock_path = tempfile.mkstemp()
+        template_path = os.path.abspath(os.path.join(test_dir, "../conf/pungi.conf"))
+        shutil.copy2(template_path, mock_path)
+
+        with patch("odcs.server.pungi.conf.pungi_conf_path", mock_path):
+            pungi_cfg = PungiConfig(
+                "MBS-512",
+                "1",
+                PungiSourceType.KOJI_TAG,
+                "f26",
+                scratch_build_tasks="123456 123457",
+            )
+
+            cfg = pungi_cfg.get_pungi_config()
+            self.assertEqual(
+                set(cfg["pkgset_koji_scratch_tasks"]), set(["123456", "123457"])
+            )
+
     def test_get_pungi_conf_modular_koji_tags(self):
         _, mock_path = tempfile.mkstemp()
         template_path = os.path.abspath(os.path.join(test_dir, "../conf/pungi.conf"))

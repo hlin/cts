@@ -628,6 +628,24 @@ def get_reusable_compose(compose):
             )
             continue
 
+        scratch_build_tasks = (
+            set(compose.scratch_build_tasks.split(" "))
+            if compose.scratch_build_tasks
+            else set()
+        )
+        old_scratch_build_tasks = (
+            set(old_compose.scratch_build_tasks.split(" "))
+            if old_compose.scratch_build_tasks
+            else set()
+        )
+        if scratch_build_tasks != old_scratch_build_tasks:
+            log.debug(
+                "%r: Cannot reuse %r - scratch_build_tasks not same",
+                compose,
+                old_compose,
+            )
+            continue
+
         parent_pungi_compose_ids = (
             set(compose.parent_pungi_compose_ids.split(" "))
             if compose.parent_pungi_compose_ids
@@ -945,6 +963,7 @@ def generate_pungi_compose(compose):
                 modular_koji_tags=compose.modular_koji_tags,
                 module_defaults_url=compose.module_defaults_url,
                 scratch_modules=compose.scratch_modules,
+                scratch_build_tasks=compose.scratch_build_tasks,
             )
             if compose.flags & COMPOSE_FLAGS["no_deps"]:
                 pungi_cfg.gather_method = "nodeps"

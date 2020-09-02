@@ -364,6 +364,7 @@ class TestViews(ViewBaseTest):
             "scratch_modules": None,
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
             "parent_pungi_compose_ids": None,
+            "scratch_build_tasks": None,
         }
         self.assertEqual(data, expected_json)
 
@@ -1247,6 +1248,33 @@ class TestViews(ViewBaseTest):
             "User unknown not allowed to operate with compose with source_types=tag.",
         )
 
+    def test_submit_scratch_build_tasks(self):
+        with self.test_request_context(user="dev"):
+            flask.g.oidc_scopes = [
+                "{0}{1}".format(conf.oidc_base_namespace, "new-compose")
+            ]
+
+            rv = self.client.post(
+                "/api/1/composes/",
+                data=json.dumps(
+                    {
+                        "source": {
+                            "type": "module",
+                            "source": "testmodule:master",
+                            "scratch_build_tasks": [
+                                "123456",
+                                "123457",
+                            ],
+                        }
+                    }
+                ),
+            )
+            data = json.loads(rv.get_data(as_text=True))
+            self.assertEqual(
+                data["scratch_build_tasks"],
+                "123456 123457",
+            )
+
     def test_submit_build_scratch_modules(self):
         with self.test_request_context(user="dev"):
             flask.g.oidc_scopes = [
@@ -1763,6 +1791,7 @@ class TestViews(ViewBaseTest):
             "scratch_modules": None,
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
             "parent_pungi_compose_ids": None,
+            "scratch_build_tasks": None,
         }
         self.assertEqual(data, expected_json)
 

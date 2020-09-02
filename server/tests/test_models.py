@@ -93,6 +93,7 @@ class TestModels(ModelsBaseTest):
             "toplevel_url": "http://localhost/odcs/odcs-1",
             "scratch_modules": None,
             "parent_pungi_compose_ids": None,
+            "scratch_build_tasks": None,
         }
         self.assertEqual(c.json(True), expected_json)
 
