@@ -231,7 +231,7 @@ create_module_parser.set_defaults(command="create-module")
 create_module_parser.add_argument(
     "modules",
     metavar="modules",
-    nargs="+",
+    nargs="*",
     help="List of modules in N:S, N:S:V or N:S:V:C format.",
 )
 _add_arguments(
@@ -410,6 +410,8 @@ try:
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-module":
+        if not args.modules and not args.scratch_module:
+            create_module_parser.error("Please give a module or --scratch-module")
         source = odcs.client.odcs.ComposeSourceModule(
             args.modules,
             args.sigkey,

@@ -321,11 +321,19 @@ class ODCSAPI(MethodView):
         source_type = PUNGI_SOURCE_TYPE_NAMES[source_type]
 
         source = []
-        if "source" in source_data:
+        if "source" in source_data and source_data["source"] != "":
             # Use list(set()) here to remove duplicate sources.
             source = list(set(source_data["source"].split(" ")))
 
-        if not source and source_type != PungiSourceType.BUILD:
+        scratch_modules = None
+        if "scratch_modules" in source_data:
+            scratch_modules = " ".join(source_data["scratch_modules"])
+
+        if (
+            not source
+            and source_type != PungiSourceType.BUILD
+            and not (source_type == PungiSourceType.MODULE and scratch_modules)
+        ):
             err = "No source provided for %s" % source_type
             log.error(err)
             raise ValueError(err)
@@ -447,10 +455,6 @@ class ODCSAPI(MethodView):
             )
         elif module_defaults_url and module_defaults_commit:
             module_defaults = "%s %s" % (module_defaults_url, module_defaults_commit)
-
-        scratch_modules = None
-        if "scratch_modules" in source_data:
-            scratch_modules = " ".join(source_data["scratch_modules"])
 
         scratch_build_tasks = None
         if "scratch_build_tasks" in source_data:
