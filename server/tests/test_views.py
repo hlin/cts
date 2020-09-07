@@ -1351,7 +1351,8 @@ class TestViews(ViewBaseTest):
             )
             data = json.loads(rv.get_data(as_text=True))
             self.assertEqual(
-                data["parent_pungi_compose_ids"], "Fedora-1-1 Fedora-2-2",
+                data["parent_pungi_compose_ids"],
+                "Fedora-1-1 Fedora-2-2",
             )
 
     def test_query_compose(self):
