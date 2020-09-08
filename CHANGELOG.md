@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.50
+  - Release date: 2020-09-08
+  - Bug fixes for the client code
+  - Allow CTS url as an empty string (which disables the integration)
+  - Stop creating odcs-$id.repo files for raw config composes
+  - Don't remove compose if a latest- symlink points to it
+  - Allow module composes with scratch module builds only
+  - Add support for RPM scratch builds
+
 ## 0.2.49
   - Release date: 2020-08-18
   - Set expiration for `run_cleanup` task
