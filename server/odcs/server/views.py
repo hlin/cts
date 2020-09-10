@@ -44,6 +44,7 @@ from odcs.server.api_utils import (
     filter_composes,
     validate_json_data,
     raise_if_input_not_allowed,
+    cors_header,
 )
 from odcs.server.auth import requires_role, login_required, has_role
 from odcs.server.auth import require_scopes
@@ -104,6 +105,7 @@ class ODCSAPI(MethodView):
         else:
             return conf.seconds_to_live
 
+    @cors_header()
     def get(self, id):
         """Returns ODCS composes.
 
@@ -592,6 +594,7 @@ class ODCSAPI(MethodView):
 
 
 class AboutAPI(MethodView):
+    @cors_header()
     def get(self):
         """Returns information about this ODCS instance in JSON format.
 
@@ -632,6 +635,7 @@ class Index(View):
 
 
 class MetricsAPI(MethodView):
+    @cors_header()
     def get(self):
         """
         Returns the Prometheus metrics.

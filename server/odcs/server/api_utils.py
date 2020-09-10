@@ -22,7 +22,8 @@
 import copy
 import six
 import flask
-from flask import request, url_for
+from flask import request, url_for, Response
+from functools import wraps
 from odcs.server.models import Compose
 from odcs.server import conf
 from odcs.server.errors import Forbidden
@@ -357,3 +358,30 @@ def filter_composes(flask_request):
     page = flask_request.args.get("page", 1, type=int)
     per_page = flask_request.args.get("per_page", 10, type=int)
     return query.paginate(page, per_page, False)
+
+
+def cors_header(allow="*"):
+    """
+    A decorator that sets the Access-Control-Allow-Origin header to
+    the desired value on a Flask route.
+    :param allow: a string of the domain to allow. This defaults to '*'.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            rv = func(*args, **kwargs)
+            if rv:
+                # If a tuple was provided, then the Flask Response should be the first object
+                if isinstance(rv, tuple):
+                    response = rv[0]
+                else:
+                    response = rv
+                # Make sure we are dealing with a Flask Response object
+                if isinstance(response, Response):
+                    response.headers.add("Access-Control-Allow-Origin", allow)
+            return rv
+
+        return wrapper
+
+    return decorator

@@ -1361,6 +1361,7 @@ class TestViews(ViewBaseTest):
         self.assertEqual(data["id"], 1)
         self.assertEqual(data["source"], "testmodule:master")
         self.assertEqual(data["pungi_config_dump"], None)
+        self.assertEqual(resp.headers["Access-Control-Allow-Origin"], "*")
 
     def test_query_composes(self):
         resp = self.client.get("/api/1/composes/")
