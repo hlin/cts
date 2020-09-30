@@ -490,6 +490,7 @@ class Pungi(object):
             "ci": "--ci",
             "nightly": "--nightly",
             "production": "--production",
+            "development": "--development",
         }
         compose_type = compose.compose_type or "test"
 

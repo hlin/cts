@@ -1000,7 +1000,7 @@ def generate_pungi_compose(compose):
     # Generate symlinks pointing to latest build of raw_config compose.
     if compose.source_type == PungiSourceType.RAW_CONFIG:
         generate_compose_symlink(compose)
-        if compose.compose_type == "production":
+        if compose.compose_type in ["production", "development"]:
             pungi_logs = PungiLogs(compose)
             config_dump = pungi_logs.get_config_dump()
             if not config_dump:
