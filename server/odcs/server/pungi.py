@@ -355,7 +355,8 @@ class PungiConfig(BasePungiConfig):
             tmp_variant.add_arch(comps.Arch(arch))
         if self.source_type == PungiSourceType.MODULE:
             for module in self.source.split(" "):
-                tmp_variant.add_module(comps.Module(module))
+                if module:
+                    tmp_variant.add_module(comps.Module(module))
         elif self.source_type == PungiSourceType.KOJI_TAG:
             if self.packages:
                 tmp_variant.add_group(

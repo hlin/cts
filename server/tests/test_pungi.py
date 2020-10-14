@@ -78,6 +78,20 @@ class TestPungiConfig(unittest.TestCase):
             },
         )
 
+    def test_pungi_config_module_empty_source(self):
+        pungi_cfg = PungiConfig(
+            "MBS-512",
+            "1",
+            PungiSourceType.MODULE,
+            "",
+        )
+        cfg = pungi_cfg.get_pungi_config()
+        variants = pungi_cfg.get_variants_config()
+        comps = pungi_cfg.get_comps_config()
+        # No "module" in variants case the source is empty.
+        self.assertTrue(variants.find("<module>") == -1)
+        self.assertEqual(comps, "")
+
     def test_pungi_config_tag(self):
         pungi_cfg = PungiConfig(
             "MBS-512",

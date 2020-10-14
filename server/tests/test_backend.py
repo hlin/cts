@@ -98,6 +98,24 @@ class TestBackend(ModelsBaseTest):
         )
 
     @mock_mbs()
+    def test_resolve_compose_module_empty_source(self):
+        c = Compose.create(
+            db.session,
+            "me",
+            PungiSourceType.MODULE,
+            "",
+            COMPOSE_RESULTS["repository"],
+            3600,
+        )
+        db.session.commit()
+
+        resolve_compose(c)
+        db.session.commit()
+
+        c = db.session.query(Compose).filter(Compose.id == 1).one()
+        self.assertEqual(c.source, "")
+
+    @mock_mbs()
     def test_resolve_compose_module_include_done_modules(self):
         c = Compose.create(
             db.session,

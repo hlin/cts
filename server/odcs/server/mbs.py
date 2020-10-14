@@ -57,6 +57,10 @@ class MBS(object):
         :raises ModuleLookupError: if the module couldn't be found
         :return: the latest version of the module.
         """
+        if not nsvc:
+            # Return an empty list of no NSVC is defined.
+            return []
+
         params = {
             "nsvc": nsvc,
             "state": [3, 5] if include_done else [5],  # 5 is "ready", 3 is "done".

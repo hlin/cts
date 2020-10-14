@@ -120,12 +120,18 @@ def mock_mbs(mdversion=2):
             def handle_module_builds(request):
                 query = parse_qs(urlparse(request.url).query)
                 states = [int(s) for s in query["state"]]
-                nsvc = query["nsvc"][0]
-                nsvc_parts = nsvc.split(":")
-                nsvc_keys = ["name", "stream", "version", "context"]
-                nsvc_dict = {}
-                for key, part in zip(nsvc_keys, nsvc_parts):
-                    nsvc_dict[key] = part
+                if "nsvc" in query:
+                    nsvc = query["nsvc"][0]
+                    nsvc_parts = nsvc.split(":")
+                    nsvc_keys = ["name", "stream", "version", "context"]
+                    nsvc_dict = {}
+                    for key, part in zip(nsvc_keys, nsvc_parts):
+                        nsvc_dict[key] = part
+                else:
+                    # Empty keys and dict in case nsvc is not specitified.
+                    # This means no filtering based on the nsvc will be done.
+                    nsvc_keys = []
+                    nsvc_dict = {}
 
                 if mdversion == 1:
                     modules = TEST_MBS_MODULES_MMDv1
