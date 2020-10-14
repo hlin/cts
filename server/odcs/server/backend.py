@@ -220,7 +220,10 @@ class RemoveExpiredComposesThread(BackendThread):
 
             # Do not remove the latest successfull compose.
             if get_latest_symlink(compose):
-                log.info("%r: Not removing compose, the latest-* symlink points to it.", compose)
+                log.info(
+                    "%r: Not removing compose, the latest-* symlink points to it.",
+                    compose,
+                )
                 continue
 
             log.info("%r: Removing compose", compose)
