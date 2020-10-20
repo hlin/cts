@@ -251,6 +251,7 @@ class PungiConfig(BasePungiConfig):
         self.scratch_build_tasks = (
             scratch_build_tasks.split(" ") if scratch_build_tasks else []
         )
+        self.pkgset_allow_reuse = True
 
         # Store results as list of strings, so it can be used by jinja2
         # templates.

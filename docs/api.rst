@@ -73,6 +73,7 @@ The fields used in the ODCS compose JSON have following meaning:
     - *ignore_absent_pulp_repos* - Ignore non-existing content sets in the source of Pulp compose. The source field on the compose will be updated to match what was actually used in the compose.
     - *check_deps* - Compose will fail if the RPM-level dependencies between packages in the compose are not satisfied.
     - *include_done_modules* - Compose can include also modules which are in the ``done`` state. By default, only modules in ``ready`` state are allowed to be included in a composes.
+    - *no_reuse* - Compose will be generated directly instead of trying to reuse old one.
 
 .. _koji_event:
 

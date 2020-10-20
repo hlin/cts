@@ -105,6 +105,8 @@ COMPOSE_FLAGS = {
     # For "pulp" source_type, ignore any repos do not exist in the remote Pulp
     # instance.
     "ignore_absent_pulp_repos": 32,
+    # Do not reuse old composes.
+    "no_reuse": 64,
 }
 
 INVERSE_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}

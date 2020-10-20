@@ -472,6 +472,9 @@ def get_reusable_compose(compose):
     :param models.Compose compose: Instance of models.Compose.
     """
 
+    if compose.flags & COMPOSE_FLAGS["no_reuse"]:
+        return None
+
     # RAW_CONFIG composes cannot reuse other composes, we cannot track input
     # for them.
     if compose.source_type == PungiSourceType.RAW_CONFIG:
@@ -972,13 +975,15 @@ def generate_pungi_compose(compose):
                 pungi_cfg.gather_method = "nodeps"
             if compose.flags & COMPOSE_FLAGS["no_inheritance"]:
                 pungi_cfg.pkgset_koji_inherit = False
+            if compose.flags & COMPOSE_FLAGS["no_reuse"]:
+                pungi_cfg.pkgset_allow_reuse = False
 
         koji_event = None
         if compose.source_type == PungiSourceType.KOJI_TAG:
             koji_event = compose.koji_event
 
         old_compose = None
-        if koji_tag_cache.is_cached(compose):
+        if pungi_cfg.pkgset_allow_reuse and koji_tag_cache.is_cached(compose):
             koji_tag_cache.reuse_cached(compose)
             old_compose = koji_tag_cache.cache_dir
 
