@@ -1338,6 +1338,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
     def test_generate_pungi_compose_raw_config(
         self, write_repo_file, config_dump, unlink, symlink, makedirs
     ):
+        self.is_cached.return_value = False
         config_dump.return_value = "fake\npungi\nconf\n"
         c = Compose.create(
             db.session,

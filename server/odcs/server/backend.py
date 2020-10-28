@@ -983,7 +983,7 @@ def generate_pungi_compose(compose):
             koji_event = compose.koji_event
 
         old_compose = None
-        if pungi_cfg.pkgset_allow_reuse and koji_tag_cache.is_cached(compose):
+        if koji_tag_cache.is_cached(compose) and pungi_cfg.pkgset_allow_reuse:
             koji_tag_cache.reuse_cached(compose)
             old_compose = koji_tag_cache.cache_dir
 
