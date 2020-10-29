@@ -85,7 +85,6 @@ class TestPungiConfig(unittest.TestCase):
             PungiSourceType.MODULE,
             "",
         )
-        cfg = pungi_cfg.get_pungi_config()
         variants = pungi_cfg.get_variants_config()
         comps = pungi_cfg.get_comps_config()
         # No "module" in variants case the source is empty.
