@@ -8,6 +8,7 @@ import os
 import stat
 import errno
 
+from kobo.shortcuts import run
 from productmd.composeinfo import ComposeInfo
 from productmd.rpms import Rpms
 
@@ -190,12 +191,33 @@ class ComposePromotion(object):
                 else:
                     raise
 
+    def _run_hardlink(self, target):
+        """Run hardlink on the final destination to save more space.
+
+        This should help with images that are generated in work/ and hardlinked
+        to compose/ during compose process.
+
+        :param str target: the final destination of promoted compose.
+        """
+        # Make sure hardlink command is available and -x option is supported
+        # (the default hardlink command in RHEL7 does not support -x option).
+        hardlink = "/usr/sbin/hardlink"
+        if not os.path.isfile(hardlink):
+            return
+        _, output = run([hardlink, "-h"], can_fail=True)
+        if "-x" not in str(output):
+            return
+
+        cmd = [hardlink, "-c", "-vv", "-x", "^Packages$", target]
+        run(cmd, stdout=True, show_cmd=True)
+
     def promote(self):
         """
         Promotes the compose.
         """
         shutil.copytree(args.compose, args.target, ignore=self._copytree_ignore)
         self._replace_symlinks_with_hardlinks()
+        self._run_hardlink(args.target)
 
 
 if __name__ == "__main__":
