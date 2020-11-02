@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.51
+  - Release date: 2020-11-02
+  - Add no_reuse flag to disable reuse
+  - Do not use latest MBS module if compose.source is not defined
+  - Support 'development' compose_type
+  - Set Access-Control-Allow-Origin header to allow CORS for GET requests
+
 ## 0.2.50
   - Release date: 2020-09-08
   - Bug fixes for the client code
