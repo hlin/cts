@@ -159,7 +159,7 @@ class RawPungiConfig(BasePungiConfig):
 
                 # Load the raw_config_wrapper and update pungi_config_dump.
                 raw_config_wrapper = PyConfigParser()
-                raw_config_wrapper.load_from_file(main_cfg_path)
+                raw_config_wrapper.load_from_file(os.path.join(topdir, "pungi.conf"))
                 pungi_config_dump.update(raw_config_wrapper)
 
             # Create the pungi.json

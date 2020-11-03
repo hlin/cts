@@ -923,6 +923,8 @@ class TestRawPungiConfig(ModelsBaseTest):
                     pungi_conf = json.load(fd)
                 for key in config.keys():
                     self.assertEqual(pungi_conf[key], config[key])
+                # Test that raw_config_wrapper really updated the pungi config.
+                self.assertEqual(pungi_conf["koji_profile"], "odcs_stg")
             finally:
                 shutil.rmtree(td)
 
