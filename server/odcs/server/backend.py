@@ -1178,6 +1178,17 @@ class ComposerThread(BackendThread):
         )
 
         for compose in composes:
+            # RawConfig composes can have custom pungi_timeout. Filter them
+            # out here in case they are not `generating` for longer than their
+            # overriden pungi_timeout.
+            if compose.source_type == PungiSourceType.RAW_CONFIG:
+                # Get the pungi_timeout from RawPungiConfig.
+                pungi_cfg = RawPungiConfig(compose)
+                too_old_datetime = now - timedelta(seconds=pungi_cfg.pungi_timeout * 2)
+                max_wait_seconds = timedelta(seconds=pungi_cfg.pungi_timeout * 2)
+                if compose.time_started + max_wait_seconds > now:
+                    continue
+
             compose.transition(
                 COMPOSE_STATES["failed"],
                 "Compose stuck in 'generating' state for longer than %d "

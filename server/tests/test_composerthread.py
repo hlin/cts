@@ -508,3 +508,46 @@ class TestComposerThreadStuckWaitComposes(ModelsBaseTest):
 
         self.assertEqual(compose_to_fail.state, COMPOSE_STATES["failed"])
         self.assertEqual(compose_to_keep.state, COMPOSE_STATES["generating"])
+
+    @patch.object(
+        odcs.server.config.Config,
+        "raw_config_urls",
+        new={
+            "pungi_cfg": {
+                "url": "git://localhost/test.git",
+                "config_filename": "pungi.conf",
+                "pungi_timeout": 14440,
+            }
+        },
+    )
+    def test_fail_lost_generating_composes_raw_config(self):
+        t = datetime.utcnow() - timedelta(seconds=2 * 14440)
+
+        time_submitted = t + timedelta(minutes=6)
+        time_started = t + timedelta(minutes=5)
+        compose_to_keep = self._add_test_compose(
+            COMPOSE_STATES["generating"],
+            time_submitted=time_submitted,
+            time_started=time_started,
+        )
+        compose_to_keep.source = "pungi_cfg#hash"
+        compose_to_keep.source_type = PungiSourceType.RAW_CONFIG
+        db.session.commit()
+
+        time_submitted = t - timedelta(minutes=6)
+        time_started = t - timedelta(minutes=5)
+        compose_to_fail = self._add_test_compose(
+            COMPOSE_STATES["generating"],
+            time_submitted=time_submitted,
+            time_started=time_started,
+        )
+        compose_to_fail.source = "pungi_cfg#hash"
+        compose_to_fail.source_type = PungiSourceType.RAW_CONFIG
+        db.session.commit()
+
+        self.composer.fail_lost_generating_composes()
+        db.session.commit()
+        db.session.expire_all()
+
+        self.assertEqual(compose_to_fail.state, COMPOSE_STATES["failed"])
+        self.assertEqual(compose_to_keep.state, COMPOSE_STATES["generating"])
