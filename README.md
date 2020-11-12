@@ -267,6 +267,13 @@ $ ./create_sqlite_db
 $ ./start_odcs_from_here
 ```
 
+Before executing the command `start_odcs_from_here`, a messaging broker supporting AMQP protocol is required to run locally as well in order to run asynchronous tasks to generate composes. Here is an example to run a RabbitMQ broker:
+
+```
+sudo dnf install -y rabbitmq-server
+sudo systemctl start rabbitmq-server
+```
+
 Add the `repo` source type to the server configuration in `./server/odcs/server/config.py`. (This will cause some tests to fail, so it needs to be reverted back after you are done with your changes!)
 
 And in another terminal, submit a request to frontend:
