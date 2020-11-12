@@ -267,7 +267,7 @@ class ODCSAPI(MethodView):
         :jsonparam list flags: List of :ref:`compose flags<flags>` defined as strings.
         :jsonparam list arches: List of :ref:`arches<arches>` the compose should be generated for.
         :jsonparam list multilib_arches: List of :ref:`multilib arches<multilib_arches>`.
-        :jsonparam string multilib_method: List defining the :ref:`multilib method<multilib_method>`.
+        :jsonparam list multilib_method: List defining the :ref:`multilib method<multilib_method>`.
         :jsonparam list lookaside_repos: List of :ref:`lookaside_repos<lookaside_repos>`.
         :jsonparam string label: String defining the :ref:`label<label>`.
         :jsonparam string compose_type: String defining the :ref:`compose_type<compose_type>`.
@@ -281,7 +281,7 @@ class ODCSAPI(MethodView):
         :jsonparam list source["packages"]: List defining the :ref:`packages<packages>`.
         :jsonparam list source["builds"]: List defining the :ref:`builds<builds>`.
         :jsonparam list source["sigkeys"]: List defining the :ref:`sigkeys<sigkeys>`.
-        :jsonparam list source["koji_event"]: Number defining the :ref:`koji_event<koji_event>`.
+        :jsonparam number source["koji_event"]: Number defining the :ref:`koji_event<koji_event>`.
         :jsonparam list source["modular_koji_tags"]: List defining the :ref:`modular_koji_tags<modular_koji_tags>`.
         :jsonparam list source["scratch_modules"]: List defining the :ref:`scratch_modules<scratch_modules>`.
         :jsonparam list source["scratch_build_tasks"]: List defining the :ref:`scratch_build_tasks<scratch_build_tasks>`.
@@ -387,6 +387,8 @@ class ODCSAPI(MethodView):
 
         builds = None
         if "builds" in source_data:
+            if not isinstance(source_data["builds"], list):
+                raise ValueError("builds should be a list")
             builds = " ".join(source_data["builds"])
 
         sigkeys = ""

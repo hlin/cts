@@ -97,6 +97,24 @@ class TestValidateJSONData(unittest.TestCase):
         data = {"packages": ["gcc-g++"]}
         validate_json_data(data)
 
+    def test_validate_json_data_not_list(self):
+        data = {"source": {"builds": "kernel-4.0-1.el8"}}
+        with self.assertRaises(ValueError) as ctx:
+            validate_json_data(data)
+        self.assertEqual("builds should be a list", str(ctx.exception))
+
+    def test_validate_json_data_not_str(self):
+        data = {"source": {"compose_type": 123}}
+        with self.assertRaises(ValueError) as ctx:
+            validate_json_data(data)
+        self.assertEqual("compose_type should be a string", str(ctx.exception))
+
+    def test_validate_json_data_not_int(self):
+        data = {"source": {"koji_event": "abc"}}
+        with self.assertRaises(ValueError) as ctx:
+            validate_json_data(data)
+        self.assertEqual("koji_event should be an integer", str(ctx.exception))
+
 
 class ViewBaseTest(ModelsBaseTest):
     def setUp(self):
@@ -1907,9 +1925,7 @@ class TestExtendExpiration(ViewBaseTest):
 
             self.assertEqual(400, data["status"])
             self.assertEqual("Bad Request", data["error"])
-            self.assertIn(
-                "Invalid seconds_to_live specified in request", data["message"]
-            )
+            self.assertIn("seconds_to_live should be an integer", data["message"])
 
     @patch.object(conf, "auth_backend", new="noauth")
     def test_bad_request_if_request_data_is_not_json(self):

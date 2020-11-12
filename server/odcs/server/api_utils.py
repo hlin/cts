@@ -187,6 +187,30 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
     else:
         iterator = enumerate(dict_or_list)
     for k, v in iterator:
+        list_expected = [
+            "builds",
+            "multilib_method",
+            "packages",
+            "scratch_build_tasks",
+            "scratch_modules",
+            "sigkeys",
+        ]
+        if k in list_expected and not isinstance(v, list):
+            raise ValueError("%s should be a list" % k)
+
+        str_expected = [
+            "compose_type",
+            "label",
+            "target_dir",
+            "type",
+        ]
+        if k in str_expected and not isinstance(v, six.string_types):
+            raise ValueError("%s should be a string" % k)
+
+        int_expected = ["seconds_to_live", "koji_event"]
+        if k in int_expected and not isinstance(v, int):
+            raise ValueError("%s should be an integer" % k)
+
         if isinstance(v, dict):
             # Allow only dict with "source" key name in first level of
             # json object.
