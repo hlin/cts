@@ -92,6 +92,7 @@ class TestModels(ModelsBaseTest):
             "target_dir": "default",
             "toplevel_url": "http://localhost/odcs/odcs-1",
             "scratch_modules": None,
+            "modules": None,
             "parent_pungi_compose_ids": None,
             "scratch_build_tasks": None,
         }

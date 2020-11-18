@@ -380,6 +380,7 @@ class TestViews(ViewBaseTest):
             "pungi_compose_id": None,
             "target_dir": "default",
             "scratch_modules": None,
+            "modules": None,
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
             "parent_pungi_compose_ids": None,
             "scratch_build_tasks": None,
@@ -1324,6 +1325,37 @@ class TestViews(ViewBaseTest):
                 "foo:bar:20200806:abcdefgh fooo:bar:20200810:abcdefgh",
             )
 
+    def test_submit_build_modules(self):
+        with self.test_request_context(user="dev"):
+            flask.g.oidc_scopes = [
+                "{0}{1}".format(conf.oidc_base_namespace, "new-compose")
+            ]
+
+            rv = self.client.post(
+                "/api/1/composes/",
+                data=json.dumps(
+                    {
+                        "source": {
+                            "type": "module",
+                            "source": "testmodule:master",
+                            "modules": [
+                                "foo:bar:20200806:abcdefgh",
+                                "fooo:bar:20200810:abcdefgh",
+                            ],
+                        }
+                    }
+                ),
+            )
+            data = json.loads(rv.get_data(as_text=True))
+            self.assertEqual(
+                data["source"],
+                "testmodule:master",
+            )
+            self.assertEqual(
+                data["modules"],
+                "foo:bar:20200806:abcdefgh fooo:bar:20200810:abcdefgh",
+            )
+
     def test_submit_build_only_scratch_modules(self):
         with self.test_request_context(user="dev"):
             flask.g.oidc_scopes = [
@@ -1840,6 +1872,7 @@ class TestViews(ViewBaseTest):
             "pungi_compose_id": None,
             "target_dir": "default",
             "scratch_modules": None,
+            "modules": None,
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
             "parent_pungi_compose_ids": None,
             "scratch_build_tasks": None,

@@ -194,6 +194,7 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
             "scratch_build_tasks",
             "scratch_modules",
             "sigkeys",
+            "modules",
         ]
         if k in list_expected and not isinstance(v, list):
             raise ValueError("%s should be a list" % k)

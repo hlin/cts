@@ -230,6 +230,7 @@ class PungiConfig(BasePungiConfig):
         module_defaults_url=None,
         scratch_modules=None,
         scratch_build_tasks=None,
+        modules=None,
     ):
         super(PungiConfig, self).__init__()
         self.release_name = release_name
@@ -248,6 +249,7 @@ class PungiConfig(BasePungiConfig):
         self.packages = packages or []
         self.builds = builds or []
         self.scratch_modules = scratch_modules.split(" ") if scratch_modules else []
+        self.modules = modules.split(" ") if modules else []
         self.scratch_build_tasks = (
             scratch_build_tasks.split(" ") if scratch_build_tasks else []
         )

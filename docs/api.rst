@@ -99,6 +99,11 @@ The fields used in the ODCS compose JSON have following meaning:
 *modular_koji_tags* - ``(white-space separated list of strings or null)``
     List of Koji tags with modules which should appear in the resulting compose.
 
+.. _modules:
+
+*modules* - ``(white-space separated list of strings)``
+    List of non-scratch module builds defined as N:S:V:C format which will be included in the compose.
+
 .. _multilib_arches:
 
 *multilib_arches* - ``(white-space separated list of strings)``

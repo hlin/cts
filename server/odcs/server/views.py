@@ -285,6 +285,7 @@ class ODCSAPI(MethodView):
         :jsonparam list source["modular_koji_tags"]: List defining the :ref:`modular_koji_tags<modular_koji_tags>`.
         :jsonparam list source["scratch_modules"]: List defining the :ref:`scratch_modules<scratch_modules>`.
         :jsonparam list source["scratch_build_tasks"]: List defining the :ref:`scratch_build_tasks<scratch_build_tasks>`.
+        :jsonparam list source["modules"]: List defining the :ref:`modules<modules>`.
 
         :statuscode 200: Compose request created and returned.
         :statuscode 401: Request not in valid format.
@@ -326,6 +327,10 @@ class ODCSAPI(MethodView):
         if "source" in source_data and source_data["source"] != "":
             # Use list(set()) here to remove duplicate sources.
             source = list(set(source_data["source"].split(" ")))
+
+        modules = None
+        if "modules" in source_data:
+            modules = " ".join(source_data["modules"])
 
         scratch_modules = None
         if "scratch_modules" in source_data:
@@ -510,6 +515,7 @@ class ODCSAPI(MethodView):
             scratch_modules=scratch_modules,
             parent_pungi_compose_ids=parent_pungi_compose_ids,
             scratch_build_tasks=scratch_build_tasks,
+            modules=modules,
         )
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to

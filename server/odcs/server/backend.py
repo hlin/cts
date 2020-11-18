@@ -634,6 +634,14 @@ def get_reusable_compose(compose):
             )
             continue
 
+        modules = set(compose.modules.split(" ")) if compose.modules else set()
+        old_modules = (
+            set(old_compose.modules.split(" ")) if old_compose.modules else set()
+        )
+        if modules != old_modules:
+            log.debug("%r: Cannot reuse %r - modules not same", compose, old_compose)
+            continue
+
         scratch_build_tasks = (
             set(compose.scratch_build_tasks.split(" "))
             if compose.scratch_build_tasks
