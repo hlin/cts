@@ -1184,7 +1184,6 @@ class ComposerThread(BackendThread):
             if compose.source_type == PungiSourceType.RAW_CONFIG:
                 # Get the pungi_timeout from RawPungiConfig.
                 pungi_cfg = RawPungiConfig(compose)
-                too_old_datetime = now - timedelta(seconds=pungi_cfg.pungi_timeout * 2)
                 max_wait_seconds = timedelta(seconds=pungi_cfg.pungi_timeout * 2)
                 if compose.time_started + max_wait_seconds > now:
                     continue
