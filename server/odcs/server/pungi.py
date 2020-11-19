@@ -509,6 +509,8 @@ class Pungi(object):
         if compose.parent_pungi_compose_ids:
             for compose_id in compose.parent_pungi_compose_ids.split(" "):
                 pungi_cmd.append("--parent-compose-id=%s" % str(compose_id))
+        if compose.respin_of:
+            pungi_cmd.append("--respin-of=%s" % str(compose.respin_of))
 
         if self.koji_event:
             pungi_cmd += ["--koji-event", str(self.koji_event)]

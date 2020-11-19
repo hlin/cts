@@ -144,6 +144,11 @@ The fields used in the ODCS compose JSON have following meaning:
 *removed_by* - ``(string)``
     The name of user who removed (or cancelled) the compose manually.
 
+.. _respin_of:
+
+*respin_of* - ``(string)``
+    Pungi compose IDs of compose this compose respins.
+    
 .. _result_repo:
 
 *result_repo* - ``(string)``

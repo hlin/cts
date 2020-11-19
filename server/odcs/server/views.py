@@ -275,6 +275,8 @@ class ODCSAPI(MethodView):
         :jsonparam list parent_pungi_compose_ids: Pungi compose IDs of parent composes associated
             with this compose. They will be stored with this compose in the Compose Tracking
             Service.
+        :jsonparam string respin_of: Pungi compose ID of compose this compose respins.
+            It will be stored with this compose in the Compose Tracking Service.
         :jsonparam object source: The JSON object defining the source of compose.
         :jsonparam string source["type"]: String defining the :ref:`source type<source_type>`.
         :jsonparam string source["source"]: String defining the :ref:`source<source>`.
@@ -436,6 +438,8 @@ class ODCSAPI(MethodView):
         if "parent_pungi_compose_ids" in data:
             parent_pungi_compose_ids = " ".join(data["parent_pungi_compose_ids"])
 
+        respin_of = data.get("respin_of", None)
+
         multilib_method = MULTILIB_METHODS["none"]
         if "multilib_method" in data:
             for name in data["multilib_method"]:
@@ -516,6 +520,7 @@ class ODCSAPI(MethodView):
             parent_pungi_compose_ids=parent_pungi_compose_ids,
             scratch_build_tasks=scratch_build_tasks,
             modules=modules,
+            respin_of=respin_of,
         )
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to

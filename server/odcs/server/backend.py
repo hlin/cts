@@ -678,6 +678,14 @@ def get_reusable_compose(compose):
             )
             continue
 
+        if compose.respin_of != old_compose.respin_of:
+            log.debug(
+                "%r: Cannot reuse %r - respin_of not same",
+                compose,
+                old_compose,
+            )
+            continue
+
         target_dir = compose.target_dir
         old_target_dir = old_compose.target_dir
         if target_dir != old_target_dir:

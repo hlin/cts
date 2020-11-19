@@ -443,6 +443,7 @@ class TestPungi(ModelsBaseTest):
         self.compose.compose_type = "test"
         self.compose.label = None
         self.compose.pungi_config_dump = None
+        self.compose.respin_of = None
 
         makedirs(self.compose.toplevel_dir)
 
@@ -507,6 +508,36 @@ class TestPungi(ModelsBaseTest):
                 "--test",
                 "--parent-compose-id=Fedora-1-1",
                 "--parent-compose-id=Fedora-2-2",
+            ],
+            cwd=AnyStringWith("/tmp/"),
+            timeout=3600,
+            stderr=AnyStringWith("pungi-stderr.log"),
+            stdout=AnyStringWith("pungi-stdout.log"),
+        )
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_pungi_run_respin_of(self, execute_cmd):
+        self.compose.respin_of = "Fedora-1-1"
+        pungi_cfg = PungiConfig(
+            "MBS-512", "1", PungiSourceType.MODULE, "testmodule:master:1:1"
+        )
+        pungi = Pungi(1, pungi_cfg)
+        pungi.run(self.compose)
+
+        self.makedirs.assert_called_with(AnyStringWith("test_composes/odcs-1/"))
+        self.makedirs.assert_called_with(AnyStringWith("work/global"))
+        self.ci_dump.assert_called_once_with(
+            AnyStringWith("work/global/composeinfo-base.json")
+        )
+
+        execute_cmd.assert_called_once_with(
+            [
+                "pungi-koji",
+                AnyStringWith("pungi.json"),
+                "--no-latest-link",
+                AnyStringWith("--compose-dir="),
+                "--test",
+                "--respin-of=Fedora-1-1",
             ],
             cwd=AnyStringWith("/tmp/"),
             timeout=3600,

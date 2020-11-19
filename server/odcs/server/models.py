@@ -172,6 +172,8 @@ class Compose(ODCSBase):
     parent_pungi_compose_ids = db.Column(db.String, nullable=True)
     # White-space separate list of non-scratch modules (N:S:V:C) to include in a compose.
     modules = db.Column(db.String, nullable=True)
+    # Pungi Compose ID of compose this compose respins.
+    respin_of = db.Column(db.String, nullable=True)
 
     @property
     def on_default_target_dir(self):
@@ -221,6 +223,7 @@ class Compose(ODCSBase):
         parent_pungi_compose_ids=None,
         scratch_build_tasks=None,
         modules=None,
+        respin_of=None,
     ):
         now = datetime.utcnow()
         compose = cls(
@@ -249,6 +252,7 @@ class Compose(ODCSBase):
             parent_pungi_compose_ids=parent_pungi_compose_ids,
             scratch_build_tasks=scratch_build_tasks,
             modules=modules,
+            respin_of=respin_of,
         )
         session.add(compose)
         return compose
@@ -298,6 +302,7 @@ class Compose(ODCSBase):
             parent_pungi_compose_ids=compose.parent_pungi_compose_ids,
             scratch_build_tasks=compose.scratch_build_tasks,
             modules=compose.modules,
+            respin_of=compose.respin_of,
         )
         session.add(compose)
         return compose
@@ -436,6 +441,7 @@ class Compose(ODCSBase):
             "parent_pungi_compose_ids": self.parent_pungi_compose_ids,
             "scratch_build_tasks": self.scratch_build_tasks,
             "modules": self.modules,
+            "respin_of": self.respin_of,
         }
 
         if full:

@@ -384,6 +384,7 @@ class TestViews(ViewBaseTest):
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
             "parent_pungi_compose_ids": None,
             "scratch_build_tasks": None,
+            "respin_of": None,
         }
         self.assertEqual(data, expected_json)
 
@@ -1405,6 +1406,27 @@ class TestViews(ViewBaseTest):
                 "Fedora-1-1 Fedora-2-2",
             )
 
+    def test_submit_build_respin_of(self):
+        with self.test_request_context(user="dev"):
+            flask.g.oidc_scopes = [
+                "{0}{1}".format(conf.oidc_base_namespace, "new-compose")
+            ]
+
+            rv = self.client.post(
+                "/api/1/composes/",
+                data=json.dumps(
+                    {
+                        "respin_of": "Fedora-1-1",
+                        "source": {"type": "module", "source": "testmodule:master"},
+                    }
+                ),
+            )
+            data = json.loads(rv.get_data(as_text=True))
+            self.assertEqual(
+                data["respin_of"],
+                "Fedora-1-1",
+            )
+
     def test_query_compose(self):
         resp = self.client.get("/api/1/composes/1")
         data = json.loads(resp.get_data(as_text=True))
@@ -1876,6 +1898,7 @@ class TestViews(ViewBaseTest):
             "toplevel_url": "http://localhost/odcs/odcs-%d" % data["id"],
             "parent_pungi_compose_ids": None,
             "scratch_build_tasks": None,
+            "respin_of": None,
         }
         self.assertEqual(data, expected_json)
 
