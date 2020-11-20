@@ -463,6 +463,26 @@ def resolve_compose(compose):
         compose.packages = " ".join(packages)
 
 
+def _raise_if_compose_attr_different(c1, c2, attr_name, string_list=False):
+    """
+    Helper function for `get_reusable_compose` which compares the value of
+    attribute `attr_name` of composes `c1` and `c2` and raises ValueError
+    exception if they are not the same.
+
+    if `string_list` is True, the value is treated as white-space separated
+    list stored in string.
+    """
+    c1_value = getattr(c1, attr_name)
+    c2_value = getattr(c2, attr_name)
+
+    if string_list:
+        c1_value = set(c1_value.split(" ")) if c1_value else set()
+        c2_value = set(c2_value.split(" ")) if c2_value else set()
+
+    if c1_value != c2_value:
+        raise ValueError("%s not same (%r != %r)" % (attr_name, c1_value, c2_value))
+
+
 def get_reusable_compose(compose):
     """
     Returns the compose in the "done" state which contains the same artifacts
@@ -498,198 +518,35 @@ def get_reusable_compose(compose):
         if old_compose.reused_id:
             continue
 
-        packages = set(compose.packages.split(" ")) if compose.packages else set()
-        old_packages = (
-            set(old_compose.packages.split(" ")) if old_compose.packages else set()
-        )
-        if packages != old_packages:
-            log.debug("%r: Cannot reuse %r - packages not same", compose, old_compose)
-            continue
-
-        builds = set(compose.builds.split(" ")) if compose.builds else set()
-        old_builds = set(old_compose.builds.split(" ")) if old_compose.builds else set()
-        if builds != old_builds:
-            log.debug("%r: Cannot reuse %r - builds not same", compose, old_compose)
-            continue
-
-        source = set(compose.source.split(" "))
-        old_source = set(old_compose.source.split(" "))
-        if source != old_source:
-            log.debug("%r: Cannot reuse %r - sources not same", compose, old_compose)
-            continue
-
-        if compose.flags != old_compose.flags:
-            log.debug(
-                "%r: Cannot reuse %r - flags not same, %d != %d",
-                compose,
-                old_compose,
-                compose.flags,
-                old_compose.flags,
-            )
-            continue
-
-        if compose.results != old_compose.results:
-            log.debug(
-                "%r: Cannot reuse %r - results not same, %d != %d",
-                compose,
-                old_compose,
-                compose.results,
-                old_compose.results,
-            )
-            continue
-
-        sigkeys = set(compose.sigkeys.split(" ")) if compose.sigkeys else set()
-        old_sigkeys = (
-            set(old_compose.sigkeys.split(" ")) if old_compose.sigkeys else set()
-        )
-        if sigkeys != old_sigkeys:
-            log.debug("%r: Cannot reuse %r - sigkeys not same", compose, old_compose)
-            continue
-
-        arches = set(compose.arches.split(" ")) if compose.arches else set()
-        old_arches = set(old_compose.arches.split(" ")) if old_compose.arches else set()
-        if arches != old_arches:
-            log.debug("%r: Cannot reuse %r - arches not same", compose, old_compose)
-            continue
-
-        lookaside_repos = (
-            set(compose.lookaside_repos.split(" "))
-            if compose.lookaside_repos
-            else set()
-        )
-        old_lookaside_repos = (
-            set(old_compose.lookaside_repos.split(" "))
-            if old_compose.lookaside_repos
-            else set()
-        )
-        if lookaside_repos != old_lookaside_repos:
-            log.debug(
-                "%r: Cannot reuse %r - lookaside_repos not same", compose, old_compose
-            )
-            continue
-
-        multilib_arches = (
-            set(compose.multilib_arches.split(" "))
-            if compose.multilib_arches
-            else set()
-        )
-        old_multilib_arches = (
-            set(old_compose.multilib_arches.split(" "))
-            if old_compose.multilib_arches
-            else set()
-        )
-        if multilib_arches != old_multilib_arches:
-            log.debug(
-                "%r: Cannot reuse %r - multilib_arches not same", compose, old_compose
-            )
-            continue
-
-        multilib_method = compose.multilib_method
-        old_multilib_method = old_compose.multilib_method
-        if multilib_method != old_multilib_method:
-            log.debug(
-                "%r: Cannot reuse %r - multilib_method not same", compose, old_compose
-            )
-            continue
-
-        modular_koji_tags = (
-            set(compose.modular_koji_tags.split(" "))
-            if compose.modular_koji_tags
-            else set()
-        )
-        old_modular_koji_tags = (
-            set(old_compose.modular_koji_tags.split(" "))
-            if old_compose.modular_koji_tags
-            else set()
-        )
-        if modular_koji_tags != old_modular_koji_tags:
-            log.debug(
-                "%r: Cannot reuse %r - modular_koji_tags not same", compose, old_compose
-            )
-            continue
-
-        module_defaults_url = compose.module_defaults_url
-        old_module_defaults_url = old_compose.module_defaults_url
-        if module_defaults_url != old_module_defaults_url:
-            log.debug(
-                "%r: Cannot reuse %r - module_defaults_url not same",
-                compose,
-                old_compose,
-            )
-            continue
-
-        scratch_modules = (
-            set(compose.scratch_modules.split(" "))
-            if compose.scratch_modules
-            else set()
-        )
-        old_scratch_modules = (
-            set(old_compose.scratch_modules.split(" "))
-            if old_compose.scratch_modules
-            else set()
-        )
-        if scratch_modules != old_scratch_modules:
-            log.debug(
-                "%r: Cannot reuse %r - scratch_modules not same", compose, old_compose
-            )
-            continue
-
-        modules = set(compose.modules.split(" ")) if compose.modules else set()
-        old_modules = (
-            set(old_compose.modules.split(" ")) if old_compose.modules else set()
-        )
-        if modules != old_modules:
-            log.debug("%r: Cannot reuse %r - modules not same", compose, old_compose)
-            continue
-
-        scratch_build_tasks = (
-            set(compose.scratch_build_tasks.split(" "))
-            if compose.scratch_build_tasks
-            else set()
-        )
-        old_scratch_build_tasks = (
-            set(old_compose.scratch_build_tasks.split(" "))
-            if old_compose.scratch_build_tasks
-            else set()
-        )
-        if scratch_build_tasks != old_scratch_build_tasks:
-            log.debug(
-                "%r: Cannot reuse %r - scratch_build_tasks not same",
-                compose,
-                old_compose,
-            )
-            continue
-
-        parent_pungi_compose_ids = (
-            set(compose.parent_pungi_compose_ids.split(" "))
-            if compose.parent_pungi_compose_ids
-            else set()
-        )
-        old_parent_pungi_compose_ids = (
-            set(old_compose.parent_pungi_compose_ids.split(" "))
-            if old_compose.parent_pungi_compose_ids
-            else set()
-        )
-        if parent_pungi_compose_ids != old_parent_pungi_compose_ids:
-            log.debug(
-                "%r: Cannot reuse %r - parent_pungi_compose_ids not same",
-                compose,
-                old_compose,
-            )
-            continue
-
-        if compose.respin_of != old_compose.respin_of:
-            log.debug(
-                "%r: Cannot reuse %r - respin_of not same",
-                compose,
-                old_compose,
-            )
-            continue
-
-        target_dir = compose.target_dir
-        old_target_dir = old_compose.target_dir
-        if target_dir != old_target_dir:
-            log.debug("%r: Cannot reuse %r - target_dir not same", compose, old_compose)
+        try:
+            string_list_attrs = [
+                "packages",
+                "builds",
+                "sigkeys",
+                "arches",
+                "lookaside_repos",
+                "multilib_arches",
+                "modular_koji_tags",
+                "scratch_modules",
+                "modules",
+                "scratch_build_tasks",
+                "parent_pungi_compose_ids",
+            ]
+            for attr in string_list_attrs:
+                _raise_if_compose_attr_different(compose, old_compose, attr, True)
+            attrs = [
+                "source",
+                "flags",
+                "results",
+                "module_defaults_url",
+                "respin_of",
+                "target_dir",
+                "multilib_method",
+            ]
+            for attr in attrs:
+                _raise_if_compose_attr_different(compose, old_compose, attr, False)
+        except ValueError as e:
+            log.debug("%r: Cannot reuse %r - %s", compose, old_compose, str(e))
             continue
 
         # In case of compose renewal, the compose.koji_event will be actually
