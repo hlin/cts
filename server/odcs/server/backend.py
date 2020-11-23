@@ -22,6 +22,9 @@
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
 import errno
+import itertools
+from textwrap import dedent
+
 import koji
 import os
 import threading
@@ -649,7 +652,7 @@ def generate_pulp_compose(compose):
     Generates the "compose" of PULP type - this basically means only
     repo file pointing to data in pulp.
     """
-    content_sets = compose.source.split(" ")
+    content_sources = compose.source.split(" ")
 
     pulp = Pulp(
         server_url=conf.pulp_server_url,
@@ -657,43 +660,60 @@ def generate_pulp_compose(compose):
         password=conf.pulp_password,
         compose=compose,
     )
+    include_unpublished_repos = (
+        compose.flags & COMPOSE_FLAGS["include_unpublished_pulp_repos"]
+    )
+
+    repos = pulp.get_repos_from_content_sets(content_sources, include_unpublished_repos)
+
+    found_repo_ids = set(item["id"] for item in itertools.chain(*list(repos.values())))
+    remaining_sources = set(content_sources) - set(repos.keys()) - set(found_repo_ids)
+
+    direct_repos = {}
+    if remaining_sources:
+        direct_repos = pulp.get_repos_by_id(
+            remaining_sources, include_unpublished_repos
+        )
+        remaining_sources -= set(direct_repos.keys())
+
+        if remaining_sources:
+            found_content_sets = sorted(set(content_sources) - remaining_sources)
+            err = "Failed to find all the source(s) %r in Pulp, found only %r" % (
+                content_sources,
+                found_content_sets,
+            )
+            ignore_absent_pulp_repos = (
+                compose.flags & COMPOSE_FLAGS["ignore_absent_pulp_repos"]
+            )
+            if ignore_absent_pulp_repos:
+                log.info(err)
+                # Update the source in the compose. This ensures the source matches
+                # what is actually in the compose. However it makes it invisible
+                # that user actually requested something else.
+                compose.source = " ".join(found_content_sets)
+            else:
+                log.error(err)
+                raise ValueError(err)
+
+    merged_repos = pulp.merge_repos_by_arch(repos)
+    merged_repos.update(direct_repos)
 
     repofile = ""
-    repos = pulp.get_repos_from_content_sets(
-        content_sets, compose.flags & COMPOSE_FLAGS["include_unpublished_pulp_repos"]
-    )
-    ignore_absent_pulp_repos = compose.flags & COMPOSE_FLAGS["ignore_absent_pulp_repos"]
-    if len(repos) != len(content_sets):
-        found_content_sets = repos.keys()
-        err = "Failed to find all the content_sets %r in Pulp, " "found only %r" % (
-            content_sets,
-            found_content_sets,
-        )
-        if ignore_absent_pulp_repos:
-            log.info(err)
-            # Update the source in the compose. This ensures the source matches
-            # what is actually in the compose. However it makes it invisible
-            # that user actually requested something else.
-            compose.source = " ".join(found_content_sets)
-        else:
-            log.error(err)
-            raise ValueError(err)
-
     arches = set()
     sigkeys = set()
-    for name in sorted(repos.keys()):
-        repo_data = repos[name]
+    for name in sorted(merged_repos.keys()):
+        repo_data = merged_repos[name]
         url = repo_data["url"]
-        r = """
-[%s]
-name=%s
-baseurl=%s
-enabled=1
-gpgcheck=0
-""" % (
-            name,
-            name,
-            url,
+        r = dedent(
+            """
+            [{0}]
+            name={0}
+            baseurl={1}
+            enabled=1
+            gpgcheck=0
+            """.format(
+                name, url
+            )
         )
         repofile += r
         arches = arches.union(repo_data["arches"])

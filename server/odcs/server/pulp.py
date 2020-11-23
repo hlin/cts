@@ -61,6 +61,21 @@ class Pulp(object):
         r.raise_for_status()
         return r.json()
 
+    @retry(wait_on=requests.exceptions.RequestException)
+    def _rest_get(self, endpoint):
+        try:
+            r = requests.get(
+                "{0}{1}".format(self.rest_api_root, endpoint),
+                auth=(self.username, self.password),
+                timeout=conf.net_timeout,
+            )
+        except requests.exceptions.RequestException as e:
+            msg = "Pulp connection has failed: {}".format(e.args)
+            raise requests.exceptions.RequestException(msg)
+
+        r.raise_for_status()
+        return r.json()
+
     def _try_arch_merge(self, content_set_repos):
         """
         Tries replacing arch string (e.g. "x86_64" or "ppc64le") in each "url"
@@ -142,6 +157,29 @@ class Pulp(object):
             "sigkeys": content_set_repos[0]["sigkeys"],
         }
 
+    def _make_repo_info(self, raw_repo):
+        """
+        Convert the raw repo info returned from Pulp to a simple repo object
+        for further handling
+
+        :param dict raw_repo: the repo info returned from Pulp API endpoint.
+        :return: a simple repo info used internally for further handling.
+        :rtype: dict
+        """
+        notes = raw_repo["notes"]
+        url = self.server_url.rstrip("/") + "/" + notes["relative_url"]
+        # OSBS cannot verify https during the container image build, so
+        # fallback to http for now.
+        if url.startswith("https://"):
+            url = "http://" + url[len("https://") :]
+        return {
+            "id": raw_repo["id"],
+            "url": url,
+            "arches": {notes["arch"]},
+            "sigkeys": sorted(notes["signatures"].split(",")),
+            "product_versions": notes["product_versions"],
+        }
+
     def get_repos_from_content_sets(
         self, content_sets, include_unpublished_repos=False
     ):
@@ -151,7 +189,8 @@ class Pulp(object):
         The key in the returned dict is the content_set name and the value
         is the URL to repository with RPMs.
 
-        :param list content_sets: Content sets to look for.
+        :param list[str] content_sets: Content sets to look for.
+        :param bool include_unpublished_repos: set True to include unpublished repositories.
         :rtype: dict
         :return: Dictionary in following format:
             {
@@ -166,7 +205,7 @@ class Pulp(object):
         query_data = {
             "criteria": {
                 "filters": {"notes.content_set": {"$in": content_sets}},
-                "fields": ["notes"],
+                "fields": ["notes", "id"],
             }
         }
 
@@ -178,27 +217,24 @@ class Pulp(object):
 
         per_content_set_repos = {}
         for repo in repos:
-            notes = repo["notes"]
-            url = "%s/%s" % (self.server_url.rstrip("/"), notes["relative_url"])
-            arch = notes["arch"]
-            sigkeys = sorted(notes["signatures"].split(","))
-            # OSBS cannot verify https during the container image build, so
-            # fallback to http for now.
-            if url.startswith("https://"):
-                url = "http://" + url[len("https://") :]
-            if notes["content_set"] not in per_content_set_repos:
-                per_content_set_repos[notes["content_set"]] = []
-            per_content_set_repos[notes["content_set"]].append(
-                {
-                    "url": url,
-                    "arches": set([arch]),
-                    "sigkeys": sigkeys,
-                    "product_versions": notes["product_versions"],
-                }
+            content_set = repo["notes"]["content_set"]
+            per_content_set_repos.setdefault(content_set, []).append(
+                self._make_repo_info(repo)
             )
+        return per_content_set_repos
 
+    def merge_repos_by_arch(self, repos):
+        """
+        Merge repositories by arch and the repo with highest version within
+        a content set will be selected.
+
+        :param repos: a mapping from a content set to its associated repositories.
+        :type repos: dict[str, list[dict]]
+        :return: a new mapping from a content set to the merged repository by arch.
+        :rtype: dict[str, dict]
+        """
         ret = {}
-        for cs, repos in per_content_set_repos.items():
+        for cs, repos in repos.items():
             can_sort = True
             version_len = None
             arches = None
@@ -256,3 +292,27 @@ class Pulp(object):
                 ret[cs] = repos[-1]
 
         return ret
+
+    def get_repos_by_id(self, repo_ids, include_unpublished_repos=False):
+        """Get repositories by id
+
+        :param iterable[str] repo_ids: list of repository ids.
+        :param bool include_unpublished_repos: whether the unpublished
+            repositories are included in the returned result.
+        """
+        repos = {}
+        for repo_id in repo_ids:
+            repo = self._rest_get("repositories/{}/".format(repo_id))
+            if "error" in repo:
+                log.warning(
+                    "Cannot find repository for id %s. Error message: %s",
+                    repo_id,
+                    repo["error_message"],
+                )
+                continue
+            if (
+                repo["notes"]["include_in_download_service"]
+                or include_unpublished_repos
+            ):
+                repos[repo_id] = self._make_repo_info(repo)
+        return repos

@@ -19,6 +19,7 @@
 # SOFTWARE.
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
+from textwrap import dedent
 
 import six
 import os
@@ -674,8 +675,18 @@ class TestBackend(ModelsBaseTest):
             self.assertEqual(reused_c, None)
 
     @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.pulp.Pulp._rest_get")
     @patch("odcs.server.backend._write_repo_file")
-    def test_generate_pulp_compose(self, _write_repo_file, pulp_rest_post):
+    def test_generate_pulp_compose(
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post
+    ):
+        """General case for generating a pulp compose
+
+        - Content sets foo-1, foo-2 and foo-3 must be included.
+        - Repo with id repo3 should not be included because content set foo-3 includes this repo.
+        - Repo with id repo4 and repo5 must be included.
+        - repo5 is included because flag include_unpublished_pulp_repos is set.
+        """
         pulp_rest_post.return_value = [
             {
                 "notes": {
@@ -685,6 +696,7 @@ class TestBackend(ModelsBaseTest):
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
                 },
+                "id": "repo1",
             },
             {
                 "notes": {
@@ -693,7 +705,8 @@ class TestBackend(ModelsBaseTest):
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
-                }
+                },
+                "id": "repo2",
             },
             {
                 "notes": {
@@ -702,17 +715,60 @@ class TestBackend(ModelsBaseTest):
                     "arch": "ppc64",
                     "signatures": "SIG1,SIG3",
                     "product_versions": "",
-                }
+                },
+                "id": "repo3",
             },
         ]
+
+        def _rest_get(endpoint):
+            if endpoint.endswith("repo4/"):
+                return {
+                    "notes": {
+                        "relative_url": "content/100/s390/os",
+                        "content_set": "foo-100",
+                        "arch": "s390",
+                        "signatures": "SIG2,SIG4",
+                        "product_versions": "",
+                        "include_in_download_service": True,
+                    },
+                    "id": "repo4",
+                }
+            elif endpoint.endswith("repo3/"):
+                return {
+                    "notes": {
+                        "relative_url": "content/3/ppc64/os",
+                        "content_set": "foo-3",
+                        "arch": "ppc64",
+                        "signatures": "SIG1,SIG3",
+                        "product_versions": "",
+                    },
+                    "id": "repo3",
+                }
+            elif endpoint.endswith("repo5/"):
+                return {
+                    "notes": {
+                        "relative_url": "content/101/x86_64/os",
+                        "content_set": "foo-100",
+                        "arch": "x86_64",
+                        "signatures": "SIG1,SIG2",
+                        "product_versions": "",
+                        "include_in_download_service": False,
+                    },
+                    "id": "repo5",
+                }
+
+        pulp_rest_get.side_effect = _rest_get
 
         c = Compose.create(
             db.session,
             "me",
             PungiSourceType.PULP,
-            "foo-1 foo-2 foo-3",
+            # repo3 is included in the content set foo-3
+            "foo-1 foo-2 repo4 foo-3 repo3 repo5",
             COMPOSE_RESULTS["repository"],
             3600,
+            # repo5 must be included due to this flag
+            flags=COMPOSE_FLAGS["include_unpublished_pulp_repos"],
         )
         with patch.object(
             odcs.server.backend.conf, "pulp_server_url", "https://localhost/"
@@ -721,42 +777,55 @@ class TestBackend(ModelsBaseTest):
 
         expected_query = {
             "criteria": {
-                "fields": ["notes"],
+                "fields": ["notes", "id"],
                 "filters": {
-                    "notes.content_set": {"$in": ["foo-1", "foo-2", "foo-3"]},
-                    "notes.include_in_download_service": "True",
+                    "notes.content_set": {
+                        "$in": ["foo-1", "foo-2", "repo4", "foo-3", "repo3", "repo5"]
+                    },
                 },
             }
         }
         pulp_rest_post.assert_called_once_with("repositories/search/", expected_query)
 
-        expected_repofile = """
-[foo-1]
-name=foo-1
-baseurl=http://localhost/content/1/x86_64/os
-enabled=1
-gpgcheck=0
+        expected_repofile = dedent(
+            """
+            [foo-1]
+            name=foo-1
+            baseurl=http://localhost/content/1/x86_64/os
+            enabled=1
+            gpgcheck=0
 
-[foo-2]
-name=foo-2
-baseurl=http://localhost/content/2/x86_64/os
-enabled=1
-gpgcheck=0
+            [foo-2]
+            name=foo-2
+            baseurl=http://localhost/content/2/x86_64/os
+            enabled=1
+            gpgcheck=0
 
-[foo-3]
-name=foo-3
-baseurl=http://localhost/content/3/ppc64/os
-enabled=1
-gpgcheck=0
-"""
+            [foo-3]
+            name=foo-3
+            baseurl=http://localhost/content/3/ppc64/os
+            enabled=1
+            gpgcheck=0
+
+            [repo4]
+            name=repo4
+            baseurl=http://localhost/content/100/s390/os
+            enabled=1
+            gpgcheck=0
+
+            [repo5]
+            name=repo5
+            baseurl=http://localhost/content/101/x86_64/os
+            enabled=1
+            gpgcheck=0
+            """
+        )
         _write_repo_file.assert_called_once_with(c, expected_repofile)
 
         self.assertEqual(c.state, COMPOSE_STATES["done"])
         self.assertEqual(c.state_reason, "Compose is generated successfully")
-        self.assertEqual(len(c.arches.split(" ")), 2)
-        self.assertEqual(set(c.arches.split(" ")), set(["x86_64", "ppc64"]))
-        self.assertEqual(len(c.sigkeys.split(" ")), 3)
-        self.assertEqual(set(c.sigkeys.split(" ")), set(["SIG1", "SIG2", "SIG3"]))
+        self.assertEqual(set(c.arches.split(" ")), {"x86_64", "ppc64", "s390"})
+        self.assertEqual(set(c.sigkeys.split(" ")), {"SIG1", "SIG2", "SIG3", "SIG4"})
 
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
@@ -772,6 +841,7 @@ gpgcheck=0
                     "arch": "ppc64",
                     "signatures": "SIG1,SIG2",
                 },
+                "id": "repo1",
             },
         ]
 
@@ -794,7 +864,7 @@ gpgcheck=0
 
         expected_query = {
             "criteria": {
-                "fields": ["notes"],
+                "fields": ["notes", "id"],
                 "filters": {"notes.content_set": {"$in": ["foo-1", "foo-2"]}},
             }
         }
@@ -802,9 +872,10 @@ gpgcheck=0
         symlink.assert_not_called()
 
     @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.pulp.Pulp._rest_get")
     @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose_content_set_not_found(
-        self, _write_repo_file, pulp_rest_post
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post
     ):
         pulp_rest_post.return_value = [
             {
@@ -815,8 +886,16 @@ gpgcheck=0
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
                 },
+                "id": "repo1",
             },
         ]
+
+        # No repository is found for source foo-2 eventually, whatever it is a
+        # content set or a repo id.
+        pulp_rest_get.return_value = {
+            "error_message": "Missing resource(s): repository=foo-2",
+            "error": {"code": "PLP0009"},
+        }
 
         c = Compose.create(
             db.session,
@@ -836,7 +915,7 @@ gpgcheck=0
 
         expected_query = {
             "criteria": {
-                "fields": ["notes"],
+                "fields": ["notes", "id"],
                 "filters": {
                     "notes.content_set": {"$in": ["foo-1", "foo-2"]},
                     "notes.include_in_download_service": "True",
@@ -851,13 +930,14 @@ gpgcheck=0
         six.assertRegex(
             self,
             c1.state_reason,
-            r"Error while generating compose: Failed to find all the content_sets.*",
+            r"Error while generating compose: Failed to find all the source\(s\).*",
         )
 
     @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.pulp.Pulp._rest_get")
     @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose_content_set_not_found_allow_absent(
-        self, _write_repo_file, pulp_rest_post
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post
     ):
         pulp_rest_post.return_value = [
             {
@@ -868,8 +948,16 @@ gpgcheck=0
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
                 },
+                "id": "repo1",
             },
         ]
+
+        # No repository is found for source foo-2 eventually, whatever it is a
+        # content set or a repo id.
+        pulp_rest_get.return_value = {
+            "error_message": "Missing resource(s): repository=foo-2",
+            "error": {"code": "PLP0009"},
+        }
 
         c = Compose.create(
             db.session,
@@ -890,7 +978,7 @@ gpgcheck=0
 
         expected_query = {
             "criteria": {
-                "fields": ["notes"],
+                "fields": ["notes", "id"],
                 "filters": {
                     "notes.content_set": {"$in": ["foo-1", "foo-2"]},
                     "notes.include_in_download_service": "True",
@@ -898,13 +986,15 @@ gpgcheck=0
             }
         }
         pulp_rest_post.assert_called_once_with("repositories/search/", expected_query)
-        expected_repofile = """
-[foo-1]
-name=foo-1
-baseurl=http://localhost/content/1/x86_64/os
-enabled=1
-gpgcheck=0
-"""
+        expected_repofile = dedent(
+            """
+            [foo-1]
+            name=foo-1
+            baseurl=http://localhost/content/1/x86_64/os
+            enabled=1
+            gpgcheck=0
+            """
+        )
         _write_repo_file.assert_called_once_with(c, expected_repofile)
 
         c1 = Compose.query.filter(Compose.id == 1).one()
@@ -1144,6 +1234,85 @@ gpgcheck=0
                 ]
             ),
         )
+
+    @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.pulp.Pulp._rest_get")
+    @patch("odcs.server.backend._write_repo_file")
+    def test_generate_pulp_compose_by_repo_id(
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post
+    ):
+        # No repository is found first the time to query Pulp by treating the
+        # repo ids as content sets.
+        pulp_rest_post.return_value = []
+
+        def _rest_get(endpoint):
+            if endpoint.endswith("repo1/"):
+                return {
+                    "notes": {
+                        "relative_url": "content/1/s390/os",
+                        "content_set": "foo-1",
+                        "arch": "s390",
+                        "signatures": "SIG1,SIG2",
+                        "product_versions": "",
+                        "include_in_download_service": True,
+                    },
+                    "id": "repo1",
+                }
+            # No repository is found for source foo-2 eventually, whatever it is a
+            # content set or a repo id.
+            elif endpoint.endswith("repo2/"):
+                return {
+                    "error_message": "Missing resource(s): repository=repo2",
+                    "error": {"code": "PLP0009"},
+                }
+
+        pulp_rest_get.side_effect = _rest_get
+
+        c = Compose.create(
+            db.session,
+            "me",
+            PungiSourceType.PULP,
+            "repo1 repo2",
+            COMPOSE_RESULTS["repository"],
+            3600,
+            # Ignore the absent repo id: repo2
+            flags=COMPOSE_FLAGS["ignore_absent_pulp_repos"],
+        )
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.object(
+            odcs.server.backend.conf, "pulp_server_url", "https://localhost/"
+        ):
+            generate_pulp_compose(c)
+
+        pulp_rest_post.assert_called_once_with(
+            "repositories/search/",
+            {
+                "criteria": {
+                    "fields": ["notes", "id"],
+                    "filters": {
+                        "notes.content_set": {"$in": ["repo1", "repo2"]},
+                        "notes.include_in_download_service": "True",
+                    },
+                }
+            },
+        )
+
+        expected_repofile = dedent(
+            """
+            [repo1]
+            name=repo1
+            baseurl=http://localhost/content/1/s390/os
+            enabled=1
+            gpgcheck=0
+            """
+        )
+        _write_repo_file.assert_called_once_with(c, expected_repofile)
+
+        c1 = Compose.query.filter(Compose.id == 1).one()
+        self.assertEqual(c1.state, COMPOSE_STATES["done"])
+        self.assertEqual(c1.source, "repo1")
 
 
 class TestGeneratePungiCompose(ModelsBaseTest):

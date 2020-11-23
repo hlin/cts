@@ -44,7 +44,7 @@ class TestPulp(ModelsBaseTest):
             "repositories/search/",
             {
                 "criteria": {
-                    "fields": ["notes"],
+                    "fields": ["notes", "id"],
                     "filters": {
                         "notes.include_in_download_service": "True",
                         "notes.content_set": {"$in": ["foo-1", "foo-2"]},
@@ -65,7 +65,7 @@ class TestPulp(ModelsBaseTest):
             "repositories/search/",
             {
                 "criteria": {
-                    "fields": ["notes"],
+                    "fields": ["notes", "id"],
                     "filters": {"notes.content_set": {"$in": ["foo-1", "foo-2"]}},
                 }
             },
@@ -88,6 +88,7 @@ class TestPulp(ModelsBaseTest):
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
                 },
+                "id": "repo1",
             },
             {
                 "notes": {
@@ -96,7 +97,8 @@ class TestPulp(ModelsBaseTest):
                     "arch": "ppc64le",
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
-                }
+                },
+                "id": "repo2",
             },
             {
                 "notes": {
@@ -105,24 +107,28 @@ class TestPulp(ModelsBaseTest):
                     "arch": "ppc64",
                     "signatures": "SIG1,SIG3",
                     "product_versions": "",
-                }
+                },
+                "id": "repo3",
             },
         ]
 
         pulp = Pulp("http://localhost/", "user", "pass", c)
-        ret = pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
+        repos = pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
+        ret = pulp.merge_repos_by_arch(repos)
         self.assertEqual(
             ret,
             {
                 "foo-1": {
+                    "id": "repo1",
                     "url": "http://localhost/content/1/$basearch/os",
-                    "arches": set(["x86_64", "ppc64le"]),
+                    "arches": {"x86_64", "ppc64le"},
                     "sigkeys": ["SIG1", "SIG2"],
                     "product_versions": "",
                 },
                 "foo-2": {
+                    "id": "repo3",
                     "url": "http://localhost/content/3/ppc64/os",
-                    "arches": set(["ppc64"]),
+                    "arches": {"ppc64"},
                     "sigkeys": ["SIG1", "SIG3"],
                     "product_versions": "",
                 },
@@ -148,6 +154,7 @@ class TestPulp(ModelsBaseTest):
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
                 },
+                "id": "repo1",
             },
             # Test two same relative_urls here.
             {
@@ -158,6 +165,7 @@ class TestPulp(ModelsBaseTest):
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
                 },
+                "id": "repo2",
             },
             {
                 "notes": {
@@ -166,7 +174,8 @@ class TestPulp(ModelsBaseTest):
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
-                }
+                },
+                "id": "repo3",
             },
             {
                 "notes": {
@@ -176,18 +185,20 @@ class TestPulp(ModelsBaseTest):
                     "signatures": "SIG1,SIG2",
                     "product_versions": "",
                 },
+                "id": "repo4",
             },
         ]
 
         pulp = Pulp("http://localhost/", "user", "pass", c)
-        ret = pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
+        repos = pulp.get_repos_from_content_sets(["foo-1", "foo-2"])
+        ret = pulp.merge_repos_by_arch(repos)
 
         self.assertEqual(
             ret,
             {
                 "foo-1": {
                     "url": "http://localhost/odcs/odcs-1/compose/Temporary/foo-1/$basearch",
-                    "arches": set(["x86_64", "ppc64le"]),
+                    "arches": {"x86_64", "ppc64le"},
                     "sigkeys": ["SIG1", "SIG2"],
                 }
             },
@@ -261,6 +272,7 @@ class TestPulp(ModelsBaseTest):
                     "signatures": "SIG1,SIG2",
                     "product_versions": '["1.0"]',
                 },
+                "id": "repo1",
             },
             {
                 "notes": {
@@ -269,19 +281,22 @@ class TestPulp(ModelsBaseTest):
                     "arch": "x86_64",
                     "signatures": "SIG1,SIG2",
                     "product_versions": '["1.1"]',
-                }
+                },
+                "id": "repo2",
             },
         ]
 
         pulp = Pulp("http://localhost/", "user", "pass", c)
-        ret = pulp.get_repos_from_content_sets(["foo-1"])
+        repos = pulp.get_repos_from_content_sets(["foo-1"])
+        ret = pulp.merge_repos_by_arch(repos)
 
         self.assertEqual(
             ret,
             {
                 "foo-1": {
+                    "id": "repo2",
                     "url": "http://localhost/content/1.1/x86_64/os",
-                    "arches": set(["x86_64"]),
+                    "arches": {"x86_64"},
                     "sigkeys": ["SIG1", "SIG2"],
                     "product_versions": '["1.1"]',
                 }
