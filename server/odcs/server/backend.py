@@ -464,6 +464,11 @@ def resolve_compose(compose):
             for rpm_nevra in rpms:
                 packages.add(productmd.common.parse_nvra(rpm_nevra)["name"])
         compose.packages = " ".join(packages)
+    elif compose.source_type == PungiSourceType.RAW_CONFIG:
+        # Set the Koji event id if it is not specified in compose request.
+        if not compose.koji_event:
+            koji_session = create_koji_session()
+            compose.koji_event = int(koji_session.getLastEvent()["id"])
 
 
 def _raise_if_compose_attr_different(c1, c2, attr_name, string_list=False):

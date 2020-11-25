@@ -70,6 +70,27 @@ class TestBackend(ModelsBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.koji_event, 1496834159)
 
+    @patch("odcs.server.backend.create_koji_session")
+    def test_resolve_compose_raw_config(self, create_koji_session):
+        koji_session = MagicMock()
+        create_koji_session.return_value = koji_session
+        koji_session.getLastEvent.return_value = {"id": 123}
+
+        for default_koji_event in [None, 1]:
+            c = Compose.create(
+                db.session,
+                "me",
+                PungiSourceType.RAW_CONFIG,
+                "eln#eln",
+                COMPOSE_RESULTS["repository"],
+                3600,
+            )
+            c.koji_event = default_koji_event
+            db.session.commit()
+
+            resolve_compose(c)
+            self.assertEqual(c.koji_event, default_koji_event or 123)
+
     @mock_mbs()
     def test_resolve_compose_module(self):
         c = Compose.create(
