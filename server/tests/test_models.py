@@ -96,6 +96,8 @@ class TestModels(ModelsBaseTest):
             "parent_pungi_compose_ids": None,
             "scratch_build_tasks": None,
             "respin_of": None,
+            "base_module_br_name": None,
+            "base_module_br_stream": None,
         }
         self.assertEqual(c.json(True), expected_json)
 

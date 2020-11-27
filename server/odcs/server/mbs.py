@@ -47,13 +47,21 @@ class MBS(object):
         r.raise_for_status()
         return r.json()
 
-    def get_latest_modules(self, nsvc, include_done=False):
+    def get_latest_modules(
+        self,
+        nsvc,
+        include_done=False,
+        base_module_br_name=None,
+        base_module_br_stream=None,
+    ):
         """
         Query MBS and return the latest version of the module specified by nsvc.
 
-        :param nsvc: N:S:V[:C] of a module to include in a compose.
-        :param include_done: When True, also module builds in the "done" state
+        :param str nsvc: N:S:V[:C] of a module to include in a compose.
+        :param bool include_done: When True, also module builds in the "done" state
             are included in a result.
+        :param str base_module_br_name: The name of a base module the module buildrequires.
+        :param str base_module_br_stream: The stream of a base module the module buildrequires.
         :raises ModuleLookupError: if the module couldn't be found
         :return: the latest version of the module.
         """
@@ -67,6 +75,10 @@ class MBS(object):
             "verbose": True,  # Needed to get modulemd in response.
             "order_desc_by": "version",
         }
+        if base_module_br_name:
+            params.update({"base_module_br_name": base_module_br_name})
+        if base_module_br_stream:
+            params.update({"base_module_br_stream": base_module_br_stream})
         modules = self.get_modules(**params)
 
         # True if the module is "-devel" module.

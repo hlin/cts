@@ -121,6 +121,8 @@ class ComposeSourceGeneric(object):
         module_defaults_url=None,
         module_defaults_commit=None,
         scratch_modules=None,
+        base_module_br_name=None,
+        base_module_br_stream=None,
         **kwargs
     ):
         self.source = {"source": source, "type": source_type}
@@ -140,6 +142,10 @@ class ComposeSourceGeneric(object):
             self.source["module_defaults_commit"] = module_defaults_commit
         if scratch_modules:
             self.source["scratch_modules"] = scratch_modules
+        if base_module_br_name:
+            self.source["base_module_br_name"] = base_module_br_name
+        if base_module_br_stream:
+            self.source["base_module_br_stream"] = base_module_br_stream
         self.source.update(kwargs)
 
 

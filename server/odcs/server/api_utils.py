@@ -200,6 +200,8 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
             raise ValueError("%s should be a list" % k)
 
         str_expected = [
+            "base_module_br_name",
+            "base_module_br_stream",
             "compose_type",
             "label",
             "target_dir",

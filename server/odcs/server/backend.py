@@ -423,7 +423,10 @@ def resolve_compose(compose):
             # NSVC.
             is_complete_nsvc = module.count(":") == 3
             specified_mbs_modules += mbs.get_latest_modules(
-                module, include_done or is_complete_nsvc
+                module,
+                include_done or is_complete_nsvc,
+                compose.base_module_br_name,
+                compose.base_module_br_stream,
             )
 
         expand = not compose.flags & COMPOSE_FLAGS["no_deps"]

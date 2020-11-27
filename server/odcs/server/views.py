@@ -288,6 +288,8 @@ class ODCSAPI(MethodView):
         :jsonparam list source["scratch_modules"]: List defining the :ref:`scratch_modules<scratch_modules>`.
         :jsonparam list source["scratch_build_tasks"]: List defining the :ref:`scratch_build_tasks<scratch_build_tasks>`.
         :jsonparam list source["modules"]: List defining the :ref:`modules<modules>`.
+        :jsonparam string source["base_module_br_name"]: String defining the :ref:`base_module_br_name<base_module_br_name>`.
+        :jsonparam string source["base_module_br_stream"]: String defining the :ref:`base_module_br_stream<base_module_br_stream>`.
 
         :statuscode 200: Compose request created and returned.
         :statuscode 401: Request not in valid format.
@@ -473,6 +475,9 @@ class ODCSAPI(MethodView):
         if "scratch_build_tasks" in source_data:
             scratch_build_tasks = " ".join(source_data["scratch_build_tasks"])
 
+        base_module_br_name = source_data.get("base_module_br_name", None)
+        base_module_br_stream = source_data.get("base_module_br_stream", None)
+
         label = data.get("label", None)
         compose_type = data.get("compose_type", "test")
 
@@ -521,6 +526,8 @@ class ODCSAPI(MethodView):
             scratch_build_tasks=scratch_build_tasks,
             modules=modules,
             respin_of=respin_of,
+            base_module_br_name=base_module_br_name,
+            base_module_br_stream=base_module_br_stream,
         )
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to

@@ -234,6 +234,14 @@ create_module_parser.add_argument(
     nargs="*",
     help="List of modules in N:S, N:S:V or N:S:V:C format.",
 )
+create_module_parser.add_argument(
+    "--base-module-br-name",
+    help="The name of a base module the module buildrequires",
+)
+create_module_parser.add_argument(
+    "--base-module-br-stream",
+    help="The stream of a base module the module buildrequires",
+)
 _add_arguments(
     create_module_parser,
     "--sigkey",
@@ -418,6 +426,8 @@ try:
             args.module_defaults_url,
             args.module_defaults_commit,
             args.scratch_module,
+            base_module_br_name=args.base_module_br_name,
+            base_module_br_stream=args.base_module_br_stream,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-pulp":

@@ -174,6 +174,10 @@ class Compose(ODCSBase):
     modules = db.Column(db.String, nullable=True)
     # Pungi Compose ID of compose this compose respins.
     respin_of = db.Column(db.String, nullable=True)
+    # The name of a base module the module buildrequires
+    base_module_br_name = db.Column(db.String, nullable=True)
+    # The stream of a base module the module buildrequires
+    base_module_br_stream = db.Column(db.String, nullable=True)
 
     @property
     def on_default_target_dir(self):
@@ -224,6 +228,8 @@ class Compose(ODCSBase):
         scratch_build_tasks=None,
         modules=None,
         respin_of=None,
+        base_module_br_name=None,
+        base_module_br_stream=None,
     ):
         now = datetime.utcnow()
         compose = cls(
@@ -253,6 +259,8 @@ class Compose(ODCSBase):
             scratch_build_tasks=scratch_build_tasks,
             modules=modules,
             respin_of=respin_of,
+            base_module_br_name=base_module_br_name,
+            base_module_br_stream=base_module_br_stream,
         )
         session.add(compose)
         return compose
@@ -303,6 +311,8 @@ class Compose(ODCSBase):
             scratch_build_tasks=compose.scratch_build_tasks,
             modules=compose.modules,
             respin_of=compose.respin_of,
+            base_module_br_name=compose.base_module_br_name,
+            base_module_br_stream=compose.base_module_br_stream,
         )
         session.add(compose)
         return compose
@@ -442,6 +452,8 @@ class Compose(ODCSBase):
             "scratch_build_tasks": self.scratch_build_tasks,
             "modules": self.modules,
             "respin_of": self.respin_of,
+            "base_module_br_name": self.base_module_br_name,
+            "base_module_br_stream": self.base_module_br_stream,
         }
 
         if full:
