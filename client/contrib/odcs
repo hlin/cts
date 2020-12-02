@@ -99,7 +99,9 @@ KNOWN_ARGS = {
         "packages. If you do not specify any --sigkey option, ODCS "
         "will use the default signing key list (defined on the server).",
     ),
-    "--koji-event": dict(default=None, help="Koji event for populating package set"),
+    "--koji-event": dict(
+        default=None, help="Koji event for populating package set", type=int
+    ),
     "--arch": dict(
         default=[], action="append", help="Koji arch to build the compose for."
     ),
