@@ -52,6 +52,16 @@ The fields used in the ODCS compose JSON have following meaning:
 *compose_type* - ``(string)``
     Type of the compose when generating raw_config compose. Can be "test", "nightly", "ci", "production".
 
+.. _base_module_br_name:
+
+*base_module_br_name* - ``(string)``
+    When requesting a module compose with just N:S[:V], it's possible to specify base module name to limit which composes can be returned. This will usually be ``platform``.
+
+.. _base_module_br_stream:
+
+*base_module_br_stream* - ``(string)``
+    When :ref:`base module name<base_module_br_name>` is specified, the stream for the base module should be specified as well.
+
 .. _builds:
 
 *builds* - ``(white-space separated list of strings or null)``
