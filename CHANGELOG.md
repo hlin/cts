@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.52
+  - Release date: 2020-12-10
+  - Add ability to specify a platform for modules
+  - Set compose.koji_event if not set for Raw config composes.
+  - Generate pulp compose with repo id
+  - Simplify the get_reusable_compose.
+  - Add support for Pungi --respin-of argument.
+  - Allow setting pkgset_koji_module_builds.
+  - Add info about running a messaging broker locally for dev
+  - Make input validation stricter
+  - Run hardlink on promoted compose
+  - Do not cancel RawConfig composes which are still generating.
+
 ## 0.2.51
   - Release date: 2020-11-02
   - Add no_reuse flag to disable reuse
