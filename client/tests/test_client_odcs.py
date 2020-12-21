@@ -200,6 +200,34 @@ class TestGetCompose(unittest.TestCase):
         )
 
 
+class TestAbout(unittest.TestCase):
+    """Test ODCS.about"""
+
+    def setUp(self):
+        self.server_url = "http://localhost/"
+        self.odcs = ODCS(self.server_url)
+
+    @patch("odcs.client.odcs.requests")
+    def test_about(self, requests):
+        requests.get = Mock()
+        requests.get.return_value.status_code = 200
+        fake_result = {
+            "allowed_clients": {"groups": {}, "users": {}},
+            "auth_backend": "noauth",
+            "raw_config_urls": {},
+            "sigkeys": [],
+            "version": "0.2.52",
+        }
+        requests.get.return_value.json.return_value = fake_result
+
+        result = self.odcs.about()
+
+        self.assertEqual(result, fake_result)
+        requests.get.assert_called_once_with(
+            "{0}api/{1}/about".format(self.server_url, self.odcs.api_version)
+        )
+
+
 class TestDeleteCompose(unittest.TestCase):
     """Test ODCS.delete_compose"""
 

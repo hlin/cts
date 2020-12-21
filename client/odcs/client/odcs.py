@@ -615,6 +615,11 @@ class ODCS(object):
         r = self._get("composes/{0}".format(compose_id))
         return r.json()
 
+    def about(self):
+        """Get information about ODCS server"""
+        r = self._get("about")
+        return r.json()
+
     def wait_for_compose(self, compose_id, timeout=300, watch_logs=False):
         """
         Polls the ODCS server repeatedly to find out whether the compose

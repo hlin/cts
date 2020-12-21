@@ -319,6 +319,9 @@ get_parser = subparsers.add_parser("get", help="get compose info")
 get_parser.set_defaults(command="get")
 get_parser.add_argument("compose_id", default=None, help="ODCS compose id")
 
+about_parser = subparsers.add_parser("about", help="Get information about ODCS server")
+about_parser.set_defaults(command="about")
+
 args = parser.parse_args()
 
 if not hasattr(args, "command"):
@@ -456,13 +459,15 @@ try:
         result = client.renew_compose(args.compose_id)
     elif args.command == "get":
         result = client.get_compose(args.compose_id)
+    elif args.command == "about":
+        result = client.about()
     else:
         print("Unknown command %s" % args.command)
 except requests.exceptions.HTTPError:
     # error message gets printed in ODCS class.
     sys.exit(-1)
 
-if args.no_wait:
+if args.no_wait or args.command == "about":
     print(json.dumps(result, indent=4, sort_keys=True))
 else:
     if not args.quiet:
