@@ -23,9 +23,10 @@ from textwrap import dedent
 
 import six
 import os
+import requests.exceptions
 import shutil
 
-from mock import patch, MagicMock, call
+from mock import patch, MagicMock, call, Mock
 from productmd.rpms import Rpms
 
 from odcs.server import conf, db
@@ -913,10 +914,13 @@ class TestBackend(ModelsBaseTest):
 
         # No repository is found for source foo-2 eventually, whatever it is a
         # content set or a repo id.
-        pulp_rest_get.return_value = {
-            "error_message": "Missing resource(s): repository=foo-2",
-            "error": {"code": "PLP0009"},
+        mock_response = Mock(status_code=404)
+        mock_response.json.return_value = {
+            "error_message": "Missing resource(s): repository=foo-2"
         }
+        pulp_rest_get.side_effect = requests.exceptions.HTTPError(
+            response=mock_response
+        )
 
         c = Compose.create(
             db.session,
@@ -975,10 +979,13 @@ class TestBackend(ModelsBaseTest):
 
         # No repository is found for source foo-2 eventually, whatever it is a
         # content set or a repo id.
-        pulp_rest_get.return_value = {
-            "error_message": "Missing resource(s): repository=foo-2",
-            "error": {"code": "PLP0009"},
+        mock_response = Mock(status_code=404)
+        mock_response.json.return_value = {
+            "error_message": "Missing resource(s): repository=repo2"
         }
+        pulp_rest_get.side_effect = requests.exceptions.HTTPError(
+            response=mock_response
+        )
 
         c = Compose.create(
             db.session,
@@ -1282,10 +1289,11 @@ class TestBackend(ModelsBaseTest):
             # No repository is found for source foo-2 eventually, whatever it is a
             # content set or a repo id.
             elif endpoint.endswith("repo2/"):
-                return {
-                    "error_message": "Missing resource(s): repository=repo2",
-                    "error": {"code": "PLP0009"},
+                mock_response = Mock(status_code=404)
+                mock_response.json.return_value = {
+                    "error_message": "Missing resource(s): repository=repo2"
                 }
+                raise requests.exceptions.HTTPError(response=mock_response)
 
         pulp_rest_get.side_effect = _rest_get
 

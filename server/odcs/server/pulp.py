@@ -26,6 +26,7 @@ import copy
 import json
 import re
 import requests
+import requests.exceptions
 
 from odcs.server import conf, log
 from odcs.server.mergerepo import MergeRepo
@@ -302,12 +303,16 @@ class Pulp(object):
         """
         repos = {}
         for repo_id in repo_ids:
-            repo = self._rest_get("repositories/{}/".format(repo_id))
-            if "error" in repo:
+            try:
+                repo = self._rest_get("repositories/{}/".format(repo_id))
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code != 404:
+                    raise
+                error_message = e.response.json()["error_message"]
                 log.warning(
                     "Cannot find repository for id %s. Error message: %s",
                     repo_id,
-                    repo["error_message"],
+                    error_message,
                 )
                 continue
             if (
