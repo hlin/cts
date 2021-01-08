@@ -148,8 +148,11 @@ def execute_cmd(args, stdout=None, stderr=None, cwd=None, timeout=None):
         raise RuntimeError(err_msg)
 
 
-def clone_repo(url, dest, branch="master", commit=None):
-    cmd = ["git", "clone", "-b", branch, url, dest]
+def clone_repo(url, dest, branch=None, commit=None):
+    cmd = ["git", "clone"]
+    if branch:
+        cmd += ["-b", branch]
+    cmd += [url, dest]
     execute_cmd(cmd)
 
     if commit:

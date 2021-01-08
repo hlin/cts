@@ -23,10 +23,11 @@
 import six
 import unittest
 
-from mock import patch
+from mock import patch, call
 import time
 
 from odcs.server.utils import execute_cmd
+from odcs.server.utils import clone_repo
 
 
 class TestUtilsExecuteCmd(unittest.TestCase):
@@ -49,3 +50,34 @@ class TestUtilsExecuteCmd(unittest.TestCase):
         execute_cmd(["/usr/bin/true"], timeout=1)
         time.sleep(2)
         killpg.assert_not_called()
+
+
+class TestCloneRepo(unittest.TestCase):
+    @patch("odcs.server.utils.execute_cmd")
+    def test_clone_repo(self, ec):
+        clone_repo("git://localhost/test.git", "/tmp")
+
+        self.assertEqual(
+            ec.mock_calls, [call(["git", "clone", "git://localhost/test.git", "/tmp"])]
+        )
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_clone_repo_branch(self, ec):
+        clone_repo("git://localhost/test.git", "/tmp", branch="main")
+
+        self.assertEqual(
+            ec.mock_calls,
+            [call(["git", "clone", "-b", "main", "git://localhost/test.git", "/tmp"])],
+        )
+
+    @patch("odcs.server.utils.execute_cmd")
+    def test_clone_repo_commit(self, ec):
+        clone_repo("git://localhost/test.git", "/tmp", commit="hash")
+
+        self.assertEqual(
+            ec.mock_calls,
+            [
+                call(["git", "clone", "git://localhost/test.git", "/tmp"]),
+                call(["git", "checkout", "hash"], cwd="/tmp"),
+            ],
+        )
