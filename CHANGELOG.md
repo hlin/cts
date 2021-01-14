@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.0
+  - Release date: 2021-01-14
+  - Use the right raw_config_wrapper configuration file for compose respin.
+  - Fixes:#473 - Do not clone 'master' branch if not requested.
+  - Add about subcommand to cli
+  - Fix query repo by id
+
 ## 0.2.52
   - Release date: 2020-12-10
   - Add ability to specify a platform for modules
