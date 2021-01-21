@@ -1046,6 +1046,42 @@ class TestViews(ViewBaseTest):
         c = db.session.query(Compose).filter(Compose.id == 3).one()
         self.assertEqual(c.reused_id, None)
 
+    def test_submit_respin(self):
+        self.c1.state = COMPOSE_STATES["done"]
+        self.c1.reused_id = 1
+        self.c1.koji_event = 123
+        self.c1.pungi_config_dump = "some data"
+        self.c1.pungi_compose_id = "Fedora-1-1"
+        db.session.commit()
+
+        with self.test_request_context(user="dev"):
+            flask.g.oidc_scopes = [
+                "{0}{1}".format(conf.oidc_base_namespace, "renew-compose")
+            ]
+
+            req = {
+                "source": {
+                    "modules": ["foo:stream:1:1", "bar:stream:1:1"],
+                    "builds": ["foo-1-1", "bar-1-1"],
+                    "unknown_arg": "should be ignored",
+                }
+            }
+
+            rv = self.client.patch("/api/1/composes/1", data=json.dumps(req))
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data["id"], 3)
+        self.assertEqual(data["state_name"], "wait")
+        self.assertEqual(data["modules"], "foo:stream:1:1 bar:stream:1:1")
+        self.assertEqual(data["builds"], "foo-1-1 bar-1-1")
+        self.assertEqual(data["respin_of"], "Fedora-1-1")
+        self.assertEqual(data["koji_event"], 123)
+        self.assertEqual(data["time_removed"], None)
+
+        c = db.session.query(Compose).filter(Compose.id == 3).one()
+        self.assertEqual(c.reused_id, None)
+        self.assertEqual(c.pungi_config_dump, "some data")
+
     def test_submit_build_not_allowed_source_type(self):
         with self.test_request_context(user="dev"):
             flask.g.oidc_scopes = [

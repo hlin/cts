@@ -158,6 +158,10 @@ class ODCSAPI(MethodView):
         :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
         :jsonparam list sigkeys: Optional list defining the :ref:`sigkeys<sigkeys>`.
             If not defined, original :ref:`sigkeys<sigkeys>` will be used.
+        :jsonparam object source: The JSON object allowing to override the source of compose.
+        :jsonparam list source["builds"]: List defining the :ref:`builds<builds>`.
+        :jsonparam list source["modules"]: List defining the :ref:`modules<modules>`.
+
 
         :statuscode 200: Compose updated and returned.
         :statuscode 401: User is unathorized.
@@ -198,6 +202,18 @@ class ODCSAPI(MethodView):
         else:
             sigkeys = old_compose.sigkeys
 
+        source_data = data.get("source", {})
+
+        modules = None
+        if "modules" in source_data:
+            modules = " ".join(source_data["modules"])
+
+        builds = None
+        if "builds" in source_data:
+            if not isinstance(source_data["builds"], list):
+                raise ValueError("builds should be a list")
+            builds = " ".join(source_data["builds"])
+
         # Get the raw_config_key if this compose is RAW_CONFIG.
         raw_config_key = None
         if old_compose.source_type == PungiSourceType.RAW_CONFIG:
@@ -216,6 +232,8 @@ class ODCSAPI(MethodView):
         has_to_create_a_copy = (
             old_compose.state in (COMPOSE_STATES["removed"], COMPOSE_STATES["failed"])
             or sigkeys != old_compose.sigkeys
+            or modules is not None
+            or builds is not None
         )
         if has_to_create_a_copy:
             log.info("%r: Going to regenerate the compose", old_compose)
@@ -226,6 +244,12 @@ class ODCSAPI(MethodView):
                 seconds_to_live,
                 sigkeys=sigkeys,
             )
+            if modules:
+                compose.modules = modules
+            if builds:
+                compose.builds = builds
+
+            compose.respin_of = old_compose.pungi_compose_id
             db.session.add(compose)
             # Flush is needed, because we use `before_commit` SQLAlchemy
             # event to send message and before_commit can be called before
