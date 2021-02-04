@@ -727,6 +727,10 @@ def generate_pulp_compose(compose):
         arches = arches.union(repo_data["arches"])
         sigkeys = sigkeys.union(repo_data["sigkeys"])
 
+    if not merged_repos:
+        log.info("Creating empty repository for %r", compose)
+        odcs.server.utils.write_empty_repo(compose)
+
     _write_repo_file(compose, repofile)
 
     compose.arches = " ".join(arches)

@@ -696,11 +696,12 @@ class TestBackend(ModelsBaseTest):
             reused_c = get_reusable_compose(c)
             self.assertEqual(reused_c, None)
 
+    @patch("odcs.server.utils.write_empty_repo")
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.pulp.Pulp._rest_get")
     @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose(
-        self, _write_repo_file, pulp_rest_get, pulp_rest_post
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post, write_empty_repo
     ):
         """General case for generating a pulp compose
 
@@ -848,12 +849,14 @@ class TestBackend(ModelsBaseTest):
         self.assertEqual(c.state_reason, "Compose is generated successfully")
         self.assertEqual(set(c.arches.split(" ")), {"x86_64", "ppc64", "s390"})
         self.assertEqual(set(c.sigkeys.split(" ")), {"SIG1", "SIG2", "SIG3", "SIG4"})
+        write_empty_repo.assert_not_called()
 
+    @patch("odcs.server.utils.write_empty_repo")
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.backend._write_repo_file")
     @patch("os.symlink")
     def test_generate_pulp_compose_include_inpublished_pulp_repos_passed(
-        self, symlink, _write_repo_file, pulp_rest_post
+        self, symlink, _write_repo_file, pulp_rest_post, write_empty_repo
     ):
         pulp_rest_post.return_value = [
             {
@@ -892,12 +895,14 @@ class TestBackend(ModelsBaseTest):
         }
         pulp_rest_post.assert_called_once_with("repositories/search/", expected_query)
         symlink.assert_not_called()
+        write_empty_repo.assert_not_called()
 
+    @patch("odcs.server.utils.write_empty_repo")
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.pulp.Pulp._rest_get")
     @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose_content_set_not_found(
-        self, _write_repo_file, pulp_rest_get, pulp_rest_post
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post, write_empty_repo
     ):
         pulp_rest_post.return_value = [
             {
@@ -957,12 +962,14 @@ class TestBackend(ModelsBaseTest):
             c1.state_reason,
             r"Error while generating compose: Failed to find all the source\(s\).*",
         )
+        write_empty_repo.assert_not_called()
 
+    @patch("odcs.server.utils.write_empty_repo")
     @patch("odcs.server.pulp.Pulp._rest_post")
     @patch("odcs.server.pulp.Pulp._rest_get")
     @patch("odcs.server.backend._write_repo_file")
     def test_generate_pulp_compose_content_set_not_found_allow_absent(
-        self, _write_repo_file, pulp_rest_get, pulp_rest_post
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post, write_empty_repo
     ):
         pulp_rest_post.return_value = [
             {
@@ -1024,10 +1031,64 @@ class TestBackend(ModelsBaseTest):
             """
         )
         _write_repo_file.assert_called_once_with(c, expected_repofile)
+        write_empty_repo.assert_not_called()
 
         c1 = Compose.query.filter(Compose.id == 1).one()
         self.assertEqual(c1.state, COMPOSE_STATES["done"])
         self.assertEqual(c1.source, "foo-1")
+
+    @patch("odcs.server.utils.write_empty_repo")
+    @patch("odcs.server.pulp.Pulp._rest_post")
+    @patch("odcs.server.pulp.Pulp._rest_get")
+    @patch("odcs.server.backend._write_repo_file")
+    def test_generate_pulp_compose_content_set_not_found_any_allow_absent(
+        self, _write_repo_file, pulp_rest_get, pulp_rest_post, write_empty_repo
+    ):
+        pulp_rest_post.return_value = []
+
+        # No repository is found for source foo-2 eventually, whatever it is a
+        # content set or a repo id.
+        mock_response = Mock(status_code=404)
+        mock_response.json.return_value = {
+            "error_message": "Missing resource(s): repository=repo2"
+        }
+        pulp_rest_get.side_effect = requests.exceptions.HTTPError(
+            response=mock_response
+        )
+
+        c = Compose.create(
+            db.session,
+            "me",
+            PungiSourceType.PULP,
+            "foo-2",
+            COMPOSE_RESULTS["repository"],
+            3600,
+            flags=COMPOSE_FLAGS["ignore_absent_pulp_repos"],
+        )
+        db.session.add(c)
+        db.session.commit()
+
+        with patch.object(
+            odcs.server.backend.conf, "pulp_server_url", "https://localhost/"
+        ):
+            generate_compose(1)
+
+        expected_query = {
+            "criteria": {
+                "fields": ["notes", "id"],
+                "filters": {
+                    "notes.content_set": {"$in": ["foo-2"]},
+                    "notes.include_in_download_service": "True",
+                },
+            }
+        }
+        pulp_rest_post.assert_called_once_with("repositories/search/", expected_query)
+        _write_repo_file.assert_called_once_with(c, "")
+        write_empty_repo.assert_called_once_with(c)
+
+        c1 = Compose.query.filter(Compose.id == 1).one()
+        self.assertEqual(c1.state, COMPOSE_STATES["done"])
+        self.assertEqual(c1.source, "")
 
     @patch("odcs.server.backend.resolve_compose")
     @patch("odcs.server.backend.generate_pungi_compose")
