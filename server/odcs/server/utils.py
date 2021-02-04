@@ -175,9 +175,9 @@ def copytree(src, dst, symlinks=False, ignore=None):
             shutil.copy2(s, d)
 
 
-def write_empty_repo(compose):
-    """Create an empty repository for each arch of the compose."""
-    for arch in compose.arches.split():
+def write_empty_repo(compose, arches):
+    """Create an empty repository for each of the given arches."""
+    for arch in arches:
         repodir = os.path.join(compose.result_repo_dir, arch, "os")
         makedirs(repodir)
         execute_cmd(["createrepo_c", repodir])

@@ -729,7 +729,8 @@ def generate_pulp_compose(compose):
 
     if not merged_repos:
         log.info("Creating empty repository for %r", compose)
-        odcs.server.utils.write_empty_repo(compose)
+        arches = conf.allowed_arches
+        odcs.server.utils.write_empty_repo(compose, arches)
 
     _write_repo_file(compose, repofile)
 
