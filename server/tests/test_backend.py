@@ -1084,7 +1084,7 @@ class TestBackend(ModelsBaseTest):
         }
         pulp_rest_post.assert_called_once_with("repositories/search/", expected_query)
         _write_repo_file.assert_called_once_with(c, "")
-        write_empty_repo.assert_called_once_with(c)
+        write_empty_repo.assert_called_once_with(c, conf.allowed_arches)
 
         c1 = Compose.query.filter(Compose.id == 1).one()
         self.assertEqual(c1.state, COMPOSE_STATES["done"])
