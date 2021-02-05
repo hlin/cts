@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.1
+  - Release date: 2021-02-05
+  - Allow setting builds and modules in PATCH to support compose respin
+  - Create empty repo when no pulp source exists
+
 ## 0.3.0
   - Release date: 2021-01-14
   - Use the right raw_config_wrapper configuration file for compose respin.
