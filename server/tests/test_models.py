@@ -98,6 +98,8 @@ class TestModels(ModelsBaseTest):
             "respin_of": None,
             "base_module_br_name": None,
             "base_module_br_stream": None,
+            "base_module_br_stream_version_lte": None,
+            "base_module_br_stream_version_gte": None,
         }
         self.assertEqual(c.json(True), expected_json)
 

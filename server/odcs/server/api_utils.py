@@ -210,7 +210,12 @@ def validate_json_data(dict_or_list, level=0, last_dict_key=None):
         if k in str_expected and not isinstance(v, six.string_types):
             raise ValueError("%s should be a string" % k)
 
-        int_expected = ["seconds_to_live", "koji_event"]
+        int_expected = [
+            "seconds_to_live",
+            "koji_event",
+            "base_module_br_stream_version_lte",
+            "base_module_br_stream_version_gte",
+        ]
         if k in int_expected and not isinstance(v, int):
             raise ValueError("%s should be an integer" % k)
 

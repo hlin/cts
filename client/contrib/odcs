@@ -244,6 +244,24 @@ create_module_parser.add_argument(
     "--base-module-br-stream",
     help="The stream of a base module the module buildrequires",
 )
+create_module_parser.add_argument(
+    "--base-module-br-stream-version-lte",
+    type=int,
+    help=(
+        "The numeric value of the stream version (el8.3.1 is 80301, f33 is 33) of "
+        "the buildrequired module specified by --base-module-br-name must be less "
+        "than equal to the given value."
+    ),
+)
+create_module_parser.add_argument(
+    "--base-module-br-stream-version-gte",
+    type=int,
+    help=(
+        "The numeric value of the stream version (el8.3.1 is 80301, f33 is 33) of "
+        "the buildrequired module specified by --base-module-br-name must be greater "
+        "than equal to the given value."
+    ),
+)
 _add_arguments(
     create_module_parser,
     "--sigkey",
@@ -433,6 +451,8 @@ try:
             args.scratch_module,
             base_module_br_name=args.base_module_br_name,
             base_module_br_stream=args.base_module_br_stream,
+            base_module_br_stream_version_lte=args.base_module_br_stream_version_lte,
+            base_module_br_stream_version_gte=args.base_module_br_stream_version_gte,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-pulp":

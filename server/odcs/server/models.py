@@ -178,6 +178,9 @@ class Compose(ODCSBase):
     base_module_br_name = db.Column(db.String, nullable=True)
     # The stream of a base module the module buildrequires
     base_module_br_stream = db.Column(db.String, nullable=True)
+    # The lower and upper limit for base module stream version.
+    base_module_br_stream_version_lte = db.Column(db.Integer, nullable=True)
+    base_module_br_stream_version_gte = db.Column(db.Integer, nullable=True)
 
     @property
     def on_default_target_dir(self):
@@ -230,6 +233,8 @@ class Compose(ODCSBase):
         respin_of=None,
         base_module_br_name=None,
         base_module_br_stream=None,
+        base_module_br_stream_version_lte=None,
+        base_module_br_stream_version_gte=None,
     ):
         now = datetime.utcnow()
         compose = cls(
@@ -261,6 +266,8 @@ class Compose(ODCSBase):
             respin_of=respin_of,
             base_module_br_name=base_module_br_name,
             base_module_br_stream=base_module_br_stream,
+            base_module_br_stream_version_lte=base_module_br_stream_version_lte,
+            base_module_br_stream_version_gte=base_module_br_stream_version_gte,
         )
         session.add(compose)
         return compose
@@ -313,6 +320,8 @@ class Compose(ODCSBase):
             respin_of=compose.respin_of,
             base_module_br_name=compose.base_module_br_name,
             base_module_br_stream=compose.base_module_br_stream,
+            base_module_br_stream_version_lte=compose.base_module_br_stream_version_lte,
+            base_module_br_stream_version_gte=compose.base_module_br_stream_version_gte,
         )
         session.add(compose)
         return compose
@@ -454,6 +463,8 @@ class Compose(ODCSBase):
             "respin_of": self.respin_of,
             "base_module_br_name": self.base_module_br_name,
             "base_module_br_stream": self.base_module_br_stream,
+            "base_module_br_stream_version_lte": self.base_module_br_stream_version_lte,
+            "base_module_br_stream_version_gte": self.base_module_br_stream_version_gte,
         }
 
         if full:

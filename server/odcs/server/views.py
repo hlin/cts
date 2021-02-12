@@ -314,6 +314,10 @@ class ODCSAPI(MethodView):
         :jsonparam list source["modules"]: List defining the :ref:`modules<modules>`.
         :jsonparam string source["base_module_br_name"]: String defining the :ref:`base_module_br_name<base_module_br_name>`.
         :jsonparam string source["base_module_br_stream"]: String defining the :ref:`base_module_br_stream<base_module_br_stream>`.
+        :jsonparam string source["base_module_br_stream_version_lte"]:
+            Number defining the :ref:`base_module_br_stream_version_lte<base_module_br_stream_version_lte>`.
+        :jsonparam string source["base_module_br_stream_version_gte"]:
+            Number defining the :ref:`base_module_br_stream_version_gte<base_module_br_stream_version_gte>`.
 
         :statuscode 200: Compose request created and returned.
         :statuscode 401: Request not in valid format.
@@ -501,6 +505,12 @@ class ODCSAPI(MethodView):
 
         base_module_br_name = source_data.get("base_module_br_name", None)
         base_module_br_stream = source_data.get("base_module_br_stream", None)
+        base_module_br_stream_version_lte = source_data.get(
+            "base_module_br_stream_version_lte"
+        )
+        base_module_br_stream_version_gte = source_data.get(
+            "base_module_br_stream_version_gte"
+        )
 
         label = data.get("label", None)
         compose_type = data.get("compose_type", "test")
@@ -552,6 +562,8 @@ class ODCSAPI(MethodView):
             respin_of=respin_of,
             base_module_br_name=base_module_br_name,
             base_module_br_stream=base_module_br_stream,
+            base_module_br_stream_version_lte=base_module_br_stream_version_lte,
+            base_module_br_stream_version_gte=base_module_br_stream_version_gte,
         )
         db.session.add(compose)
         # Flush is needed, because we use `before_commit` SQLAlchemy event to

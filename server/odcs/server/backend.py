@@ -427,6 +427,8 @@ def resolve_compose(compose):
                 include_done or is_complete_nsvc,
                 compose.base_module_br_name,
                 compose.base_module_br_stream,
+                compose.base_module_br_stream_version_lte,
+                compose.base_module_br_stream_version_gte,
             )
 
         expand = not compose.flags & COMPOSE_FLAGS["no_deps"]

@@ -53,6 +53,8 @@ class MBS(object):
         include_done=False,
         base_module_br_name=None,
         base_module_br_stream=None,
+        base_module_br_stream_version_lte=None,
+        base_module_br_stream_version_gte=None,
     ):
         """
         Query MBS and return the latest version of the module specified by nsvc.
@@ -62,6 +64,10 @@ class MBS(object):
             are included in a result.
         :param str base_module_br_name: The name of a base module the module buildrequires.
         :param str base_module_br_stream: The stream of a base module the module buildrequires.
+        :param str base_module_br_stream_version_lte: The stream version of base module
+            to compare less-than-equal.
+        :param str base_module_br_stream_version_gte: The stream version of base module
+            to compare greater-than-equal.
         :raises ModuleLookupError: if the module couldn't be found
         :return: the latest version of the module.
         """
@@ -79,6 +85,22 @@ class MBS(object):
             params.update({"base_module_br_name": base_module_br_name})
         if base_module_br_stream:
             params.update({"base_module_br_stream": base_module_br_stream})
+        if base_module_br_stream_version_lte:
+            params.update(
+                {
+                    "base_module_br_stream_version_lte": str(
+                        base_module_br_stream_version_lte
+                    )
+                }
+            )
+        if base_module_br_stream_version_gte:
+            params.update(
+                {
+                    "base_module_br_stream_version_gte": str(
+                        base_module_br_stream_version_gte
+                    )
+                }
+            )
         modules = self.get_modules(**params)
 
         # True if the module is "-devel" module.
