@@ -86,8 +86,8 @@ def makedirs(path, mode=0o775):
 def _kill_process_group(proc, args):
     log.error("Timeout occured while running: %s", args)
     pgrp = os.getpgid(proc.pid)
-    log.info("Sending SIGINT to group %s of process %s" % (pgrp, proc.pid))
-    os.killpg(pgrp, signal.SIGINT)
+    log.info("Sending SIGTERM to group %s of process %s" % (pgrp, proc.pid))
+    os.killpg(pgrp, signal.SIGTERM)
 
 
 def execute_cmd(args, stdout=None, stderr=None, cwd=None, timeout=None):
