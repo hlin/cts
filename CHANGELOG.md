@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.2
+  - Release date: 2021-02-19
+  - Add better filters for base module stream
+  - Improving killing stuck Pungi processes
+
 ## 0.3.1
   - Release date: 2021-02-05
   - Allow setting builds and modules in PATCH to support compose respin
