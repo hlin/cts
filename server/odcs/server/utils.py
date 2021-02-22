@@ -29,6 +29,7 @@ import subprocess
 import shutil
 from threading import Timer
 from six import text_type
+from requests.exceptions import HTTPError
 
 from odcs.server import conf, log
 
@@ -59,6 +60,8 @@ def retry(
                 try:
                     return function(*args, **kwargs)
                 except wait_on as e:
+                    if isinstance(e, HTTPError) and e.response.status_code == 404:
+                        raise
                     if logger is not None:
                         logger.warn(
                             "Exception %r raised from %r.  Retry in %rs",
