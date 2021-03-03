@@ -190,7 +190,17 @@ class KojiTagCache(object):
             lock.lock()
             if os.path.exists(cached_compose_dir):
                 shutil.rmtree(cached_compose_dir)
-            shutil.copytree(compose_dir, cached_compose_dir, symlinks=True)
+            shutil.copytree(
+                compose_dir,
+                cached_compose_dir,
+                symlinks=True,
+                ignore=shutil.ignore_patterns("Packages"),
+            )
+        except Exception as e:
+            log.warning(
+                "Caching the compose failed, but this does not affect compose state. %s"
+                % str(e)
+            )
         finally:
             if lock.is_locked:
                 lock.unlock()

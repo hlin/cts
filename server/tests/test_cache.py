@@ -138,10 +138,11 @@ class TestKojiTagCache(ModelsBaseTest):
             symlinks=True,
         )
 
+    @patch("shutil.ignore_patterns")
     @patch("shutil.copytree")
     @patch("os.path.realpath")
     @patch("shutil.rmtree")
-    def test_update_cache(self, rmtree, realpath, copytree):
+    def test_update_cache(self, rmtree, realpath, copytree, ignore_patterns):
         realpath.return_value = "/tmp/real/path"
         c = Compose.create(
             db.session,
@@ -161,6 +162,7 @@ class TestKojiTagCache(ModelsBaseTest):
                     "/tmp/real/path",
                     os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64"),
                     symlinks=True,
+                    ignore=ignore_patterns("Packages"),
                 )
             else:
                 copytree.assert_not_called()

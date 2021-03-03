@@ -931,7 +931,8 @@ def generate_pungi_compose(compose):
     compose.transition(COMPOSE_STATES["done"], "Compose is generated successfully")
     log.info("%r: Compose done", compose)
 
-    koji_tag_cache.update_cache(compose)
+    if not compose_to_reuse:
+        koji_tag_cache.update_cache(compose)
 
 
 def validate_pungi_compose(compose):
