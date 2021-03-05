@@ -133,7 +133,7 @@ def execute_cmd(args, stdout=None, stderr=None, cwd=None, timeout=None):
     finally:
         timeout_expired = False
         if timeout:
-            if timeout_timer.finished.is_set():
+            if timeout_timer.finished.wait(0.01):
                 timeout_expired = True
             timeout_timer.cancel()
 
