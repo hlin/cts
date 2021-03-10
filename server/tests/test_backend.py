@@ -527,6 +527,44 @@ class TestBackend(ModelsBaseTest):
 
     @patch("odcs.server.backend.koji_get_inherited_tags")
     @patch("odcs.server.backend.create_koji_session")
+    def test_get_reusable_tag_compose_in_generating(
+        self, create_koji_session, koji_get_inherited_tags
+    ):
+        koji_get_inherited_tags.return_value = ["foo", "bar"]
+        koji_session = MagicMock()
+        create_koji_session.return_value = koji_session
+        koji_session.tagChangedSinceEvent.return_value = False
+
+        old_c = Compose.create(
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "foo",
+            COMPOSE_RESULTS["repository"],
+            3600,
+            packages="ed",
+        )
+        old_c.koji_event = 1
+        old_c.state = COMPOSE_STATES["generating"]
+        c = Compose.create(
+            db.session,
+            "me",
+            PungiSourceType.KOJI_TAG,
+            "foo",
+            COMPOSE_RESULTS["repository"],
+            3600,
+            packages="ed",
+        )
+        c.koji_event = 2
+        db.session.add(old_c)
+        db.session.add(c)
+        db.session.commit()
+
+        reused_c = get_reusable_compose(c)
+        self.assertEqual(reused_c, old_c)
+
+    @patch("odcs.server.backend.koji_get_inherited_tags")
+    @patch("odcs.server.backend.create_koji_session")
     def test_get_reusable_tag_compose_none_koji_event(
         self, create_koji_session, koji_get_inherited_tags
     ):

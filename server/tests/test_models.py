@@ -337,3 +337,19 @@ class ComposeModel(ModelsBaseTest):
         in_five_minutes = now + timedelta(seconds=300)
         self.c1.transition(COMPOSE_STATES["generating"], "it started", in_five_minutes)
         assert self.c1.time_started == in_five_minutes
+
+    def test_transition_to_done_updates_reusing_compose(self):
+        reason = "it's finished"
+        self.c3.transition(COMPOSE_STATES["done"], reason)
+        self.assertEqual(self.c1.state, COMPOSE_STATES["done"])
+        self.assertEqual(self.c1.state_reason, reason)
+        self.assertEqual(self.c2.state, COMPOSE_STATES["done"])
+        self.assertEqual(self.c2.state_reason, reason)
+
+    def test_transition_to_failed_updates_reusing_compose(self):
+        reason = "it's failed"
+        self.c3.transition(COMPOSE_STATES["failed"], reason)
+        self.assertEqual(self.c1.state, COMPOSE_STATES["failed"])
+        self.assertEqual(self.c1.state_reason, reason)
+        self.assertEqual(self.c2.state, COMPOSE_STATES["failed"])
+        self.assertEqual(self.c2.state_reason, reason)
