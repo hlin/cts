@@ -432,7 +432,9 @@ def resolve_compose(compose):
             )
 
         expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
-        new_mbs_modules = mbs.validate_module_list(specified_mbs_modules, expand=expand)
+        new_mbs_modules = mbs.validate_module_list(
+            specified_mbs_modules, expand=expand, base_modules=conf.base_module_names
+        )
 
         uids = sorted(
             "{name}:{stream}:{version}:{context}".format(**m)

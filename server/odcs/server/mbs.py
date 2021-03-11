@@ -153,13 +153,15 @@ class MBS(object):
             ret.append(module)
         return ret
 
-    def _add_new_dependencies(self, module_map, modules):
+    def _add_new_dependencies(self, module_map, modules, base_modules=None):
         """
         Helper for ``validate_module_list()`` - scans ``modules`` and adds any missing
         requirements to ``module_map``.
 
         :param module_map: dict mapping module name:stream to module.
         :param modules: the list of modules to scan for dependencies.
+        :param base_modules: a list of names for base modules; their
+                dependencies should not be analyzed
         :return: a list of any modules that were added to ``module_map``.
         """
 
@@ -176,6 +178,8 @@ class MBS(object):
             # and add it to new_modules/module_map.
             for deps in mmd.get_dependencies():
                 for name in deps.get_runtime_modules():
+                    if base_modules and name in base_modules:
+                        continue
                     for stream in deps.get_runtime_streams(name):
                         key = "%s:%s" % (name, stream)
                         if key not in module_map:
@@ -185,7 +189,7 @@ class MBS(object):
 
         return new_modules
 
-    def validate_module_list(self, modules, expand=True):
+    def validate_module_list(self, modules, expand=True, base_modules=None):
         """
         Given a list of modules as returned by `get_modules()`, checks that
         there are no conflicting duplicates, removes any exact duplicates,
@@ -196,6 +200,8 @@ class MBS(object):
                 ``get_latest_module()``
         :param expand: if required modules should be included in the returned
                 list.
+        :param base_modules: a list of base module names, their dependencies
+                should not be resolved.
         :return: the list of modules with deduplication and expansion.
         :raises ModuleLookupError: if a required module couldn't be found, or a
                 conflict occurred when resolving dependencies.
@@ -248,7 +254,7 @@ class MBS(object):
             added_module_list = new_modules
             while True:
                 added_module_list = self._add_new_dependencies(
-                    module_map, added_module_list
+                    module_map, added_module_list, base_modules
                 )
                 if len(added_module_list) == 0:
                     break
