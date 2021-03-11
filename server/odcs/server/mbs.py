@@ -20,6 +20,7 @@
 # SOFTWARE.
 #
 
+import re
 import requests
 from collections import defaultdict
 
@@ -172,6 +173,21 @@ class MBS(object):
             )
             mmd = mmd.upgrade(2)
 
+            min_bound = 0
+            base_module_stream_version = None
+            for base_module in module["base_module_buildrequires"]:
+                base_module_stream_version = base_module["stream_version"]
+                # Let's extract the major version from the stream.
+                match = re.search("^[^0-9]*([0-9]+)", base_module["stream"])
+                if match:
+                    major_version = match.group(1)
+                    # The lower bound is based on major version extract from
+                    # the stream name, and padded with zeros to be the same
+                    # size as the integer part of the original stream version.
+                    min_bound = major_version + "0" * (
+                        len(str(int(base_module_stream_version))) - len(major_version)
+                    )
+
             # Check runtime dependency (name:stream) of a module and if this
             # dependency is already in module_map/new_modules, do nothing.
             # But otherwise get the latest module in this name:stream from MBS
@@ -183,7 +199,13 @@ class MBS(object):
                     for stream in deps.get_runtime_streams(name):
                         key = "%s:%s" % (name, stream)
                         if key not in module_map:
-                            new_module = self.get_latest_modules(key)
+                            new_module = self.get_latest_modules(
+                                key,
+                                base_module_br_stream_version_lte=str(
+                                    base_module_stream_version
+                                ),
+                                base_module_br_stream_version_gte=min_bound,
+                            )
                             new_modules += new_module
                             module_map[key] = [new_modules]
 

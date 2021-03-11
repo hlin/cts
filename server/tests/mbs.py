@@ -23,6 +23,7 @@
 
 from functools import wraps
 import json
+import re
 import responses
 from six.moves.urllib.parse import urlparse, parse_qs
 
@@ -40,7 +41,16 @@ def dump_mmd(mmd):
     return mod_index.dump_to_string()
 
 
-def make_module(name, stream, version, requires={}, mdversion=1, context=None, state=5):
+def make_module(
+    name,
+    stream,
+    version,
+    requires={},
+    mdversion=1,
+    context=None,
+    state=5,
+    base_module_stream=None,
+):
     if mdversion == 1:
         mmd = Modulemd.ModuleStreamV1.new(name, stream)
     else:
@@ -60,6 +70,16 @@ def make_module(name, stream, version, requires={}, mdversion=1, context=None, s
             deps.add_runtime_stream(req_name, req_stream)
         mmd.add_dependencies(deps)
 
+    base_module_stream = base_module_stream or stream
+    try:
+        m = re.match("[^0-9]*([0-9]+)((?:\\.[0-9]+)*)", base_module_stream)
+        parts = (m.group(2) or "").split(".")
+        base_module_stream_version = int(
+            m.group(1) + "".join(p.zfill(2) for p in parts)
+        )
+    except Exception:
+        base_module_stream_version = 0
+
     return {
         "name": name,
         "stream": stream,
@@ -67,6 +87,13 @@ def make_module(name, stream, version, requires={}, mdversion=1, context=None, s
         "context": context or "00000000",
         "modulemd": dump_mmd(mmd),
         "state": state,
+        "base_module_buildrequires": [
+            {
+                "name": "platform",
+                "stream": base_module_stream,
+                "stream_version": base_module_stream_version,
+            },
+        ],
     }
 
 
@@ -104,6 +131,16 @@ TEST_MBS_MODULES_MMDv2 = [
     make_module("parent", "master", 1, {}, 2, context="b"),
     make_module("testcontexts", "master", 1, {"parent": "master"}, 2, context="a"),
     make_module("testcontexts", "master", 1, {"parent": "master"}, 2, context="b"),
+    # test depend on older
+    make_module(
+        "leaf", "master", 1, {"lib": "master"}, 2, base_module_stream="el8.3.0.z"
+    ),
+    make_module(
+        "lib", "master", 1, {}, 2, context="abcdef", base_module_stream="el8.2.0.z"
+    ),
+    make_module(
+        "lib", "master", 1, {}, 2, context="fedcba", base_module_stream="el8.4.0"
+    ),
 ]
 
 
@@ -147,6 +184,16 @@ def mock_mbs(mdversion=2):
                             break
                     if module["state"] not in states:
                         skip = True
+                    if "base_module_br_stream_version_lte" in query:
+                        if module["base_module_buildrequires"][0][
+                            "stream_version"
+                        ] > float(query["base_module_br_stream_version_lte"][0]):
+                            skip = True
+                    if "base_module_br_stream_version_gte" in query:
+                        if module["base_module_buildrequires"][0][
+                            "stream_version"
+                        ] < float(query["base_module_br_stream_version_gte"][0]):
+                            skip = True
                     if skip:
                         continue
                     body["items"].append(module)
