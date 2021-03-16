@@ -888,7 +888,10 @@ def generate_pungi_compose(compose):
                 pungi_cfg.pkgset_allow_reuse = False
 
         koji_event = None
-        if compose.source_type == PungiSourceType.KOJI_TAG:
+        if compose.source_type in [
+            PungiSourceType.KOJI_TAG,
+            PungiSourceType.RAW_CONFIG,
+        ]:
             koji_event = compose.koji_event
 
         old_compose = None

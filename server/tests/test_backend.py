@@ -1477,10 +1477,12 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         # run asserts against it.
         self.pungi_config = None
         self.old_compose = None
+        self.pungi_koji_event = None
 
         def fake_pungi_run(pungi_cls, compose):
             self.pungi_config = pungi_cls.pungi_cfg
             self.old_compose = pungi_cls.old_compose
+            self.pungi_koji_event = pungi_cls.koji_event
 
         self.patch_pungi_run = patch("odcs.server.pungi.Pungi.run", autospec=True)
         self.pungi_run = self.patch_pungi_run.start()
@@ -1648,6 +1650,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         c.compose_type = "production"
         c.pungi_compose_id = "compose-1-10-2020110.n.0"
         c.id = 1
+        c.koji_event = 123456
 
         fake_raw_config_urls = {
             "pungi_cfg": {
@@ -1658,6 +1661,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         with patch.object(conf, "raw_config_urls", new=fake_raw_config_urls):
             generate_pungi_compose(c)
 
+        self.assertEqual(self.pungi_koji_event, c.koji_event)
         self.assertEqual(c.pungi_config_dump, "fake\npungi\nconf\n")
         self.assertEqual(
             self.pungi_config.pungi_cfg,
