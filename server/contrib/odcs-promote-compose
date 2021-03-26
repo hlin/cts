@@ -29,7 +29,12 @@ class ComposeCheck(object):
     """
 
     def __init__(
-        self, path, target, allow_unsigned=False, allow_finished_incomplete=False
+        self,
+        path,
+        target,
+        allow_unsigned=False,
+        allow_finished_incomplete=False,
+        compose_type="production",
     ):
         """
         Creates new ComposeCheck instance.
@@ -41,11 +46,13 @@ class ComposeCheck(object):
             can be promoted.
         :param bool allow_finished_incomplete: If True, compose in FINISHED_INCOMPLETE
             state can be promoted.
+        :param str compose_type: Compose with the type can be promoted.
         """
         self.path = path
         self.target = target
         self.allow_unsigned = allow_unsigned
         self.allow_finished_incomplete = allow_finished_incomplete
+        self.compose_type = compose_type
 
     def check_status(self):
         """
@@ -73,8 +80,8 @@ class ComposeCheck(object):
         print("Checking compose type.")
         ci = ComposeInfo()
         ci.load(os.path.join(self.path, "compose", "metadata", "composeinfo.json"))
-        if ci.compose.type != "production":
-            raise ComposeCheckError('Compose type is not "production".')
+        if ci.compose.type != self.compose_type:
+            raise ComposeCheckError('Compose type is not "%s".' % self.compose_type)
 
     def check_rpms(self):
         """
@@ -237,6 +244,11 @@ if __name__ == "__main__":
         action="store_true",
         help="WARN: Promote the compose without any checks.",
     )
+    parser.add_argument(
+        "--compose-type",
+        default="production",
+        help="Allowed compose type, default: production.",
+    )
     args = parser.parse_args()
 
     args.compose = os.path.abspath(args.compose)
@@ -248,6 +260,7 @@ if __name__ == "__main__":
             args.target,
             args.allow_unsigned,
             args.allow_finished_incomplete,
+            args.compose_type,
         )
         try:
             compose_check.run()
