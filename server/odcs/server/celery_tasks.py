@@ -21,6 +21,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import contextlib
 import ssl
 import os
 import re
@@ -307,6 +308,18 @@ def run_cleanup():
     """
     Runs the cleanup.
     """
-    remove_expired_compose_thread.do_work()
-    composer_thread.fail_lost_generating_composes()
-    reschedule_waiting_composes()
+
+    @contextlib.contextmanager
+    def log_errors(msg):
+        """Log any exception raised from the block and then ignore it."""
+        try:
+            yield
+        except Exception:
+            log.exception(msg)
+
+    with log_errors("Error while removing expired composes"):
+        remove_expired_compose_thread.do_work()
+    with log_errors("Error while marking lost generating composes as failed"):
+        composer_thread.fail_lost_generating_composes()
+    with log_errors("Error while rescheduling waiting composes"):
+        reschedule_waiting_composes()

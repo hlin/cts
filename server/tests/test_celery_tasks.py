@@ -5,7 +5,11 @@ import pytest
 from .utils import ModelsBaseTest
 
 from odcs.server import conf, db
-from odcs.server.celery_tasks import TaskRouter, reschedule_waiting_composes
+from odcs.server.celery_tasks import (
+    TaskRouter,
+    reschedule_waiting_composes,
+    run_cleanup,
+)
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
 from odcs.server.pungi import PungiSourceType
 from odcs.server.models import Compose
@@ -317,3 +321,37 @@ class TestRescheduleWaitingComposes(ModelsBaseTest):
         composes = sorted(composes, key=lambda c: c.id)
         reschedule_waiting_composes()
         schedule_compose.assert_not_called()
+
+
+class TestRunCleanup:
+    def do_nothing(self):
+        pass
+
+    def raise_error(self):
+        raise RuntimeError("It failed")
+
+    @patch("odcs.server.celery_tasks.reschedule_waiting_composes")
+    @patch("odcs.server.celery_tasks.composer_thread")
+    @patch("odcs.server.celery_tasks.remove_expired_compose_thread")
+    def test_all_fine(
+        self,
+        remove_expired_compose_thread,
+        composer_thread,
+        reschedule_waiting_composes,
+    ):
+        funcs = [
+            remove_expired_compose_thread.do_work,
+            composer_thread.fail_lost_generating_composes,
+            reschedule_waiting_composes,
+        ]
+        num_funcs = len(funcs)
+
+        for i in range(num_funcs):
+            # Run cleanup repeatedly, each time setting a different function to fail
+            for x, func in enumerate(funcs):
+                func.side_effect = self.raise_error if x == i else self.do_nothing
+
+            run_cleanup()
+
+        for func in funcs:
+            func.assert_has_calls([call()] * num_funcs)
