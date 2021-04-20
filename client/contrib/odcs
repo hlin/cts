@@ -266,6 +266,7 @@ _add_arguments(
     create_module_parser,
     "--sigkey",
     "--arch",
+    "--modular-tag",
     "--module-defaults-url",
     "--module-defaults-commit",
     "--lookaside-repo",
@@ -453,6 +454,7 @@ try:
             base_module_br_stream=args.base_module_br_stream,
             base_module_br_stream_version_lte=args.base_module_br_stream_version_lte,
             base_module_br_stream_version_gte=args.base_module_br_stream_version_gte,
+            modular_koji_tags=args.modular_tag,
         )
         result = client.request_compose(source, **request_args)
     elif args.command == "create-pulp":

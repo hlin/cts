@@ -51,6 +51,11 @@ import odcs.server.utils
 import odcs.server.mbs
 import defusedxml.ElementTree
 
+import gi
+
+gi.require_version("Modulemd", "2.0")
+from gi.repository import Modulemd  # noqa: E402
+
 # Cache last event for each tag since that a compose was generated from that
 # tag.
 # This is a mapping from tag name to koji event id. For example,
@@ -368,6 +373,185 @@ def tag_changed(koji_session, tag, koji_event):
     return koji_session.tagChangedSinceEvent(koji_event, tags)
 
 
+def find_exact_module(koji_session, nsv_or_nsvc):
+    parts = nsv_or_nsvc.split(":")
+    context = parts[3] if len(parts) > 3 else "*"
+    nvr = "%s-%s-%s.%s" % (parts[0], parts[1].replace("-", "_"), parts[2], context)
+    module_dependencies = {}
+    for build in koji_session.search(nvr, type="build", matchType="glob"):
+        nsvc, deps = process_module_build(koji_session, build["id"])
+        module_dependencies[nsvc] = deps
+    return module_dependencies
+
+
+def filter_inherited(koji_session, event, module_builds, top_tag):
+    """Look at the tag inheritance and keep builds only from the topmost tag.
+
+    Using latest=True for listTagged() call would automatically do this, but it
+    does not understand streams, so we have to reimplement it here.
+    """
+    inheritance = [
+        tag["name"]
+        for tag in koji_session.getFullInheritance(top_tag, event=event["id"])
+    ]
+
+    def keyfunc(mb):
+        return (mb["name"], mb["version"])
+
+    result = []
+
+    # Group modules by Name-Stream
+    for _, builds in itertools.groupby(sorted(module_builds, key=keyfunc), keyfunc):
+        builds = list(builds)
+        # For each N-S combination find out which tags it's in
+        available_in = set(build["tag_name"] for build in builds)
+
+        # And find out which is the topmost tag
+        for tag in [top_tag] + inheritance:
+            if tag in available_in:
+                break
+
+        # And keep only builds from that topmost tag
+        result.extend(build for build in builds if build["tag_name"] == tag)
+
+    return result
+
+
+def process_module_build(koji_session, build_id):
+    # Get the Build from Koji to get modulemd and module_tag.
+    build = koji_session.getBuild(build_id)
+    modulemd_str = build["extra"]["typeinfo"]["module"]["modulemd_str"]
+    result = Modulemd.read_packager_string(modulemd_str)
+    if isinstance(result, Modulemd.ModuleStreamV2):
+        module = result.upgrade_ext(2)
+    else:
+        module = result[1].upgrade_ext(2)
+    ms = module.get_all_streams()[0]
+    nsvc = ms.get_nsvc()
+    all_deps = set()
+    for deps in ms.get_dependencies():
+        for mod_dep in deps.get_runtime_modules():
+            if mod_dep == "platform":
+                continue
+            for stream_dep in deps.get_runtime_streams(mod_dep):
+                all_deps.add(mod_dep + ":" + stream_dep)
+    return nsvc, all_deps
+
+
+def get_module_from_koji_tags(koji_session, tags, event, name):
+    module_builds = []
+    found_streams = set()
+
+    for tag in tags:
+        # List all the modular builds in the modular Koji tag.
+        # We cannot use latest=True here, because we need to get all the
+        # available streams of all modules. The stream is represented as
+        # "release" in Koji build and with latest=True, Koji would return
+        # only builds with highest release.
+        modules = koji_session.listTagged(
+            tag, event=event["id"], package=name, inherit=True, type="module"
+        )
+
+        # Filter out builds inherited from non-top tag
+        modules = filter_inherited(koji_session, event, modules, tag)
+
+        # Get all streams defined in this tag.
+        for module in modules:
+            if module["version"] not in found_streams:
+                module_builds.append(module)
+
+        # Mark all streams we already got from a tag. Same stream in any
+        # subsequent tag will be skipped.
+        found_streams |= set(m["version"] for m in modules)
+
+    # Find the latest builds of all modules. This does following:
+    # - Sorts the module_builds descending by Koji NVR (which maps to NSV
+    #   for modules). Split release into modular version and context, and
+    #   treat version as numeric.
+    # - Groups the sorted module_builds by NV (NS in modular world).
+    #   In each resulting `ns_group`, the first item is actually build
+    #   with the latest version (because the list is still sorted by NVR).
+    # - Groups the `ns_group` again by "release" ("version" in modular
+    #   world) to just get all the "contexts" of the given NSV. This is
+    #   stored in `nsv_builds`.
+    # - The `nsv_builds` contains the builds representing all the contexts
+    #   of the latest version for give name-stream, so add them to
+    #   `latest_builds`.
+    def _key(build):
+        ver, ctx = build["release"].split(".", 1)
+        return build["name"], build["version"], int(ver), ctx
+
+    latest_builds = []
+    module_builds = sorted(module_builds, key=_key, reverse=True)
+    for ns, ns_builds in itertools.groupby(
+        module_builds, key=lambda x: ":".join([x["name"], x["version"]])
+    ):
+        for nsv, nsv_builds in itertools.groupby(
+            ns_builds, key=lambda x: x["release"].split(".")[0]
+        ):
+            latest_builds += list(nsv_builds)
+            break
+
+    # For each latest modular Koji build, add it to variant and
+    # variant_tags.
+    module_dependencies = {}
+    for build in latest_builds:
+        nsvc, deps = process_module_build(koji_session, build["build_id"])
+        module_dependencies[nsvc] = deps
+
+    return module_dependencies
+
+
+def depsolve_modules(modules, tags, event=None):
+    koji_module = koji.get_profile_module("brew")
+    koji_session = koji.ClientSession(koji_module.config.server)
+
+    event = event or koji_session.getLastEvent()
+
+    module_dependencies = {}
+    resolved = set()
+    results = set()
+    unresolved = set()
+
+    for module in modules:
+        colon_count = module.count(":")
+        ns = ":".join(module.split(":", 2)[:2])
+        unresolved.add(ns)
+        if colon_count < 1:
+            raise RuntimeError("%s is not in N:S[:V[:C]] format" % module)
+        name = module.split(":")[0]
+        if colon_count > 1:
+            # We have N:S:V or N:S:V:C
+            module_dependencies[name] = find_exact_module(koji_session, module)
+        else:
+            # We have N:S
+            module_dependencies[name] = get_module_from_koji_tags(
+                koji_session, tags, event, name
+            )
+
+    def find_module(all_modules, name, ns):
+        if name not in all_modules:
+            all_modules[name] = get_module_from_koji_tags(
+                koji_session, tags, event, name
+            )
+
+        for nsvc in all_modules[name]:
+            if nsvc.startswith(ns + ":"):
+                yield nsvc
+
+    while unresolved:
+        ns = unresolved.pop()
+        resolved.add(ns)
+        name = ns.split(":")[0]
+        for nsvc in find_module(module_dependencies, name, ns):
+            for dep in module_dependencies[name][nsvc]:
+                if dep not in resolved:
+                    unresolved.add(dep)
+            results.add(nsvc)
+
+    return results
+
+
 def resolve_compose(compose):
     """
     Resolves various general compose values to the real ones. For example:
@@ -410,37 +594,45 @@ def resolve_compose(compose):
             LAST_EVENTS_CACHE[compose.source] = event_id
     elif compose.source_type == PungiSourceType.MODULE:
 
-        # Resolve the latest release of modules which do not have the release
-        # string defined in the compose.source.
-        mbs = odcs.server.mbs.MBS(conf)
         modules = compose.source.split(" ")
 
-        include_done = compose.flags & COMPOSE_FLAGS["include_done_modules"]
-        specified_mbs_modules = []
-        for module in modules:
-            # In case the module is defined by complete NSVC, include it in a compose
-            # even if it is in "done" state, because submitter directly asked for this
-            # NSVC.
-            is_complete_nsvc = module.count(":") == 3
-            specified_mbs_modules += mbs.get_latest_modules(
-                module,
-                include_done or is_complete_nsvc,
-                compose.base_module_br_name,
-                compose.base_module_br_stream,
-                compose.base_module_br_stream_version_lte,
-                compose.base_module_br_stream_version_gte,
+        if compose.modular_koji_tags:
+            uids = sorted(
+                depsolve_modules(modules, compose.modular_koji_tags.split(" "))
+            )
+        else:
+            # Resolve the latest release of modules which do not have the release
+            # string defined in the compose.source.
+            mbs = odcs.server.mbs.MBS(conf)
+
+            include_done = compose.flags & COMPOSE_FLAGS["include_done_modules"]
+            specified_mbs_modules = []
+            for module in modules:
+                # In case the module is defined by complete NSVC, include it in a compose
+                # even if it is in "done" state, because submitter directly asked for this
+                # NSVC.
+                is_complete_nsvc = module.count(":") == 3
+                specified_mbs_modules += mbs.get_latest_modules(
+                    module,
+                    include_done or is_complete_nsvc,
+                    compose.base_module_br_name,
+                    compose.base_module_br_stream,
+                    compose.base_module_br_stream_version_lte,
+                    compose.base_module_br_stream_version_gte,
+                )
+
+            expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
+            new_mbs_modules = mbs.validate_module_list(
+                specified_mbs_modules,
+                expand=expand,
+                base_modules=conf.base_module_names,
             )
 
-        expand = not compose.flags & COMPOSE_FLAGS["no_deps"]
-        new_mbs_modules = mbs.validate_module_list(
-            specified_mbs_modules, expand=expand, base_modules=conf.base_module_names
-        )
-
-        uids = sorted(
-            "{name}:{stream}:{version}:{context}".format(**m)
-            for m in new_mbs_modules
-            if m["name"] not in conf.base_module_names
-        )
+            uids = sorted(
+                "{name}:{stream}:{version}:{context}".format(**m)
+                for m in new_mbs_modules
+                if m["name"] not in conf.base_module_names
+            )
         compose.source = " ".join(uids)
     elif compose.source_type == PungiSourceType.PUNGI_COMPOSE:
         external_compose = PungiCompose(compose.source)

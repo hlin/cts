@@ -36,6 +36,12 @@ For example, you can create compose with latest version and all contexts of
 
 ``$ odcs create module testmodule:master``
 
+Instead of getting latest version of modules, ``--modular-tag`` option could
+be used to getting module and its **modular** dependencies from the specified
+Koji tag.
+
+``$ odcs create module testmodule:master --modular-tag testmodule-tag``
+
 Again, if the packages in a module are not signed yet, you need to use
 ``--sigkey none``.
 
