@@ -62,6 +62,16 @@ The fields used in the ODCS compose JSON have following meaning:
 *base_module_br_stream* - ``(string)``
     When :ref:`base module name<base_module_br_name>` is specified, the stream for the base module should be specified as well.
 
+.. _base_module_br_stream_version_lte:
+
+*base_module_br_stream_version_lte* - ``(string)``
+    When :ref:`base_module_br_name<base_module_br_name>` is specified, this is the upper bound for stream version.
+
+.. _base_module_br_stream_version_gte:
+
+*base_module_br_stream_version_gte* - ``(string)``
+    When :ref:`base_module_br_name<base_module_br_name>` is specified, this is the lower bound for stream version.
+
 .. _builds:
 
 *builds* - ``(white-space separated list of strings or null)``
