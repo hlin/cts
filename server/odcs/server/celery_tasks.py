@@ -102,7 +102,7 @@ celery_app.conf.update({"task_routes": ("odcs.server.celery_tasks.TaskRouter")})
 
 
 class TaskRouter:
-    """ Custom Celery router """
+    """Custom Celery router"""
 
     def __init__(self):
         self.config = conf.celery_router_config
@@ -124,7 +124,7 @@ class TaskRouter:
         return {"queue": queue}
 
     def __get_queue_for_compose(self, compose_md, task_name):
-        """ Goes through routing rules configured for a task returns a queue on the first match. """
+        """Goes through routing rules configured for a task returns a queue on the first match."""
         rules = {}
         if self.config["routing_rules"].get(task_name):
             rules.update(self.config["routing_rules"][task_name])

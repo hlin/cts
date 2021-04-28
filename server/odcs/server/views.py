@@ -702,7 +702,7 @@ class MetricsAPI(MethodView):
 
 
 def register_api_v1():
-    """ Registers version 1 of ODCS API. """
+    """Registers version 1 of ODCS API."""
     composes_view = ODCSAPI.as_view("composes")
     about_view = AboutAPI.as_view("about")
     metrics_view = MetricsAPI.as_view("metrics")
