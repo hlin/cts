@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.3
+  - Release date: 2021-05-20
+  - Allow resolving modules against koji tags
+  - Add documentation for new _lte and _gte filters
+  - mbs: Use base module stream when resolving dependencies
+  - mbs: Ignore platform module in the dependency loop
+  - Log and ignore exceptions in cleanup
+  - Allow specifying compose type for promotion
+  - Set --koji-event also for RAW_CONFIG composes.
+  - Reuse in-progress composes
+  - Improve caching koji tag composes
+  - utils: Wait a short time for timer event to be set
+  - Raise when got 404 error in retry
+
 ## 0.3.2
   - Release date: 2021-02-19
   - Add better filters for base module stream
