@@ -707,25 +707,31 @@ def get_reusable_compose(compose):
     if compose.source_type == PungiSourceType.RAW_CONFIG:
         return None
 
-    # Get all the active composes of the same source_type
-    composes = (
+    query = [
+        Compose.source_type == compose.source_type,
+        Compose.id < compose.id,
+        Compose.reused_id == None,  # noqa: E711
+    ]
+
+    # Get all relevant generating composes and sorting by id in asc order to ensure
+    # resuing the oldest one in generating which is helpful to avoid chain of reuse.
+    composes_generating = (
         db.session.query(Compose)
-        .filter(
-            Compose.state.in_([COMPOSE_STATES["done"], COMPOSE_STATES["generating"]]),
-            Compose.source_type == compose.source_type,
-            Compose.id != compose.id,
-        )
+        .filter(Compose.state == COMPOSE_STATES["generating"], *query)
+        .order_by(Compose.id.asc())
         .all()
     )
 
-    for old_compose in composes:
-        # Skip the old_compose in case it reuses another compose. In that case
-        # the reused compose is also in composes list, so we won't miss it. We
-        # don't want chain of composes reusing each other, because it would
-        # break the time_to_expire handling.
-        if old_compose.reused_id:
-            continue
+    # Get all relevant done composes and sorting by id in desc order to ensure
+    # reusing the most recent one.
+    composes_done = (
+        db.session.query(Compose)
+        .filter(Compose.state == COMPOSE_STATES["done"], *query)
+        .order_by(Compose.id.desc())
+        .all()
+    )
 
+    for old_compose in itertools.chain(composes_done, composes_generating):
         try:
             string_list_attrs = [
                 "packages",
