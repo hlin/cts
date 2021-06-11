@@ -99,14 +99,14 @@ class TestMakeRequest(unittest.TestCase):
     @patch("odcs.client.odcs.requests")
     @patch("odcs.client.odcs.HTTPKerberosAuth")
     def test_with_kerberos_auth(self, HTTPKerberosAuth, requests):
-        requests.get.return_value.status_code = 200
+        requests.post.return_value.status_code = 200
         expected_auth = HTTPKerberosAuth.return_value
 
         odcs = ODCS(self.server_url, auth_mech=AuthMech.Kerberos)
-        r = odcs._make_request("get", self.resource_path)
+        r = odcs._make_request("post", self.resource_path)
 
-        self.assertEqual(requests.get.return_value, r)
-        requests.get.assert_called_once_with(
+        self.assertEqual(requests.post.return_value, r)
+        requests.post.assert_called_once_with(
             odcs._make_endpoint(self.resource_path), auth=expected_auth
         )
 

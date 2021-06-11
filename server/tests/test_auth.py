@@ -91,7 +91,7 @@ class TestLoadSSLUserFromRequest(ModelsBaseTest):
             "SSL_CLIENT_S_DN": self.user.username,
         }
 
-        with app.test_request_context(environ_base=environ_base):
+        with app.test_request_context(environ_base=environ_base, method="POST"):
             with self.assertRaises(Unauthorized) as ctx:
                 load_ssl_user_from_request(flask.request)
             self.assertIn("Cannot verify client: GENEROUS", ctx.exception.description)
@@ -185,7 +185,7 @@ class TestLoadKrbUserFromRequest(ModelsBaseTest):
             self.assertEqual(["admins", "devel"], sorted(flask.g.groups))
 
     def test_401_if_remote_user_not_present(self):
-        with app.test_request_context():
+        with app.test_request_context(method="POST"):
             with self.assertRaises(Unauthorized) as ctx:
                 load_krb_user_from_request(flask.request)
             self.assertIn(
@@ -287,7 +287,7 @@ class TestLoadOpenIDCUserFromRequest(ModelsBaseTest):
             "OIDC_CLAIM_iss": "https://iddev.fedorainfracloud.org/openidc/",
             "OIDC_CLAIM_scope": "openid https://id.fedoraproject.org/scope/groups",
         }
-        with app.test_request_context(environ_base=environ_base):
+        with app.test_request_context(environ_base=environ_base, method="POST"):
             self.assertRaises(Unauthorized, load_openidc_user, flask.request)
 
     def test_401_if_access_token_not_present(self):

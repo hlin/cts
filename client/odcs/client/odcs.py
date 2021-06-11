@@ -422,12 +422,13 @@ class ODCS(object):
                 request_data["params"] = data
         if not self._verify_ssl:
             request_data["verify"] = False
-        if self.auth_mech == AuthMech.OpenIDC:
-            headers["Authorization"] = "Bearer {0}".format(self._openidc_token)
-        elif self.auth_mech == AuthMech.Kerberos:
-            request_data["auth"] = HTTPKerberosAuth()
-        elif self.auth_mech == AuthMech.SSL:
-            request_data["cert"] = (self._ssl_cert, self._ssl_key)
+        if method != "get":
+            if self.auth_mech == AuthMech.OpenIDC:
+                headers["Authorization"] = "Bearer {0}".format(self._openidc_token)
+            elif self.auth_mech == AuthMech.Kerberos:
+                request_data["auth"] = HTTPKerberosAuth()
+            elif self.auth_mech == AuthMech.SSL:
+                request_data["cert"] = (self._ssl_cert, self._ssl_key)
 
         # Anonymous is the last possible value and no auth should be set
 
