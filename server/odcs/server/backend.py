@@ -65,6 +65,9 @@ from gi.repository import Modulemd  # noqa: E402
 # }
 LAST_EVENTS_CACHE = {}
 
+# Composes in generating state can be reused only when having this state_reason.
+GENERATING_STATE_REASON = "Compose is generating"
+
 
 class BackendThread(object):
     """
@@ -717,7 +720,11 @@ def get_reusable_compose(compose):
     # resuing the oldest one in generating which is helpful to avoid chain of reuse.
     composes_generating = (
         db.session.query(Compose)
-        .filter(Compose.state == COMPOSE_STATES["generating"], *query)
+        .filter(
+            Compose.state == COMPOSE_STATES["generating"],
+            Compose.state_reason == GENERATING_STATE_REASON,
+            *query
+        )
         .order_by(Compose.id.asc())
         .all()
     )
@@ -1105,6 +1112,8 @@ def generate_pungi_compose(compose):
         if compose.source_type == PungiSourceType.RAW_CONFIG:
             old_compose = os.path.join(compose.target_dir, compose.compose_type)
 
+        compose.state_reason = GENERATING_STATE_REASON
+        db.session.commit()
         pungi = Pungi(compose.id, pungi_cfg, koji_event, old_compose)
         pungi.run(compose)
 

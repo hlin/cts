@@ -579,6 +579,11 @@ class TestBackend(ModelsBaseTest):
         db.session.commit()
 
         reused_c = get_reusable_compose(c)
+        self.assertIsNone(reused_c)
+
+        old_c.state_reason = "Compose is generating"
+        db.session.commit()
+        reused_c = get_reusable_compose(c)
         self.assertEqual(reused_c, old_c)
 
     @patch("odcs.server.backend.koji_get_inherited_tags")
