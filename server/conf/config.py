@@ -157,6 +157,9 @@ class BaseConfiguration(object):
     #     'another_raw_config': ['arg1', ...],
     # }
 
+    # Expected number of celery backends
+    EXPECTED_BACKEND_NUMBER = 1
+
 
 class DevConfiguration(BaseConfiguration):
     DEBUG = True

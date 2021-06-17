@@ -114,6 +114,7 @@ class WorkerCountThread(threading.Thread):
     """
     Thread providing and updating following metrics:
 
+    - celery_workers_expected - Number of expected workers.
     - celery_workers_totals - Number of alive workers.
     - celery_workers[worker_name] - 1 if worker is online, 0 if offline.
     """
@@ -121,10 +122,16 @@ class WorkerCountThread(threading.Thread):
     def __init__(self, registry=None):
         super(WorkerCountThread, self).__init__()
         self.daemon = True
+        self.workers_expected = Gauge(
+            "celery_workers_expected", "Number of expected workers", registry=registry
+        )
+        self.workers_expected.set(conf.expected_backend_number)
+
         self.workers_total = Gauge(
             "celery_workers_totals", "Number of alive workers", registry=registry
         )
         self.workers_total.set(0)
+
         self.workers = Gauge(
             "celery_workers",
             "Number of alive workers",
