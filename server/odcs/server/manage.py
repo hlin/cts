@@ -30,7 +30,6 @@ from flask.cli import FlaskGroup
 from werkzeug.serving import run_simple
 
 from odcs.server import app, conf, db
-from odcs.server import models
 
 
 def _establish_ssl_context():
@@ -65,22 +64,6 @@ def cli():
 
 migrations_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "migrations")
 flask_migrate.Migrate(app, db, directory=migrations_dir)
-
-
-@cli.command()
-def upgradedb():
-    """Upgrades the database schema to the latest revision"""
-    app.config["SERVER_NAME"] = "localhost"
-    with app.app_context():
-        flask_migrate.upgrade(directory=migrations_dir)
-
-
-@cli.command()
-def cleardb():
-    """Clears the database"""
-    models.Event.query.delete()
-    models.ArtifactBuild.query.delete()
-    db.session.commit()
 
 
 @cli.command()
