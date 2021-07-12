@@ -53,9 +53,14 @@ extras_require["all"] = list(
 with open("test-requirements.txt") as f:
     test_requirements = f.readlines()
 
+with open("README.md") as f:
+    long_description = f.read()
+
 setup(
     name="odcs",
     description="On Demand Compose Service",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     version="0.3.3",
     classifiers=[
         "Programming Language :: Python",
