@@ -1674,6 +1674,7 @@ class TestGeneratePungiCompose(ModelsBaseTest):
         c.pungi_compose_id = "compose-1-10-2020110.n.0"
         c.id = 1
         c.koji_event = 123456
+        c.label = "Alpha-0.1"
 
         fake_raw_config_urls = {
             "pungi_cfg": {
@@ -1706,6 +1707,12 @@ class TestGeneratePungiCompose(ModelsBaseTest):
                 call(
                     "../odcs-1",
                     AnyStringWith("/test_composes/production/latest-compose-1"),
+                ),
+                call(
+                    "../odcs-1",
+                    AnyStringWith(
+                        "/test_composes/production/latest-compose-1-Alpha-0.1"
+                    ),
                 ),
             ]
         )

@@ -957,6 +957,7 @@ def generate_compose_symlink(compose):
     It generates following symlinks pointing to the compose:
       - $compose.target_dir/$compose.compose_type/$compose.pungi_compose_id
       - $compose.target_dir/$compose.compose_type/latest-$name-version
+      - $compose.target_dir/$compose.compose_type/latest-$name-version-$label
 
     If the latest-* symlink exists, it is replaced with new one pointing to
     the `composes`.
@@ -981,8 +982,23 @@ def generate_compose_symlink(compose):
     log.info("%r: Generating %s symlink.", compose, symlink)
     os.symlink(compose_dir, symlink)
 
+    # Generate the latest-* symlink with label.
+    if compose.label:
+        latest_name_with_label = "latest-%s" % "-".join(
+            compose.pungi_compose_id.split("-")[:2]
+        )
+        latest_name_with_label += "-%s" % compose.label
+        symlink = os.path.join(symlink_dir, latest_name_with_label)
+        try:
+            os.unlink(symlink)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+        log.info("%r: Generating %s symlink.", compose, symlink)
+        os.symlink(compose_dir, symlink)
 
-def get_latest_symlink(compose):
+
+def get_latest_symlink(compose, with_label=False):
     """
     Returns the latest-* symlink associated with this compose or None
     if it does not exists.
@@ -994,6 +1010,8 @@ def get_latest_symlink(compose):
     symlink_dir = os.path.join(compose.target_dir, compose.compose_type)
     symlink = os.path.join(symlink_dir, compose.pungi_compose_id)
     latest_name = "latest-%s" % "-".join(compose.pungi_compose_id.split("-")[:2])
+    if with_label and compose.label:
+        latest_name += "-%s" % compose.label
     latest_symlink = os.path.join(symlink_dir, latest_name)
 
     # Return Non if `latest_symlink` points to the different dir than `symlink`.
@@ -1015,6 +1033,7 @@ def remove_compose_symlink(compose):
     symlink_dir = os.path.join(compose.target_dir, compose.compose_type)
     symlink = os.path.join(symlink_dir, compose.pungi_compose_id)
     latest_symlink = get_latest_symlink(compose)
+    latest_symlink_with_label = get_latest_symlink(compose, with_label=True)
 
     # Remove non-latest symlink.
     log.info("%r: Removing %s symlink.", compose, symlink)
@@ -1029,6 +1048,15 @@ def remove_compose_symlink(compose):
         log.info("%r: Removing %s symlink.", compose, latest_symlink)
         try:
             os.unlink(latest_symlink)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+
+    # Remove latest symlink with label.
+    if latest_symlink_with_label:
+        log.info("%r: Removing %s symlink.", compose, latest_symlink_with_label)
+        try:
+            os.unlink(latest_symlink_with_label)
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
