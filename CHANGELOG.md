@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## 0.3.4
+  - Release date: 2021-08-10
+  - Create compose label symlink after finishing compose
+  - Display README on PyPI
+  - Drop cleardb and upgradedb command
+  - Rewrite odcs-manager to not use flask-script
+  - Add expected number of hosts to metrics
+  - Avoid chain of reusing of in-progress composes
+  - Allow unauthenticated GET requests
+  - Avoid reusing each other or chain of reusing
+
 ## 0.3.3
   - Release date: 2021-05-20
   - Allow resolving modules against koji tags
