@@ -88,7 +88,6 @@ setup(
     scripts=["client/contrib/odcs", "server/contrib/odcs-promote-compose"],
     entry_points={
         "console_scripts": [
-            "odcs-upgradedb = odcs.server.manage:upgradedb [server]",
             "odcs-gencert = odcs.server.manage:generatelocalhostcert [server]",
             "odcs-frontend = odcs.server.manage:runssl [server]",
             "odcs-mock-runroot = odcs.server.mock_runroot:mock_runroot_main [server]",
