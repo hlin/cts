@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.5
+  - Release date: 2021-08-25
+  - Allow optional kerberos auth
+  - Remove odcs-upgradedb command
+  - Disable createrepo cache
 
 ## 0.3.4
   - Release date: 2021-08-10
