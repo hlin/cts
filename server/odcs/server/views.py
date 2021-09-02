@@ -105,6 +105,19 @@ class ODCSAPI(MethodView):
         else:
             return conf.seconds_to_live
 
+    def _run_schedule_compose(self, compose):
+        """Call schedule_compose with error handling.
+
+        :param Compose compose: instance of odcs.server.models.Compose
+        """
+        try:
+            schedule_compose(compose)
+        except Exception as e:
+            raise RuntimeError(
+                "Can not schedule compose probably due to celery broker issue - %s"
+                % str(e)
+            )
+
     @cors_header()
     def get(self, id):
         """Returns ODCS composes.
@@ -258,7 +271,7 @@ class ODCSAPI(MethodView):
             db.session.commit()
 
             if CELERY_AVAILABLE and conf.celery_broker_url:
-                schedule_compose(compose)
+                self._run_schedule_compose(compose)
 
             return jsonify(compose.json()), 200
         else:
@@ -573,7 +586,7 @@ class ODCSAPI(MethodView):
         db.session.commit()
 
         if CELERY_AVAILABLE and conf.celery_broker_url:
-            schedule_compose(compose)
+            self._run_schedule_compose(compose)
 
         return jsonify(compose.json()), 200
 
