@@ -7,6 +7,7 @@ import sys
 import os
 import stat
 import errno
+import filecmp
 
 from kobo.shortcuts import run
 from productmd.composeinfo import ComposeInfo
@@ -180,6 +181,86 @@ class ComposePromotion(object):
                 self.symlinks.append((file_path, hardlink_path))
         return ignored
 
+    def _copytree(
+        self,
+        src,
+        dst,
+        symlinks=True,
+        ignore=None,
+        copy_function=shutil.copy2,
+        ignore_dangling_symlinks=False,
+    ):
+        """Modified version of shutil.copytree that continues if the dest dir exists"""
+
+        names = os.listdir(src)
+        if ignore is not None:
+            ignored_names = ignore(src, names)
+        else:
+            ignored_names = set()
+
+        # Continue if dir exists
+        os.makedirs(dst, exist_ok=True)
+        errors = []
+        for name in names:
+            if name in ignored_names:
+                continue
+            srcname = os.path.join(src, name)
+            dstname = os.path.join(dst, name)
+
+            try:
+                # Symlinks are filtered out via _copytree ignore.
+                # Symlinks that are not filtered out are handled
+                # as symlinks because symlinks=True is set.
+                if os.path.islink(srcname):
+                    linkto = os.readlink(srcname)
+                    if symlinks:
+                        # We can't just leave it to `copy_function` because legacy
+                        # code with a custom `copy_function` may rely on copytree
+                        # doing the right thing.
+                        os.symlink(linkto, dstname)
+                        shutil.copystat(srcname, dstname, follow_symlinks=not symlinks)
+                    else:
+                        # ignore dangling symlink if the flag is on
+                        if not os.path.exists(linkto) and ignore_dangling_symlinks:
+                            continue
+                        # otherwise let the copy occurs. copy2 will raise an error
+                        if os.path.isdir(srcname):
+                            shutil.copytree(
+                                srcname, dstname, symlinks, ignore, copy_function
+                            )
+                        else:
+                            copy_function(srcname, dstname)
+                elif os.path.isdir(srcname):
+                    self._copytree(srcname, dstname, symlinks, ignore, copy_function)
+                else:
+                    # Will raise a SpecialFileError for unsupported file types
+                    # skip is src and dst are the same
+                    if not os.path.isfile(dstname):
+                        copy_function(srcname, dstname)
+                    elif not filecmp.cmp(srcname, dstname, shallow=True):
+                        copy_function(srcname, dstname)
+                    else:
+                        print("Skipping " + dstname)
+                        print(
+                            "File exists and has the same file type, size, and modification time"
+                        )
+
+            # catch the Error from the recursive copytree so that we can
+            # continue with other files
+            except Exception as err:
+                errors.extend(err.args[0])
+            except OSError as why:
+                errors.append((srcname, dstname, str(why)))
+        try:
+            shutil.copystat(src, dst)
+        except OSError as why:
+            # Copying file access times may fail on Windows
+            if getattr(why, "winerror", None) is None:
+                errors.append((src, dst, str(why)))
+        if errors:
+            raise shutil.Error(errors)
+        return dst
+
     def _replace_symlinks_with_hardlinks(self):
         """
         Copy symlinks from `compose` to `target` and replace them with hardlinks.
@@ -190,10 +271,17 @@ class ComposePromotion(object):
             abspath = os.path.normpath(
                 os.path.join(os.path.dirname(symlink), real_path)
             )
+
+            if os.path.islink(hardlink_path) or os.path.isfile(hardlink_path):
+                print(hardlink_path + " exists")
+                continue
+
             try:
                 os.link(abspath, hardlink_path)
             except OSError as ex:
                 if ex.errno == errno.EXDEV:
+                    print("Failed to link " + abspath + " " + hardlink_path)
+                    print(ex)
                     shutil.copy2(abspath, hardlink_path)
                 else:
                     raise
@@ -222,9 +310,38 @@ class ComposePromotion(object):
         """
         Promotes the compose.
         """
-        shutil.copytree(args.compose, args.target, ignore=self._copytree_ignore)
+
+        # check if this is a continued promote
+        src_compose_id = args.compose + "/COMPOSE_ID"
+        dst_compose_id = args.target + "/COMPOSE_ID"
+
+        if os.path.isdir(args.target):
+            print(
+                "Destination dir",
+                args.target,
+                "exists.\nChecking if this is the same compose.",
+            )
+
+            if not os.path.isfile(dst_compose_id):
+                print("Destination dir exists and is not a compose. exiting.")
+                return False
+
+            if not filecmp.cmp(src_compose_id, dst_compose_id):
+                print("Directories are not the same compose. exiting.")
+                return False
+            else:
+                print("Continuing previous promote.")
+
+        # copy the COMPOSE_ID file first
+        os.makedirs(args.target, exist_ok=True)
+        if not os.path.isfile(dst_compose_id):
+            shutil.copyfile(src_compose_id, dst_compose_id)
+
+        self._copytree(args.compose, args.target, ignore=self._copytree_ignore)
         self._replace_symlinks_with_hardlinks()
         self._run_hardlink(args.target)
+
+        return True
 
 
 if __name__ == "__main__":
@@ -270,4 +387,5 @@ if __name__ == "__main__":
 
     print("Promoting compose")
     compose_promotion = ComposePromotion(args.compose, args.target)
-    compose_promotion.promote()
+    if not compose_promotion.promote():
+        sys.exit(1)
