@@ -295,3 +295,103 @@ $ ./submit_test_compose repo `pwd`/server/tests/repo ed
 ```
 
 You should then see the backend process generating the compose and once it's done, the resulting compose in `./test_composes/latest-Unknown-1/compose/Temporary` directory.
+
+### Using docker-compose for creating a local setup
+
+You can create test setup for ODCS with the docker-compose file. This yaml file creates docker container for the backend and frontend setup of ODCS and run multiple services together. These services are;
+
+* **rabbitmq** (Handles the communication between backend and frontend)
+* **postgres** (Creates the database where the localy generated composes are stored)
+* **backend** (Backend service of ODCS)
+* **frontend** (Frontend service of ODCS that handles the REST API)
+* **static** (Apache service for making storage available)
+* **beat** (Cronjob for backend to check the service status)
+
+In addition to these, there are also three docker volumes (`odcs_odcs-composes`, `odcs_odcs-postgres` and `odcs_rabbitmq`) are created. These are providing persistent storage for the services.
+
+This yaml file requires also an **.env** file that specified some enviroment variables for the configuration of frontend and backend. Such an **.env** file should be in the same path with the **docker-compose.yml** file and here are the necessary variables that need to be specified in this file;
+```
+# Pyhton path
+PYTHONPATH=/src/common:/src/server:/src/client
+
+# POSTGRES
+POSTGRES_USER=odcs
+POSTGRES_PASSWORD=password
+
+# PULP CONFIGURATION
+PULP_SERVER_URL=<URL of the pulp server>
+PULP_USERNAME=<Username for the pulp server>
+PULP_PASSWORD=<Credentials for the pulp server>
+RAW_CONFIG_URLS=<Raw config settings in JSON format>
+
+# ODCS CONFIGURATION
+ODCS_CONFIG_SECTION=DevConfiguration
+ODCS_CONFIG_FILE=/src/server/conf/config.py
+ODCS_CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+ODCS_DB_URL=postgresql+psycopg2://odcs:password@postgres/odcs
+# Directory where the generated composes are stored. This hast to match
+# location where odcs-composes volume is mounted in frontend and backend
+# containers.
+ODCS_TARGET_DIR=/mnt/odcs
+TARGET_DIR_URL=http://localhost:8080
+
+# FLASK SETTINGS
+# Force flask to reload application on change of source files.
+FLASK_ENV=development
+```
+
+The services can be start with `sudo docker-compose up` command. If you have face an error or something that does not work correctly please use the following steps;
+
+1. Check whether there is already created docker volume.
+
+
+        $ sudo docker volume ls
+        Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.
+        DRIVER      VOLUME NAME
+
+
+    If the output is like above, it means there isn't any volume yet and it is sufficient to run `sudo docker-compose up` and then `sudo docker-compose down` command. This creates the volumes and if you run the above command again the output becomes as follows;
+
+
+        $ sudo docker volume ls
+        Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.
+        DRIVER      VOLUME NAME
+        local       odcs_odcs-composes
+        local       odcs_odcs-postgres
+        local       odcs_odcs-rabbitmq
+
+
+2. After this point we need to set the correct permission to `ocds_odcs-composes` volume. In order to find where is the actual location of the volume type the following
+
+
+        $ sudo docker volume inspect odcs_odcs-composes
+        Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.
+        [
+            {
+                "Name": "odcs_odcs-composes",
+                "Driver": "local",
+                "Mountpoint": "/var/lib/containers/storage/volumes/odcs_odcs-composes/_data",
+                "CreatedAt": "2021-10-04T13:19:36.478636851+02:00",
+                "Labels": {
+                    "io.podman.compose.project": "odcs"
+                },
+                "Scope": "local",
+                "Options": {}
+            }
+        ]
+
+    `"Mountpoint": "/var/lib/containers/storage/volumes/odcs_odcs-composes/_data"` shows the exact location of the corresponding volume.
+
+    Add group write permission to the Mountpoint by
+
+
+        $ sudo chmod 775 /var/lib/containers/storage/volumes/odcs_odcs-composes/_data
+
+
+3. In this step it is sufficient to run `sudo docker-compose up` command to start the services properly.
+
+Here are some REST calls for checking the ODCS.
+
+* `$ curl -s http://localhost:5000/api/1/composes/ | jq .` This call shows all the composes in db.
+* `$ odcs --server http://localhost:5000/ create-pulp <Pulp content set>` This call starts a pulp compose that match the given pulp content set
+* `$ odcs --server http://localhost:5000/ create-raw-config --compose-type test my_raw_config master` This call starts a compose with the configuration defined as my_raw_config

@@ -1,4 +1,4 @@
-FROM fedora:31
+FROM fedora:34
 LABEL \
     name="ODCS application" \
     vendor="ODCS developers" \
@@ -59,5 +59,3 @@ RUN pip3 install . --no-deps
 WORKDIR /tmp
 USER 1001
 EXPOSE 8080
-
-ENTRYPOINT celery-3 -A odcs.server.celery_tasks worker --loglevel=info -Q pungi_composes,pulp_composes

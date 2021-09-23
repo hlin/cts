@@ -48,6 +48,7 @@ remove_expired_compose_thread = RemoveExpiredComposesThread()
 # Create the Celery app.
 if os.environ.get("ODCS_CELERY_BROKER_URL"):
     broker_url = os.environ["ODCS_CELERY_BROKER_URL"]
+    conf.celery_broker_url = broker_url
 elif conf.celery_broker_url:
     broker_url = conf.celery_broker_url
 else:

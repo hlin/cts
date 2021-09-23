@@ -1,5 +1,6 @@
 import errno
-from os import path, makedirs
+import json
+from os import path, makedirs, environ
 
 
 # FIXME: workaround for this moment till confdir, dbdir (installdir etc.) are
@@ -14,7 +15,9 @@ dbdir = (
 class BaseConfiguration(object):
     # Make this random (used to generate session keys)
     SECRET_KEY = "74d9e9f9cd40e66fc6c4c2e9987dce48df3ce98542529fd0"
-    SQLALCHEMY_DATABASE_URI = "sqlite:///{0}".format(path.join(dbdir, "odcs.db"))
+    SQLALCHEMY_DATABASE_URI = environ.get(
+        "ODCS_DB_URL", "sqlite:///{0}".format(path.join(dbdir, "odcs.db"))
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     HOST = "127.0.0.1"
@@ -79,7 +82,7 @@ class BaseConfiguration(object):
     # noauth: no authentication is enabled. Useful for development particularly.
     # kerberos: Kerberos authentication is enabled.
     # openidc: OpenIDC authentication is enabled.
-    AUTH_BACKEND = ""
+    AUTH_BACKEND = "noauth"
 
     # Used for Kerberos authentication and to query user's groups.
     # Format: ldap://hostname[:port]
@@ -169,6 +172,17 @@ class BaseConfiguration(object):
         },
     }
 
+    if "PULP_SERVER_URL" in environ:
+        PULP_SERVER_URL = environ.get("PULP_SERVER_URL")
+    if "PULP_USERNAME" in environ:
+        PULP_USERNAME = environ.get("PULP_USERNAME")
+    if "PULP_PASSWORD" in environ:
+        PULP_PASSWORD = environ.get("PULP_PASSWORD")
+    if "TARGET_DIR_URL" in environ:
+        TARGET_DIR_URL = environ.get("TARGET_DIR_URL")
+    if "RAW_CONFIG_URLS" in environ:
+        RAW_CONFIG_URLS = json.loads(environ.get("RAW_CONFIG_URLS"))
+
 
 class DevConfiguration(BaseConfiguration):
     DEBUG = True
@@ -178,7 +192,7 @@ class DevConfiguration(BaseConfiguration):
     # Global network-related values, in seconds
     NET_TIMEOUT = 5
     NET_RETRY_INTERVAL = 1
-    TARGET_DIR = path.join(dbdir, "test_composes")
+    TARGET_DIR = environ.get("ODCS_TARGET_DIR", path.join(dbdir, "test_composes"))
     try:
         makedirs(TARGET_DIR, mode=0o775)
     except OSError as ex:
@@ -191,7 +205,7 @@ class DevConfiguration(BaseConfiguration):
     AUTH_BACKEND = "noauth"
     AUTH_OPENIDC_USERINFO_URI = "https://iddev.fedorainfracloud.org/openidc/UserInfo"
 
-    KOJI_PROFILE = "stg"
+    KOJI_PROFILE = "koji"
 
     RAW_CONFIG_WRAPPER_CONF_PATH = path.join(confdir, "raw_config_wrapper.conf")
 
