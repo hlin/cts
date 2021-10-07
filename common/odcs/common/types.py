@@ -107,6 +107,8 @@ COMPOSE_FLAGS = {
     "ignore_absent_pulp_repos": 32,
     # Do not reuse old composes.
     "no_reuse": 64,
+    # Use only compatible architectures
+    "use_only_compatible_arch": 128,
 }
 
 INVERSE_COMPOSE_FLAGS = {v: k for k, v in COMPOSE_FLAGS.items()}

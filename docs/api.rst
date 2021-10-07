@@ -94,6 +94,7 @@ The fields used in the ODCS compose JSON have following meaning:
     - *check_deps* - Compose will fail if the RPM-level dependencies between packages in the compose are not satisfied.
     - *include_done_modules* - Compose can include also modules which are in the ``done`` state. By default, only modules in ``ready`` state are allowed to be included in a composes.
     - *no_reuse* - Compose will be generated directly instead of trying to reuse old one.
+    - *use_only_compatible_arch* - When this flag is set, architecture hardcoded in URL returned from Pulp will be replaced with `$basearch` variable. The repository definition will also define `skip_if_unavailable = 1`. This could be useful when multiple content sets are included in the repofile to completly ignore packages from repositories for incompatible archictures.
 
 .. _koji_event:
 

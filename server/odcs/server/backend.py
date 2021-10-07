@@ -925,7 +925,10 @@ def generate_pulp_compose(compose):
     sigkeys = set()
     for name in sorted(merged_repos.keys()):
         repo_data = merged_repos[name]
-        url = repo_data["url"]
+        if compose.flags & COMPOSE_FLAGS["use_only_compatible_arch"]:
+            url = repo_data["url"].replace("".join(repo_data["arches"]), "$basearch")
+        else:
+            url = repo_data["url"]
         r = dedent(
             """
             [{0}]
@@ -937,6 +940,8 @@ def generate_pulp_compose(compose):
                 name, url
             )
         )
+        if compose.flags & COMPOSE_FLAGS["use_only_compatible_arch"]:
+            r += "skip_if_unavailable=1\n"
         repofile += r
         arches = arches.union(repo_data["arches"])
         sigkeys = sigkeys.union(repo_data["sigkeys"])
