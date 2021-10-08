@@ -650,7 +650,14 @@ class ODCSAPI(MethodView):
         # change compose.time_to_expire to now, so backend will
         # delete this compose as it's an expired compose now
         compose.time_to_expire = datetime.datetime.utcnow()
-        compose.removed_by = g.user.username
+        try:
+            compose.removed_by = g.user.username
+        except AttributeError as e:
+            compose.removed_by = "anonymous"
+            log.info(
+                "User info could not found, it is removed by %s" % compose.removed_by
+            )
+
         db.session.add(compose)
         db.session.commit()
         message = (
