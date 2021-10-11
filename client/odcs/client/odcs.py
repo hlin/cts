@@ -442,6 +442,12 @@ class ODCS(object):
         if r.status_code not in (200, 202):
             print(r.text)
 
+        # Suggest detailed output on auth failure when kerberos auth is used
+        if r.status_code == 401 and self.auth_mech == AuthMech.Kerberos:
+            print(
+                "For traceback please try again the same command with env var KRB5_TRACE=/dev/stdout"
+            )
+
         r.raise_for_status()
         return r
 
