@@ -652,7 +652,7 @@ class ODCSAPI(MethodView):
         compose.time_to_expire = datetime.datetime.utcnow()
         try:
             compose.removed_by = g.user.username
-        except AttributeError as e:
+        except AttributeError:
             compose.removed_by = "anonymous"
             log.info(
                 "User info could not found, it is removed by %s" % compose.removed_by

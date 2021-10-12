@@ -888,6 +888,10 @@ def generate_pulp_compose(compose):
     remaining_sources = set(content_sources) - set(repos.keys()) - set(found_repo_ids)
 
     direct_repos = {}
+    # If the remaining_source is empty, make it an empty set
+    if remaining_sources == {""}:
+        remaining_sources.clear()
+
     if remaining_sources:
         direct_repos = pulp.get_repos_by_id(
             remaining_sources, include_unpublished_repos
