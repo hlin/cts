@@ -330,7 +330,11 @@ delete_parser = subparsers.add_parser("delete", help="delete compose")
 delete_parser.set_defaults(command="delete")
 delete_parser.add_argument("compose_id", default=None, help="ODCS compose id")
 
-renew_parser = subparsers.add_parser("renew", help="renew compose")
+renew_parser = subparsers.add_parser(
+    "renew",
+    help="renew compose",
+    description="This compose will have the same package versions as the original compose.",
+)
 renew_parser.set_defaults(command="renew")
 renew_parser.add_argument("compose_id", default=None, help="ODCS compose id")
 
