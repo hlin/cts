@@ -12,12 +12,12 @@ ODCS can take RPMs for a compose from multiple sources like Koji tag, module bui
 
 There is client library written in Python which allows easy access to REST API provided by ODCS server.
 
-### Installing the ODCS client library
+### Installing the ODCS client
 
-To install the library from Fedora repositories or from EPEL7 repository, you can run following:
+On Fedora or EPEL:
 
 ```
-$ sudo yum install python2-odcs-client
+$ sudo yum install odcs-client
 ```
 
 If you want to install using `pip`, you can run following:
