@@ -27,6 +27,7 @@ import json
 import re
 import requests
 import requests.exceptions
+from requests.models import ProtocolError
 
 from odcs.server import conf, log
 from odcs.server.mergerepo import MergeRepo
@@ -43,7 +44,7 @@ class Pulp(object):
         self.compose = compose
         self.rest_api_root = "{0}/pulp/api/v2/".format(self.server_url.rstrip("/"))
 
-    @retry(wait_on=requests.exceptions.RequestException)
+    @retry(wait_on=(requests.exceptions.RequestException, ProtocolError))
     def _rest_post(self, endpoint, post_data):
         query_data = json.dumps(post_data)
         try:
