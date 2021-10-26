@@ -168,7 +168,7 @@ class ODCSAPI(MethodView):
         """Extends the compose expiration time or regenerates expired compose.
 
         :query number id: :ref:`ID<id>` of the compose to update/regenerate.
-        :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
+        :jsonparam number seconds_to_live: Number of seconds before the compose expires.
         :jsonparam list sigkeys: Optional list defining the :ref:`sigkeys<sigkeys>`.
             If not defined, original :ref:`sigkeys<sigkeys>` will be used.
         :jsonparam object source: The JSON object allowing to override the source of compose.
@@ -300,7 +300,7 @@ class ODCSAPI(MethodView):
     def post(self):
         """Creates new ODCS compose request.
 
-        :jsonparam number seconds_to_live: Number of seconds before the compoose expires.
+        :jsonparam number seconds_to_live: Number of seconds before the compose expires.
         :jsonparam list flags: List of :ref:`compose flags<flags>` defined as strings.
         :jsonparam list arches: List of :ref:`arches<arches>` the compose should be generated for.
         :jsonparam list multilib_arches: List of :ref:`multilib arches<multilib_arches>`.
