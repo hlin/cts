@@ -43,9 +43,13 @@ class MBS(object):
 
     @retry(wait_on=(requests.ConnectionError,), logger=log)
     def get_modules(self, **params):
-        url = self.mbs_url + "/1/module-builds/"
-        r = requests.get(url, params=params)
-        r.raise_for_status()
+        try:
+            url = self.mbs_url + "/1/module-builds/"
+            r = requests.get(url, params=params)
+            r.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            msg = "MBS has failed: {}".format(e.args)
+            raise requests.exceptions.RequestException(msg)
         return r.json()
 
     def get_latest_modules(
