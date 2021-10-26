@@ -225,7 +225,7 @@ compose = odcs.get_compose(compose["id"])
 
 ### Renewing the compose
 
-If te `time_to_expire` of compose is getting closer and you know you would like to continue using the compose in near future, you can increase the time_to_expire using the `renew_compose(...)` method. This can be also used to regenerate expired compose in `removed` state. Such compose will have the same versions of packages as in the time when it was originally generated.
+If the `time_to_expire` for your compose is getting closer and you know you want to continue using the compose, you can increase the `time_to_expire` using the `renew_compose(...)` method. You can also use this method to regenerate an expired compose in the `removed` state. Such compose will have the same versions of packages as the original compose.
 
 ```
 compose = odcs.renew_compose(compose["id"])
