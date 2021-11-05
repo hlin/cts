@@ -1,6 +1,5 @@
 funcsigs  # Python2 only
 httplib2
-mock
 pyOpenSSL
 python-fedora
 # qpid-python  # Python2 only; not necessary; just to hide warning messages
