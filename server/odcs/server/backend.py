@@ -578,6 +578,9 @@ def resolve_compose(compose):
         # get the same results.
         if not compose.koji_event:
             if compose.source not in LAST_EVENTS_CACHE:
+                info = koji_session.getTag(compose.source)
+                if not info:
+                    raise ValueError("Unknown Koji tag %s." % compose.source)
                 event_id = int(koji_session.getLastEvent()["id"])
             elif tag_changed(
                 koji_session, compose.source, LAST_EVENTS_CACHE[compose.source]
