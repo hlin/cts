@@ -170,6 +170,9 @@ class BaseConfiguration(object):
             "interval_step": 0.2,
             "interval_max": 0.5,
         },
+        # Add this option to stop invoking celery built-in periodic task
+        # celery.backend_cleanup which is useless and causes issue in odcs.
+        "result_expires": None,
     }
 
     if "PULP_SERVER_URL" in environ:
