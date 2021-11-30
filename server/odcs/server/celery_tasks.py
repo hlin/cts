@@ -304,6 +304,25 @@ def reschedule_waiting_composes():
         schedule_compose(compose)
 
 
+def cleanup_generating_composes():
+    """Cleanup composes hang up in generating state.
+
+    Composes may never finish due to race condition when transit state.
+    """
+    composes = Compose.query.filter(
+        Compose.state == COMPOSE_STATES["generating"], Compose.reused_id.isnot(None)
+    ).all()
+
+    for compose in composes:
+        reused_compose = compose.get_reused_compose()
+        if reused_compose.state in (
+            COMPOSE_STATES["done"],
+            COMPOSE_STATES["failed"],
+            COMPOSE_STATES["removed"],
+        ):
+            compose.transition(reused_compose.state, reused_compose.state_reason)
+
+
 @celery_app.task
 def run_cleanup():
     """
@@ -324,3 +343,5 @@ def run_cleanup():
         composer_thread.fail_lost_generating_composes()
     with log_errors("Error while rescheduling waiting composes"):
         reschedule_waiting_composes()
+    with log_errors("Error while cleanup generating composes"):
+        cleanup_generating_composes()

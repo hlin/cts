@@ -8,6 +8,7 @@ from odcs.server import conf, db
 from odcs.server.celery_tasks import (
     TaskRouter,
     reschedule_waiting_composes,
+    cleanup_generating_composes,
     run_cleanup,
 )
 from odcs.common.types import COMPOSE_STATES, COMPOSE_RESULTS
@@ -321,6 +322,30 @@ class TestRescheduleWaitingComposes(ModelsBaseTest):
         composes = sorted(composes, key=lambda c: c.id)
         reschedule_waiting_composes()
         schedule_compose.assert_not_called()
+
+
+class TestFinishReusingComposes(ModelsBaseTest):
+    def test_finish_reusing_compose(self):
+        c1 = Compose.create(
+            db.session,
+            "unknown",
+            PungiSourceType.KOJI_TAG,
+            "f26",
+            COMPOSE_RESULTS["repository"],
+            60,
+        )
+        c1.state = COMPOSE_STATES["done"]
+        c1.state_reason = "finished"
+        db.session.commit()
+        c2 = Compose.create_copy(db.session, c1)
+        c2.state = COMPOSE_STATES["generating"]
+        c3 = Compose.create_copy(db.session, c1)
+        c3.state = COMPOSE_STATES["generating"]
+        c3.reused_id = c1.id
+        cleanup_generating_composes()
+        assert c2.state == COMPOSE_STATES["generating"]
+        assert c3.state == COMPOSE_STATES["done"]
+        assert c3.state_reason == c1.state_reason
 
 
 class TestRunCleanup:

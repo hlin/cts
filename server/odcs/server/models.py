@@ -139,6 +139,7 @@ class Compose(ODCSBase):
     time_removed = db.Column(db.DateTime)
     # removed_by is set when compose is deleted rather than expired normally
     removed_by = db.Column(db.String, nullable=True)
+    # reused_id is compose id which is reused by this compose.
     reused_id = db.Column(db.Integer, index=True)
     # In case Pungi composes are generated using ODCS Koji runroot task, this
     # holds the Koji task id of this task.
