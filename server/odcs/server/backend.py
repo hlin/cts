@@ -506,7 +506,7 @@ def get_module_from_koji_tags(koji_session, tags, event, name):
 
 
 def depsolve_modules(modules, tags, event=None):
-    koji_module = koji.get_profile_module("brew")
+    koji_module = koji.get_profile_module(conf.koji_profile)
     koji_session = koji.ClientSession(koji_module.config.server)
 
     event = event or koji_session.getLastEvent()
