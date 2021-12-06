@@ -448,6 +448,19 @@ try:
     elif args.command == "create-module":
         if not args.modules and not args.scratch_module:
             create_module_parser.error("Please give a module or --scratch-module")
+        if (
+            len(args.modules) + len(args.scratch_module) > 1
+            and not (
+                args.base_module_br_stream
+                or args.base_module_br_stream_version_lte
+                or args.base_module_br_stream_version_gte
+                or args.modular_tag
+            )
+            and args.infra == "redhat"
+        ):
+            print(
+                "WARNING: Please add --base-module-X or --modular-tag option to the arguments to ensure all composed modules are built for the same release."
+            )
         source = odcs.client.odcs.ComposeSourceModule(
             args.modules,
             args.sigkey,
