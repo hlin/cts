@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.6
+  - Release date: 2021-12-08
+  - server: Use conf.koji_profile instead of hardcoded brew value
+  - server: Cleanup generating composes never finished
+  - server: ODCS fail with "Unknown Koji tag" even for first compose from this tag
+  - server: Disable celery built-in periodic task celery.backend_cleanup
+  - server: fix spelling for seconds_to_live description
+  - server: Fix retry decorator when ProtocolError happens in pulp requests
+  - server: Improve error reporting for MBS failures
+  - server: modify odcs-promote-compose to continue an interrupted promote
+  - server: Allow multiarch ODCS repo install from correct basearch
+  - server: Fix the error while renewing the empty compose
+  - server: Fix error while deleting the compose by anonymous user
+  - server: Handle celery broker connection issue
+  - client: Suggest KRB5_TRACE env variable option on auth failure
+  - client: Improve odcs create-module user experience
+  - client: improve renew --help description
+  - README: improve "renewing the compose" section
+  - README: update client install instructions
+  - cleanup: Delete copr since it is not used anymore
+  - Move "mock" pypi package to test-requirements.txt
+  - Create docker-compose file in order to run the ODCS locally
+
 ## 0.3.5
   - Release date: 2021-08-25
   - Allow optional kerberos auth
