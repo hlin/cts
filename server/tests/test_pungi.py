@@ -252,7 +252,7 @@ class TestPungiConfig(unittest.TestCase):
                 set(cfg["pkgset_koji_builds"]), set(["foo-1-1", "bar-1-1"])
             )
             self.assertEqual(
-                cfg["additional_packages"], [(u"^Temporary$", {u"*": [u"*"]})]
+                cfg["additional_packages"], [("^Temporary$", {"*": ["*"]})]
             )
 
     def test_get_pungi_conf_scratch_build_tasks(self):
@@ -329,7 +329,7 @@ class TestPungiConfig(unittest.TestCase):
                 set(cfg["pkgset_koji_builds"]), set(["foo-1-1", "bar-1-1"])
             )
             self.assertEqual(
-                cfg["additional_packages"], [(u"^Temporary$", {u"*": [u"*"]})]
+                cfg["additional_packages"], [("^Temporary$", {"*": ["*"]})]
             )
 
     def test_get_pungi_conf_source_type_koji_tag_all_packages(self):
@@ -376,7 +376,7 @@ class TestPungiConfig(unittest.TestCase):
 
             cfg = pungi_cfg.get_pungi_config()
             self.assertEqual(
-                cfg["gather_lookaside_repos"], [(u"^.*$", {u"*": [u"foo", u"bar"]})]
+                cfg["gather_lookaside_repos"], [("^.*$", {"*": ["foo", "bar"]})]
             )
 
     def test_get_pungi_conf_include_devel_modules(self):

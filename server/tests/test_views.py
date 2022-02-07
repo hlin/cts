@@ -350,8 +350,8 @@ class TestViews(ViewBaseTest):
             "time_done": None,
             "state_name": "wait",
             "state_reason": None,
-            "source": u"testmodule:master",
-            "owner": u"dev",
+            "source": "testmodule:master",
+            "owner": "dev",
             "result_repo": "http://localhost/odcs/odcs-%d/compose/Temporary"
             % data["id"],
             "result_repofile": "http://localhost/odcs/odcs-%d/compose/Temporary/odcs-%d.repo"
@@ -1904,8 +1904,8 @@ class TestViews(ViewBaseTest):
             "time_done": None,
             "state_name": "wait",
             "state_reason": None,
-            "source": u"testmodule:master",
-            "owner": u"unknown",
+            "source": "testmodule:master",
+            "owner": "unknown",
             "result_repo": "http://localhost/odcs/odcs-%d/compose/Temporary"
             % data["id"],
             "result_repofile": "http://localhost/odcs/odcs-%d/compose/Temporary/odcs-%d.repo"
