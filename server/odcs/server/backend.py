@@ -1328,9 +1328,9 @@ class ComposerThread(BackendThread):
         can be generating only for `conf.pungi_timeout` seconds, this is enough
         time to generate any compose.
         """
-        max_generating_time = 2 * conf.pungi_timeout
+        common_max_generating_time = 2 * conf.pungi_timeout
         now = datetime.utcnow()
-        too_old_datetime = now - timedelta(seconds=max_generating_time)
+        too_old_datetime = now - timedelta(seconds=common_max_generating_time)
 
         # Get composes which are in 'generating' state for too long.
         composes = (
@@ -1343,13 +1343,15 @@ class ComposerThread(BackendThread):
         )
 
         for compose in composes:
+            max_generating_time = common_max_generating_time
             # RawConfig composes can have custom pungi_timeout. Filter them
             # out here in case they are not `generating` for longer than their
             # overriden pungi_timeout.
             if compose.source_type == PungiSourceType.RAW_CONFIG:
                 # Get the pungi_timeout from RawPungiConfig.
                 pungi_cfg = RawPungiConfig(compose)
-                max_wait_seconds = timedelta(seconds=pungi_cfg.pungi_timeout * 2)
+                max_generating_time = pungi_cfg.pungi_timeout * 2
+                max_wait_seconds = timedelta(seconds=max_generating_time)
                 if compose.time_started + max_wait_seconds > now:
                     continue
 
