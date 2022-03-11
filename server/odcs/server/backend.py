@@ -1083,7 +1083,11 @@ def generate_pungi_compose(compose):
     koji_tag_cache = KojiTagCache(compose)
 
     # Resolve the general data in the compose.
-    resolve_compose(compose)
+    try:
+        resolve_compose(compose)
+    except koji.GenericError as ex:
+        log.exception("Koji Error while resolving compose %d", compose.id)
+        raise RuntimeError("Koji connection has failed: %s", ex)
 
     # Reformat the data from database
     packages = compose.packages
