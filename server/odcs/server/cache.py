@@ -66,6 +66,10 @@ class KojiTagCache(object):
 
             for cached_dir in os.listdir(cache_dir):
                 path = os.path.join(cache_dir, cached_dir)
+                if os.path.isfile(path):
+                    # Skip lock file
+                    continue
+
                 try:
                     mtime = os.path.getmtime(path)
                 except OSError:
@@ -82,7 +86,16 @@ class KojiTagCache(object):
                     continue
 
                 log.info("Removing old Koji tag cache data in %s." % path)
-                shutil.rmtree(path)
+                # Use the same lock as in self.reuse_cached() for copying to prevent
+                # deletion while other process is copying it.
+                lock = Lock(path + ".lock")
+                lock.lifetime = timedelta(minutes=3)
+                try:
+                    lock.lock()
+                    shutil.rmtree(path)
+                finally:
+                    if lock.is_locked:
+                        lock.unlock()
 
     def cached_compose_dir(self, compose):
         """
@@ -120,7 +133,21 @@ class KojiTagCache(object):
         if compose.source_type != PungiSourceType.KOJI_TAG:
             return False
 
-        return os.path.exists(self.cached_compose_dir(compose))
+        cached_compose_dir = self.cached_compose_dir(compose)
+        try:
+            mtime = os.path.getmtime(cached_compose_dir)
+        except OSError:
+            return False
+
+        # The koji_tag_cache_cleanup_timeout is in days, so convert it to
+        # seconds.
+        older_than_seconds = conf.koji_tag_cache_cleanup_timeout * 24 * 3600
+        threshold = time.time() - older_than_seconds
+        if mtime <= threshold:
+            # cache is too old
+            return False
+
+        return os.path.exists(cached_compose_dir)
 
     def reuse_cached(self, compose):
         """

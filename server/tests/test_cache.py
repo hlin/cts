@@ -99,8 +99,9 @@ class TestKojiTagCache(ModelsBaseTest):
         )
         self.assertEqual(ret, expected)
 
+    @patch("os.path.getmtime")
     @patch("os.path.exists")
-    def test_is_cached(self, exists):
+    def test_is_cached(self, exists, getmtime):
         c = Compose.create(
             db.session,
             "me",
@@ -110,6 +111,7 @@ class TestKojiTagCache(ModelsBaseTest):
             3600,
         )
 
+        getmtime.return_value = time.time()
         for cached in [True, False]:
             exists.return_value = cached
             ret = self.cache.is_cached(c)
@@ -118,6 +120,12 @@ class TestKojiTagCache(ModelsBaseTest):
                 os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64")
             )
             exists.reset_mock()
+
+        getmtime.return_value = (
+            time.time() - (conf.koji_tag_cache_cleanup_timeout + 1) * 24 * 3600
+        )
+        self.assertEqual(self.cache.is_cached(c), False)
+        exists.assert_not_called()
 
     @patch("shutil.copytree")
     def test_reuse_cached(self, copytree):
@@ -192,6 +200,7 @@ class TestKojiTagCache(ModelsBaseTest):
             os.path.join(conf.target_dir, "koji_tag_cache/f26-0--x86_64")
         )
 
+    @patch("odcs.server.cache.Lock")
     @patch("os.listdir")
     @patch("os.path.getmtime")
     @patch("shutil.rmtree")
@@ -201,7 +210,9 @@ class TestKojiTagCache(ModelsBaseTest):
         "extra_target_dirs",
         new={"releng-private": "/tmp/private"},
     )
-    def test_remove_old_koji_tag_cache_data(self, exists, rmtree, getmtime, listdir):
+    def test_remove_old_koji_tag_cache_data(
+        self, exists, rmtree, getmtime, listdir, lock
+    ):
         exists.return_value = True
         now = time.time()
         listdir.side_effect = [["foo", "bar"], ["foo", "bar"]]
