@@ -14,10 +14,10 @@ There is client library written in Python which allows easy access to REST API p
 
 ### Installing the ODCS client
 
-On Fedora or EPEL:
+On Fedora:
 
 ```
-$ sudo yum install odcs-client
+$ sudo dnf install odcs-client
 ```
 
 If you want to install using `pip`, you can run following:
