@@ -199,7 +199,12 @@ class ComposePromotion(object):
             ignored_names = set()
 
         # Continue if dir exists
-        os.makedirs(dst, exist_ok=True)
+        try:
+            os.makedirs(dst)
+        except OSError as exc:
+            # Ignore existing directories.
+            if exc.errno != errno.EEXIST:
+                raise
         errors = []
         for name in names:
             if name in ignored_names:
