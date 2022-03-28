@@ -361,6 +361,10 @@ class Compose(ODCSBase):
         if not self.on_default_target_dir:
             return ""
 
+        # There is no repo url for Raw config composes.
+        if self.source_type == PungiSourceType.RAW_CONFIG:
+            return ""
+
         return (
             conf.target_dir_url + "/" + os.path.join(self.name, "compose", "Temporary")
         )
