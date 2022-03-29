@@ -826,6 +826,8 @@ def reuse_compose(compose, compose_to_reuse):
 
     # Set the reuse_id
     compose.reused_id = compose_to_reuse.id
+    # Set the pungi_compose_id
+    compose.pungi_compose_id = compose_to_reuse.pungi_compose_id
     # Set the time_to_expire to bigger value from both composes.
     compose.time_to_expire = max(
         compose.time_to_expire, compose_to_reuse.time_to_expire
