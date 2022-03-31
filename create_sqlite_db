@@ -2,5 +2,4 @@
 
 export PYTHONPATH=./common:./server:./client
 
-ODCS_DEVELOPER_ENV=1 python server/odcs/server/manage.py upgradedb
-ODCS_DEVELOPER_ENV=1 python server/odcs/server/manage.py db migrate
+ODCS_DEVELOPER_ENV=1 python server/odcs/server/manage.py db upgrade
