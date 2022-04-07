@@ -107,7 +107,9 @@ class TestMakeRequest(unittest.TestCase):
 
         self.assertEqual(requests.post.return_value, r)
         requests.post.assert_called_once_with(
-            odcs._make_endpoint(self.resource_path), auth=expected_auth
+            odcs._make_endpoint(self.resource_path),
+            auth=expected_auth,
+            allow_redirects=False,
         )
 
     @patch("odcs.client.odcs.requests")
@@ -130,6 +132,7 @@ class TestMakeRequest(unittest.TestCase):
                 "Authorization": "Bearer {0}".format(fake_openidc_token),
                 "Content-Type": "application/json",
             },
+            allow_redirects=False,
         )
 
     @patch("odcs.client.odcs.requests")
@@ -150,6 +153,7 @@ class TestMakeRequest(unittest.TestCase):
             data=json.dumps({"id": 1}),
             cert=("./ssl.crt", "./ssl.key"),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
     @patch("odcs.client.odcs.requests")
@@ -161,7 +165,7 @@ class TestMakeRequest(unittest.TestCase):
 
         self.assertEqual(requests.post.return_value, r)
         requests.post.assert_called_once_with(
-            odcs._make_endpoint(self.resource_path), verify=False
+            odcs._make_endpoint(self.resource_path), verify=False, allow_redirects=False
         )
 
 
@@ -196,7 +200,8 @@ class TestGetCompose(unittest.TestCase):
 
         self.assertEqual(fake_compose, compose)
         requests.get.assert_called_once_with(
-            "{0}api/{1}/composes/1".format(self.server_url, self.odcs.api_version)
+            "{0}api/{1}/composes/1".format(self.server_url, self.odcs.api_version),
+            allow_redirects=True,
         )
 
 
@@ -224,7 +229,8 @@ class TestAbout(unittest.TestCase):
 
         self.assertEqual(result, fake_result)
         requests.get.assert_called_once_with(
-            "{0}api/{1}/about".format(self.server_url, self.odcs.api_version)
+            "{0}api/{1}/about".format(self.server_url, self.odcs.api_version),
+            allow_redirects=True,
         )
 
 
@@ -261,7 +267,9 @@ class TestDeleteCompose(unittest.TestCase):
         r = self.odcs.delete_compose(1)
 
         self.assertEqual(fake_response, r)
-        requests.delete.assert_called_once_with(self.odcs._make_endpoint("composes/1"))
+        requests.delete.assert_called_once_with(
+            self.odcs._make_endpoint("composes/1"), allow_redirects=True
+        )
 
 
 @patch("odcs.client.odcs.requests")
@@ -316,6 +324,7 @@ class TestNewCompose(unittest.TestCase):
                 }
             ),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
     def test_request_compose_source_tag(self, requests):
@@ -325,6 +334,7 @@ class TestNewCompose(unittest.TestCase):
             self.odcs._make_endpoint("composes/"),
             data=json.dumps({"source": {"source": "f32", "type": "tag"}}),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
     def test_request_compose_source_module(self, requests):
@@ -336,6 +346,7 @@ class TestNewCompose(unittest.TestCase):
                 {"source": {"source": "testmodule:master foo:bar", "type": "module"}}
             ),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
     def test_request_compose_source_pulp(self, requests):
@@ -347,6 +358,7 @@ class TestNewCompose(unittest.TestCase):
                 {"source": {"source": "content-set1 content-set2", "type": "pulp"}}
             ),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
     def test_request_compose_source_raw_config(self, requests):
@@ -358,6 +370,7 @@ class TestNewCompose(unittest.TestCase):
                 {"source": {"source": "name#commit", "type": "raw_config"}}
             ),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
     def test_request_compose_source_build(self, requests):
@@ -375,6 +388,7 @@ class TestNewCompose(unittest.TestCase):
                 }
             ),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
 
@@ -411,6 +425,7 @@ class TestRenewCompose(unittest.TestCase):
             self.odcs._make_endpoint("composes/6"),
             data=json.dumps({"seconds-to-live": 60}),
             headers={"Content-Type": "application/json"},
+            allow_redirects=False,
         )
 
 
@@ -465,6 +480,7 @@ class TestFindComposes(unittest.TestCase):
         requests.get.assert_called_once_with(
             self.odcs._make_endpoint("composes/"),
             params={"owner": "unknown", "source_type": "tag"},
+            allow_redirects=True,
         )
 
     @patch("odcs.client.odcs.requests")
@@ -511,6 +527,7 @@ class TestFindComposes(unittest.TestCase):
         requests.get.assert_called_once_with(
             self.odcs._make_endpoint("composes/"),
             params={"owner": "unknown", "source_type": "tag", "page": 2},
+            allow_redirects=True,
         )
 
 

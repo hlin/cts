@@ -436,7 +436,17 @@ class ODCS(object):
 
         request_method = getattr(requests, method)
         resource_url = self._make_endpoint(resource_path)
-        r = request_method(resource_url, **request_data)
+        redirect = True
+
+        if method == "post" or method == "patch":
+            redirect = False
+        r = request_method(resource_url, allow_redirects=redirect, **request_data)
+
+        # Detect redirection
+        if r.status_code == 302 or r.status_code == 301:
+            print("Warning: Request was redirected to {}".format(r.headers["Location"]))
+            resource_url = r.headers["Location"]
+            r = request_method(resource_url, **request_data)
 
         # Print error, for debugging
         if r.status_code not in (200, 202):
