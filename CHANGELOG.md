@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.7
+  - Release date: 2022-04-22
+  - server: Add compose_id attribute when the compose is re-used
+  - server: Return empty value for results_repourl and results_repofile for raw_config composes
+  - server: Fix Python 2 compatibility
+  - server: Avoid koji tag cache being removed while in use
+  - server: Update the error message when the brew connection is failed
+  - client: Replace http request with https in order prevent false redirection
+  - doc: Remove EPEL from README
+  - cleanup: Delete Jenkinsfile
+  - cleanup: Format code for black 22.1.0
+  - cleanup: Fix create_sqlite_db script
+
 ## 0.3.6
   - Release date: 2021-12-08
   - server: Use conf.koji_profile instead of hardcoded brew value
