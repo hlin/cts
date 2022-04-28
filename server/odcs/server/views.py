@@ -707,7 +707,7 @@ class Index(View):
     methods = ["GET"]
 
     def dispatch_request(self):
-        return render_template("index.html")
+        return render_template("index.html", target_dir_url=conf.target_dir_url)
 
 
 class MetricsAPI(MethodView):
