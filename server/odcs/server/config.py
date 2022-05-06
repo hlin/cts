@@ -546,10 +546,6 @@ class Config(object):
     def _setifok_target_dir(self, s):
         if not os.path.isabs(s):
             raise ValueError("Compose target dir is not an absolute path: %s" % s)
-        if not (os.path.exists(s) and os.path.isdir(s)):
-            raise ValueError(
-                "Compose target dir doesn't exist or not a directory: %s" % s
-            )
         self._target_dir = s
 
     def _setifok_pungi_conf_path(self, s):

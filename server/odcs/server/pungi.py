@@ -24,6 +24,7 @@
 import copy
 import os
 import shutil
+import socket
 import tempfile
 import jinja2
 import time
@@ -521,7 +522,23 @@ class Pungi(object):
     def _prepare_compose_dir(self, compose, conf):
         """
         Creates the compose directory and returns the full path to it.
+
+        :param models.Compose compose: Instance of models.Compose.
+        :param dict conf: dict obj of pungi.json config.
+
+        :rtype: str
+        :return: Compose toplevel dir.
         """
+        # Check if compose target_dir exists, we don't create the dir directly when
+        # it does not exist becasue it is expected on a shared storage (e.g. NFS)
+        # instead of local dir in most cases and thus it's probably a configuration
+        # issue on the backend host.
+        if not os.path.isdir(compose.target_dir):
+            raise RuntimeError(
+                "Compose target dir doesn't exist or not a directory: %s on backend %s"
+                % (compose.target_dir, socket.gethostname())
+            )
+
         compose_date = time.strftime("%Y%m%d", time.localtime())
         makedirs(compose.toplevel_dir)
 
