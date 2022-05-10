@@ -48,7 +48,7 @@ class MBS(object):
             r = requests.get(url, params=params)
             r.raise_for_status()
         except requests.exceptions.RequestException as e:
-            msg = "MBS has failed: {}".format(e.args)
+            msg = "MBS has failed to query {} : {}".format(url, e.args)
             raise requests.exceptions.RequestException(msg)
         return r.json()
 
