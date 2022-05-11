@@ -19,6 +19,6 @@ defusedxml
 productmd
 pygobject
 koji
-pyldap
+python-ldap
 celery
 prometheus_client

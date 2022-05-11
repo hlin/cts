@@ -23,6 +23,7 @@
 
 
 import flask
+import six
 import unittest
 
 from mock import patch, Mock
@@ -335,20 +336,36 @@ class TestQueryLdapGroups(unittest.TestCase):
 
     @patch("odcs.server.auth.ldap.initialize")
     def test_get_groups(self, initialize):
-        initialize.return_value.search_s.return_value = [
-            (
-                "cn=odcsdev,ou=Groups,dc=example,dc=com",
-                {"gidNumber": ["5523"], "cn": ["odcsdev"]},
-            ),
-            (
-                "cn=freshmakerdev,ou=Groups,dc=example,dc=com",
-                {"gidNumber": ["17861"], "cn": ["freshmakerdev"]},
-            ),
-            (
-                "cn=devel,ou=Groups,dc=example,dc=com",
-                {"gidNumber": ["5781"], "cn": ["devel"]},
-            ),
-        ]
+        if six.PY3:
+            initialize.return_value.search_s.return_value = [
+                (
+                    "cn=odcsdev,ou=Groups,dc=example,dc=com",
+                    {"gidNumber": [b"5523"], "cn": [b"odcsdev"]},
+                ),
+                (
+                    "cn=freshmakerdev,ou=Groups,dc=example,dc=com",
+                    {"gidNumber": [b"17861"], "cn": [b"freshmakerdev"]},
+                ),
+                (
+                    "cn=devel,ou=Groups,dc=example,dc=com",
+                    {"gidNumber": [b"5781"], "cn": [b"devel"]},
+                ),
+            ]
+        else:
+            initialize.return_value.search_s.return_value = [
+                (
+                    "cn=odcsdev,ou=Groups,dc=example,dc=com",
+                    {"gidNumber": ["5523"], "cn": ["odcsdev"]},
+                ),
+                (
+                    "cn=freshmakerdev,ou=Groups,dc=example,dc=com",
+                    {"gidNumber": ["17861"], "cn": ["freshmakerdev"]},
+                ),
+                (
+                    "cn=devel,ou=Groups,dc=example,dc=com",
+                    {"gidNumber": ["5781"], "cn": ["devel"]},
+                ),
+            ]
 
         groups = query_ldap_groups("me")
         self.assertEqual(sorted(["odcsdev", "freshmakerdev", "devel"]), sorted(groups))

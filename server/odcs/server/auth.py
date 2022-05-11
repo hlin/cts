@@ -26,6 +26,7 @@ from functools import wraps
 import requests
 import ldap
 import flask
+import six
 
 from itertools import chain
 
@@ -145,7 +146,10 @@ def query_ldap_groups(uid):
         filterstr="memberUid={0}".format(uid),
     )
 
-    group_names = list(chain(*[info["cn"] for _, info in groups]))
+    group_names = [
+        g.decode() if six.PY3 else g
+        for g in list(chain(*[info["cn"] for _, info in groups]))
+    ]
     return group_names
 
 
