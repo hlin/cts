@@ -1,9 +1,7 @@
 futures
-funcsigs
 flufl.lock
 kobo
 psutil
-httplib2
 pyOpenSSL
 # qpid-python  # Python2 only; not necessary; just to hide warning messages
 six
