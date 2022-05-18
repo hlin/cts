@@ -60,7 +60,7 @@ def init_config(app):
             "nosetests" in arg
             or "noserunner.py" in arg
             or "py.test" in arg
-            or "pytest.py" in arg
+            or "pytest" in arg
             for arg in sys.argv
         ]
     ):
