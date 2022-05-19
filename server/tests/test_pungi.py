@@ -450,9 +450,7 @@ class TestPungi(ModelsBaseTest):
     def tearDown(self):
         super(TestPungi, self).tearDown()
 
-        self.patch_clone_repo.stop()
-        self.patch_makedirs.stop()
-        self.patch_ci_dump.stop()
+        patch.stopall()
 
         shutil.rmtree(self.compose.toplevel_dir)
 

@@ -19,3 +19,4 @@ koji
 python-ldap
 celery
 prometheus_client
+Werkzeug <= 2.0.3  # Newer version dropped python3.6 support and removed a func needed by Flask-Login
