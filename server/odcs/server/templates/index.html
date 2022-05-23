@@ -3,14 +3,86 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <title>On Demand Compose Service</title>
+    <style>
+  .center {
+    margin: auto;
+    text-align: center;
+    padding: 200px 0;
+  }
+
+  h1 {
+    font-family: "Red Hat Display";
+    font-size: 40px;
+    margin: 24px 0px;
+  }
+
+  p {
+    font-family: "Red Hat Text";
+    font-size: 20px;
+  }
+
+  .button {
+    display: inline-block;
+    margin: 24px 0px 0px 0px; /*top, right, bottom, and left*/
+
+    border-radius: 8px;
+
+    padding: 16px 32px;
+    cursor: pointer;
+  }
+
+  .btn-text {
+    font-family: "Red Hat Text";
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .button:hover {
+    transition: .3s cubic-bezier(.5,0,.5,1);
+  }
+
+  .button.primary {
+    background-color: #0066cc;
+    color: white;
+
+    border: 1px solid #0066cc;
+  }
+
+  .button.primary:hover {
+    background-color: #004d99;
+  }
+
+  .button.secondary {
+    background-color: white;
+    color: #0066cc;
+
+    border-color: #0066cc;
+    border: 1px solid #0066cc;
+
+    margin-left: 24px;
+  }
+
+  .button.secondary:hover {
+    background-color: #0066cc;
+    color: white;
+  }
+
+  .lnk-margins {
+      display: inline-block;
+      margin: 50px 0px 0px 0px; /*top, right, bottom, and left*/
+  }
+    </style>
   </head>
   <body>
-    <h1>On Demand Compose Service</h1>
-    <p>
-    The ODCS (On Demand Compose Service) is a service that generates temporary
-    composes using REST API calls. It is an open source project available at
-    <a href="https://pagure.io/odcs">https://pagure.io/odcs</a>.
-    </p>
-    <h3><a href="{{ target_dir_url }}">Composes List</a></h3>
+    <div class="center">
+      <h1>On Demand Compose Service</h1>
+      <p>On Demand Compose Service (ODCS)<br> is a service that generates temporary composes <br>using REST API calls.</p>
+      <a class="button btn-text primary" href="https://pagure.io/odcs" target="_blank">Open repo</a>
+      <a class="button btn-text secondary" href="https://pagure.io/docs/odcs/" target="_blank">Read docs</a>
+      <br>
+      <a class="lnk-margins btn-text" href="{{ target_dir_url }}" target="_blank">Explore composes →</a>
+    </div>
   </body>
 </html>
