@@ -338,7 +338,12 @@ class ComposePromotion(object):
                 print("Continuing previous promote.")
 
         # copy the COMPOSE_ID file first
-        os.makedirs(args.target, exist_ok=True)
+        try:
+            os.makedirs(args.target)
+        except OSError as exc:
+            # Ignore existing directories.
+            if exc.errno != errno.EEXIST:
+                raise
         if not os.path.isfile(dst_compose_id):
             shutil.copyfile(src_compose_id, dst_compose_id)
 
