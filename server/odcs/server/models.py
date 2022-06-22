@@ -343,7 +343,7 @@ class Compose(ODCSBase):
         if not self.on_default_target_dir:
             return ""
 
-        return conf.target_dir_url + "/" + self.name
+        return os.path.join(conf.target_dir_url, self.name)
 
     @property
     def result_repo_dir(self):
@@ -365,9 +365,7 @@ class Compose(ODCSBase):
         if self.source_type == PungiSourceType.RAW_CONFIG:
             return ""
 
-        return (
-            conf.target_dir_url + "/" + os.path.join(self.name, "compose", "Temporary")
-        )
+        return os.path.join(conf.target_dir_url, self.name, "compose", "Temporary")
 
     @property
     def result_repofile_path(self):
@@ -390,10 +388,8 @@ class Compose(ODCSBase):
         if self.source_type == PungiSourceType.RAW_CONFIG:
             return ""
 
-        return (
-            conf.target_dir_url
-            + "/"
-            + os.path.join(self.name, "compose", "Temporary", self.name + ".repo")
+        return os.path.join(
+            conf.target_dir_url, self.name, "compose", "Temporary", self.name + ".repo"
         )
 
     @validates("state")
