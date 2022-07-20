@@ -67,7 +67,7 @@ setup(
         "Topic :: Software Development :: Build Tools",
     ],
     keywords="on demand compose service modularity fedora",
-    author="The Factory 2.0 Team",
+    author="The Compose Team",
     # TODO: Not sure which name would be used for mail alias,
     # but let's set this proactively to the new name.
     author_email="odcs-owner@fedoraproject.org",
