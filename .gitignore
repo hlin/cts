@@ -10,3 +10,4 @@ tests/test_odcs.db
 odcs.db
 .vagrant
 .idea
+.env
