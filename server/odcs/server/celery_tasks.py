@@ -134,7 +134,7 @@ class TaskRouter:
             # if the rule has no properties its an automatic match.
             if rule:
                 for key, value in rule.items():
-                    if not compose_md.get(key):
+                    if key not in compose_md:
                         raise ValueError(
                             (
                                 "Task Router: Routing rule for queue %s for task %s contains an "
