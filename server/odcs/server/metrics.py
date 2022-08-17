@@ -89,7 +89,6 @@ class ComposesCollector(object):
             .group_by(Compose.source)
             .all()
         )
-
         sources = {}
         for source, count in composes:
             if count < 5:
@@ -105,9 +104,37 @@ class ComposesCollector(object):
 
         return counter
 
+    def raw_config_types(self):
+        """
+        Returns `raw_config_composes` CounterMetricFamily with number of composes
+        for each source and state.
+        """
+        counter = CounterMetricFamily(
+            "raw_config_composes",
+            "State with count",
+            labels=["source", "state"],
+        )
+        sources = (
+            Compose.query.with_entities(Compose.source)
+            .filter(Compose.source_type == PUNGI_SOURCE_TYPE_NAMES["raw_config"])
+            .group_by(Compose.source)
+            .all()
+        )
+
+        for source in sources:
+            source = source[0]
+            for state in COMPOSE_STATES:
+                count = Compose.query.filter(
+                    Compose.source == source,
+                    Compose.state == COMPOSE_STATES[state],
+                ).count()
+                counter.add_metric([source, state], count)
+        return counter
+
     def collect(self):
         yield self.composes_total()
         yield self.raw_config_composes_count()
+        yield self.raw_config_types()
 
 
 class WorkerCountThread(threading.Thread):
