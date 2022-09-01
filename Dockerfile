@@ -60,5 +60,4 @@ COPY . .
 RUN pip3 install . --no-deps
 
 WORKDIR /tmp
-USER 1001
 EXPOSE 8080

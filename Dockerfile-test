@@ -1,33 +1,16 @@
-FROM fedora:33
+FROM quay.io/exd-guild-compose/odcs:latest
 LABEL \
     name="ODCS test" \
     description="Run tests using tox" \
     vendor="ODCS developers" \
-    license="GPLv2+" \
-    build-date=""
+    license="GPLv2+"
 
 RUN dnf -y update && dnf -y install \
-        bzip2 \
-        bzip2-devel \
-        cairo-gobject-devel \
-        createrepo_c \
         gcc \
-        git \
-        gobject-introspection-devel \
-        koji \
         krb5-devel \
-        openldap-devel \
-        openssl-devel \
-        python-devel \
-        python3-cairo-devel \
+        python3-sphinx \
+        python3-sphinxcontrib-httpdomain \
         python3-tox \
-        readline-devel \
-        redhat-rpm-config \
-        sqlite \
-        sqlite-devel \
-        swig \
-        tk-devel \
-        zlib-devel \
     && dnf clean all
 
 WORKDIR /src
