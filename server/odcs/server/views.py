@@ -25,7 +25,6 @@ import datetime
 
 from flask.views import MethodView, View
 from flask import render_template, request, jsonify, g, Response
-from werkzeug.exceptions import BadRequest
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from odcs.server import app, db, log, conf, version
@@ -642,9 +641,9 @@ class ODCSAPI(MethodView):
         # can remove compose that is in state of 'done' or 'failed'
         deletable_states = {n: COMPOSE_STATES[n] for n in ["done", "failed"]}
         if compose.state not in deletable_states.values():
-            raise BadRequest(
+            raise ValueError(
                 "Compose (id=%s) can not be removed, its state need to be in %s."
-                % (id, deletable_states.keys())
+                % (id, list(deletable_states.keys()))
             )
 
         # change compose.time_to_expire to now, so backend will
