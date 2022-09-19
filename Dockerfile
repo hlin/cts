@@ -57,6 +57,7 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
     fi
 
 COPY . .
+RUN sed -i -e "s/version=.*/version='$(./get-version.sh)',/" setup.py
 RUN pip3 install . --no-deps
 
 WORKDIR /tmp
