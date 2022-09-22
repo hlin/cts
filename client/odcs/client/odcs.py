@@ -27,7 +27,7 @@ import requests
 import time
 
 from six.moves import urllib_parse
-from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+from requests_gssapi import HTTPKerberosAuth, OPTIONAL
 
 
 class AuthMech(object):

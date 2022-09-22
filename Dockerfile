@@ -41,7 +41,7 @@ RUN dnf -y --setopt=install_weak_deps=False update \
         python3-psycopg2 \
         python3-pyOpenSSL \
         python3-requests \
-        python3-requests-kerberos \
+        python3-requests-gssapi \
         python3-six \
         python3-sqlalchemy \
         python3-systemd \

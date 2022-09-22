@@ -1,5 +1,5 @@
 pyOpenSSL
 # qpid-python  # Python2 only; not necessary; just to hide warning messages
 six
-requests-kerberos
+requests-gssapi
 requests
