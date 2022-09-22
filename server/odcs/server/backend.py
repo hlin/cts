@@ -1259,7 +1259,9 @@ def generate_compose(compose_id, lost_compose=False):
 
             try:
                 pungi_logs = PungiLogs(compose)
-                state_reason += "\n{}".format(pungi_logs.get_error_string())
+                pungi_errors = pungi_logs.get_error_string()
+                if pungi_errors:
+                    state_reason += "\n{}".format(pungi_errors)
             except Exception:
                 log.exception("Exception raised when getting Pungi logs.")
 
