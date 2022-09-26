@@ -539,8 +539,10 @@ class Compose(ODCSBase):
         if to_state in (COMPOSE_STATES["done"], COMPOSE_STATES["failed"]):
             ttl = self.time_to_expire - self.time_submitted
             self.time_to_expire = (happen_on or datetime.utcnow()) + ttl
-            for reusing in self.get_reusing_composes():
-                reusing.transition(to_state, reason, happen_on=self.time_done)
+            with db.session.no_autoflush:
+                # Disable autoflush to avoid issue - raised as a result of Query-invoked autoflush;
+                for reusing in self.get_reusing_composes():
+                    reusing.transition(to_state, reason, happen_on=self.time_done)
         db.session.commit()
 
 

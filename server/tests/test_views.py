@@ -20,6 +20,7 @@
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
 
+import re
 import six
 import contextlib
 import json
@@ -1949,6 +1950,32 @@ class TestViews(ViewBaseTest):
         db.session.expire_all()
         c = db.session.query(Compose).filter(Compose.id == 1).one()
         self.assertEqual(c.state, COMPOSE_STATES["wait"])
+
+    @patch("odcs.server.views.CELERY_AVAILABLE", new=True)
+    @patch("odcs.server.views.conf.celery_broker_url", new="dummyhost")
+    def test_celery_broker_outage(self):
+        with self.test_request_context(user="dev"):
+            flask.g.oidc_scopes = [
+                "{0}{1}".format(conf.oidc_base_namespace, "new-compose")
+            ]
+
+            rv = self.client.post(
+                "/api/1/composes/",
+                data=json.dumps(
+                    {"source": {"type": "module", "source": "testmodule:master"}}
+                ),
+            )
+            data = json.loads(rv.get_data(as_text=True))
+
+        self.assertEqual(data["status"], 500)
+
+        compose_id = re.search(
+            r"Can not schedule compose (\d+) probably due", data["message"]
+        ).group(1)
+        rv = self.client.get("/api/1/composes/{}".format(compose_id))
+        self.assertEqual(
+            COMPOSE_STATES["failed"], json.loads(rv.get_data(as_text=True))["state"]
+        )
 
 
 class TestExtendExpiration(ViewBaseTest):

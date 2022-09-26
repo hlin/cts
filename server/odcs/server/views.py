@@ -112,10 +112,12 @@ class ODCSAPI(MethodView):
         try:
             schedule_compose(compose)
         except Exception as e:
-            raise RuntimeError(
+            reason = (
                 "Can not schedule compose %d probably due to celery broker issue - %s"
                 % (compose.id, str(e))
             )
+            compose.transition(COMPOSE_STATES["failed"], reason)
+            raise RuntimeError(reason)
 
     @cors_header()
     def get(self, id):
