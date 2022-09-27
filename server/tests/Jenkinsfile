@@ -47,6 +47,8 @@ podman run --rm -v .:/src:Z quay.io/exd-guild-compose/odcs-test tox -r
                         sh "ssh -o StrictHostKeyChecking=no root@$hostname mkdir $remote_dir"
                         sh "scp job.sh root@$hostname:$remote_dir"
                         sh "ssh root@$hostname sh $remote_dir/job.sh"
+                        sh "scp -r root@$hostname:$remote_dir/odcs/htmlcov ."
+                        archiveArtifacts artifacts: 'htmlcov/**'
                     } finally {
                         if (DUFFY_SESSION_ID) {
                             echo "Release duffy node ..."
