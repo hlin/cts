@@ -326,14 +326,26 @@ wait_parser.add_argument("compose_id", default=None, help="ODCS compose id")
 wait_parser.add_argument("--watch", action="store_true", help="Watch compose logs")
 
 
-delete_parser = subparsers.add_parser("delete", help="delete compose")
+delete_parser = subparsers.add_parser(
+    "delete",
+    help="delete compose",
+    description=(
+        "Cancel compose in wait state or mark finished compose as expired "
+        "for ODCS backends to remove compose data later from ODCS storage. "
+        "Note that compose metadata stored in database won't be removed and always "
+        "accessable via 'odcs get' command."
+    ),
+)
 delete_parser.set_defaults(command="delete")
 delete_parser.add_argument("compose_id", default=None, help="ODCS compose id")
 
 renew_parser = subparsers.add_parser(
     "renew",
     help="renew compose",
-    description="This compose will have the same package versions as the original compose.",
+    description=(
+        "Extends the compose expiration time or regenerates expired/failed compose. "
+        "The regenerated compose will have the same package versions as the original compose."
+    ),
 )
 renew_parser.set_defaults(command="renew")
 renew_parser.add_argument("compose_id", default=None, help="ODCS compose id")
