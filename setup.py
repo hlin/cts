@@ -61,7 +61,7 @@ setup(
     description="On Demand Compose Service",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version="0.3.7",
+    version="0.3.8",
     classifiers=[
         "Programming Language :: Python",
         "Topic :: Software Development :: Build Tools",

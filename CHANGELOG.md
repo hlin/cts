@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.8
+  - Release date: 2022-09-29
+  - server: Mark compose as failed on scheduling error
+  - server: Do not append newline to state_reason when no errors from pungi log
+  - server: Fix escaping issue in Bad Request error message
+  - server: Add new metrics for raw_config source
+  - server: Update Dockerfile
+  - server: Add compose id to scheduling error message
+  - server: Fix routing rule checking
+  - server: Fix hardcoded path
+  - server: Added CSS to index.html
+  - server: Fix python 2 compatibility in promote script
+  - server: Convert ldap query result from bytes to str
+  - server: Print mbs url when query failed
+  - server: Check existence of target_dir in runtime
+  - server: Use conf.target_dir_url in home page
+  - client: Replace requests-kerberos with requests-gssapi
+  - client: Improve help message of renew and delete commands
+  - client: Return 1 if the generated compose is failed
+  - tests: Generate html coverage report in CI job
+  - tests: Update Dockerfile-test
+  - tests: Add docs env to tox.ini
+  - tests: Add Jenkinsfile for CI
+  - tests: Fix tests for rhel 8 build
+  - tests: Check pytest for TestConfiguration
+  - cleanup: Add .env to gitignore
+  - cleanup: Update author in setup.py
+  - cleanup: Remove funcsigs and httplib2 from requirements.txt
+  - cleanup: Remove python-fedora from requirements.txt
+
 ## 0.3.7
   - Release date: 2022-04-22
   - server: Add compose_id attribute when the compose is re-used
