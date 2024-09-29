@@ -38,11 +38,11 @@ from sqlalchemy import event
 from sqlalchemy.orm import backref
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import FlushError
-from flask_sqlalchemy import SignallingSession
+from flask_sqlalchemy.session import Session
 
-event.listen(SignallingSession, "after_flush", cache_composes_if_state_changed)
+event.listen(Session, "after_flush", cache_composes_if_state_changed)
 
-event.listen(SignallingSession, "after_commit", start_to_publish_messages)
+event.listen(Session, "after_commit", start_to_publish_messages)
 
 
 def commit_on_success(func):
