@@ -19,7 +19,7 @@
 # SOFTWARE.
 #
 # Written by Jan Kaluza <jkaluza@redhat.com>
-""" Defines custom exceptions and error handling functions """
+"""Defines custom exceptions and error handling functions"""
 
 
 class NotFound(ValueError):
